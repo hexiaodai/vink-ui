@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Button, Space, Card, Alert, Input, Form, FormInstance, Descriptions, DescriptionsProps, Flex, Table, Divider } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
-import { DataVolume } from '@/apis/management/datavolume/v1alpha1/datavolume.pb'
+import { DataVolume } from '@kubevm.io/vink/management/datavolume/v1alpha1/datavolume.pb'
 import { IconFont } from '@/common/icon'
 import AddRootDisk from '@/pages/virtualmachine/create/add-root-disk'
 import { formatMemory, namespaceNamed } from '@/utils/k8s'

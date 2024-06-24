@@ -1,4 +1,4 @@
-import { ListVirtualMachinesRequest, VirtualMachine, VirtualMachineManagement } from "@/apis/management/virtualmachine/v1alpha1/virtualmachine.pb"
+import { ListVirtualMachinesRequest, VirtualMachine, VirtualMachineManagement } from "@kubevm.io/vink/management/virtualmachine/v1alpha1/virtualmachine.pb"
 import { ListOptions } from "@/utils/search"
 import { useCallback, useEffect, useState } from "react"
 import { useErrorNotification } from '@/common/notification'

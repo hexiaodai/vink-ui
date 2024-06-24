@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { LoadingOutlined, SyncOutlined } from '@ant-design/icons'
 import { Table, Spin, TableProps, Tooltip, Space, Button, Input, Drawer, Flex } from 'antd'
-import type { DataVolume } from '@/apis/management/datavolume/v1alpha1/datavolume.pb'
+import type { DataVolume } from '@kubevm.io/vink/management/datavolume/v1alpha1/datavolume.pb'
 import { NameFieldSelector } from '@/utils/search.ts'
 import { DiskLabelSelector } from '@/utils/search.ts'
 import { TableRowSelection } from 'antd/es/table/interface'

@@ -1,4 +1,4 @@
-import { DataVolume, DataVolumeManagement, ListDataVolumesRequest } from "@/apis/management/datavolume/v1alpha1/datavolume.pb"
+import { DataVolume, DataVolumeManagement, ListDataVolumesRequest } from "@kubevm.io/vink/management/datavolume/v1alpha1/datavolume.pb"
 import { ListOptions } from "@/utils/search"
 import { useCallback, useEffect, useRef, useState } from "react"
 

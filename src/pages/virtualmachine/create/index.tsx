@@ -5,9 +5,9 @@ import BasicInformation from '@/pages/virtualmachine/create/basic-information'
 import OperatingSystem from '@/pages/virtualmachine/create/operating-system'
 import CPUMemory from '@/pages/virtualmachine/create/cpu-mem'
 import Storage from '@/pages/virtualmachine/create/storage'
-import { VirtualMachineManagement } from '@/apis/management/virtualmachine/v1alpha1/virtualmachine.pb'
+import { VirtualMachineManagement } from '@kubevm.io/vink/management/virtualmachine/v1alpha1/virtualmachine.pb'
 
-import type { CreateVirtualMachineRequest } from '@/apis/management/virtualmachine/v1alpha1/virtualmachine.pb'
+import type { CreateVirtualMachineRequest } from '@kubevm.io/vink/management/virtualmachine/v1alpha1/virtualmachine.pb'
 import { useErrorNotification } from '@/common/notification'
 import { sleep } from '@/utils/time'
 

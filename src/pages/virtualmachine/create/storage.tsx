@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Form, InputNumber, Input, Space, Card, Button, FormInstance, Table, TableProps, Tooltip } from 'antd'
 import { PlusOutlined, MinusCircleOutlined } from '@ant-design/icons'
 import AddDataDisk from '@/pages/virtualmachine/create/add-data-disk'
-import type { DataVolume } from '@/apis/management/datavolume/v1alpha1/datavolume.pb'
+import type { DataVolume } from '@kubevm.io/vink/management/datavolume/v1alpha1/datavolume.pb'
 import { formatMemory, namespaceNamed } from '@/utils/k8s'
 
 interface StorageProps {

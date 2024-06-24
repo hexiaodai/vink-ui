@@ -1,4 +1,4 @@
-import { ListNamespacesRequest, Namespace, NamespaceManagement } from "@/apis/management/namespace/v1alpha1/namespace.pb"
+import { ListNamespacesRequest, Namespace, NamespaceManagement } from "@kubevm.io/vink/management/namespace/v1alpha1/namespace.pb"
 import { ListOptions } from "@/utils/search"
 import { useCallback, useEffect, useState } from "react"
 import { useErrorNotification } from '@/common/notification'
