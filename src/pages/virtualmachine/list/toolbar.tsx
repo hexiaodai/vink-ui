@@ -1,7 +1,7 @@
 import { Space, Input, Button, Flex, Dropdown, MenuProps, Drawer } from 'antd'
 import { SyncOutlined, PlusOutlined, PlayCircleOutlined, PoweroffOutlined, SettingOutlined, DownOutlined } from '@ant-design/icons'
 import { ListOptions, NameFieldSelector } from '@/utils/search'
-import { VirtualMachine } from '@/apis/management/virtualmachine/v1alpha1/virtualmachine.pb'
+import { VirtualMachine } from '@kubevm.io/vink/management/virtualmachine/v1alpha1/virtualmachine.pb'
 import { useState } from 'react'
 import commonStyles from '@/common/styles/common.module.less'
 

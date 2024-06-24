@@ -1,4 +1,4 @@
-import type { DataVolume } from "@/apis/management/datavolume/v1alpha1/datavolume.pb"
+import type { DataVolume } from "@kubevm.io/vink/management/datavolume/v1alpha1/datavolume.pb"
 
 const group = 'vink.io'
 

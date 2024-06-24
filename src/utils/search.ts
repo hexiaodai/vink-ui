@@ -1,4 +1,4 @@
-import type { ListOptions as APIListOptions } from '@/apis/common/common.pb'
+import type { ListOptions as APIListOptions } from '@kubevm.io/vink/common/common.pb'
 import { osFamilyLabel, diskTypeLabel } from '@/utils/k8s.ts'
 
 export type ListOptions = {
