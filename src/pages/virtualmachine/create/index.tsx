@@ -6,10 +6,8 @@ import OperatingSystem from '@/pages/virtualmachine/create/operating-system'
 import CPUMemory from '@/pages/virtualmachine/create/cpu-mem'
 import Storage from '@/pages/virtualmachine/create/storage'
 import { VirtualMachineManagement } from '@kubevm.io/vink/management/virtualmachine/v1alpha1/virtualmachine.pb'
-
-import type { CreateVirtualMachineRequest } from '@kubevm.io/vink/management/virtualmachine/v1alpha1/virtualmachine.pb'
 import { useErrorNotification } from '@/common/notification'
-import { sleep } from '@/utils/time'
+import type { CreateVirtualMachineRequest, VirtualMachineConfigStorageDataVolume } from '@kubevm.io/vink/management/virtualmachine/v1alpha1/virtualmachine.pb'
 
 const Create: React.FC = () => {
     const [form] = Form.useForm()
@@ -34,25 +32,30 @@ const Create: React.FC = () => {
 
     const handleSubmit = async (values: any) => {
         setLoading(true)
+        const dataVolumes: VirtualMachineConfigStorageDataVolume[] = []
+        values.dataVolumes.forEach((item: any) => {
+            dataVolumes.push({ ref: { name: item.name, namespace: item.namespace } })
+        })
         try {
             const request: CreateVirtualMachineRequest = {
                 namespace: values.namespace,
                 name: values.name,
                 config: {
                     storage: {
-                        bootDisk: {
-                            dataVolumeRef: {
-                                namespace: values.os.namespace,
-                                name: values.os.name
+                        root: {
+                            ref: {
+                                namespace: values.operatingSystem?.namespace,
+                                name: values.operatingSystem?.name
                             },
-                            // FIXME:
-                            capacity: values.rootdisk + "Gi",
+                            // TODO: 
+                            capacity: values.rootVolumeCapacity + "Gi",
                             storageClassName: "local-path"
-                        }
+                        },
+                        data: dataVolumes,
                     },
-                    resources: {
+                    compute: {
                         cpuCores: values.cpu,
-                        // FIXME:
+                        // TODO:
                         memory: values.memory + "Gi"
                     },
                     userConfig: {
@@ -60,7 +63,7 @@ const Create: React.FC = () => {
                     }
                 }
             }
-            const response = await VirtualMachineManagement.CreateVirtualMachine(request)
+            await VirtualMachineManagement.CreateVirtualMachine(request)
         } catch (err) {
             showErrorNotification('Create VirtualMachine', err)
         } finally {

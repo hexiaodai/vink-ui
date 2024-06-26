@@ -4,7 +4,7 @@ import { PlusOutlined } from '@ant-design/icons'
 import { DataVolume } from '@kubevm.io/vink/management/datavolume/v1alpha1/datavolume.pb'
 import { IconFont } from '@/common/icon'
 import AddRootDisk from '@/pages/virtualmachine/create/add-root-disk'
-import { formatMemory, namespaceNamed } from '@/utils/k8s'
+import { formatMemory } from '@/utils/k8s'
 import styles from '@/pages/virtualmachine/create/styles/operating-system.module.less'
 
 interface NamespaceProps {
@@ -68,11 +68,6 @@ const OperatingSystem: React.FC<NamespaceProps> = ({ namespace, form }) => {
                 return `${value} ${unit}`
             })(),
         },
-        // {
-        //     key: 'description',
-        //     label: '描述',
-        //     children: 'this is a test',
-        // },
     ]
 
     return (
@@ -81,11 +76,6 @@ const OperatingSystem: React.FC<NamespaceProps> = ({ namespace, form }) => {
             title={
                 <Space>
                     <span>系统镜像</span>
-                    {/* <Button
-                        type="text"
-                        icon={<PlusOutlined />}
-                        onClick={() => console.log('click')}
-                    >创建系统镜像</Button> */}
                     <Button
                         type="text"
                         icon={<PlusOutlined />}

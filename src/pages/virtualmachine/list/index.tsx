@@ -4,9 +4,10 @@ import { LoadingOutlined, EllipsisOutlined } from '@ant-design/icons'
 import { sleep } from '@/utils/time.ts'
 import { extractIPFromCIDR } from '@/utils/ip.ts'
 import { VirtualMachineManagement, ManageVirtualMachinePowerStateRequestPowerState } from '@kubevm.io/vink/management/virtualmachine/v1alpha1/virtualmachine.pb'
-import { getOperatingSystem, formatOSFamily, formatMemory, statusMap, DefaultNamespace, namespaceNamed } from '@/utils/k8s'
+import { formatOSFamily, formatMemory, statusMap, DefaultNamespace, namespaceNamed } from '@/utils/k8s'
+import { getOperatingSystemFromDataVolume } from '@/utils/operating-system'
 import { IconFont } from '@/common/icon'
-import { useVirtualMachines } from '@/hook/virtualmachines'
+import { useVirtualMachines } from '@/apis/virtualmachines'
 import { useErrorNotification } from '@/common/notification'
 
 import type { MenuProps, TableProps } from 'antd'
@@ -105,7 +106,7 @@ const List = () => {
                 showTitle: false,
             },
             render: (_, vm) => {
-                const info = getOperatingSystem(vm.virtualMachineDisk?.root?.metadata?.labels || {})
+                const info = getOperatingSystemFromDataVolume(vm.virtualMachineDataVolume?.root || {})
                 return (
                     <Flex justify="flex-start" align="center">
                         <IconFont type={`icon-${info.family}`} className={styles.operatingSystemIcon} />

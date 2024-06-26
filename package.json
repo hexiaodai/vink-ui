@@ -10,7 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@kubevm.io/vink": "^0.0.0-4b878cc6",
+    "@kubevm.io/vink": "^0.0.0-077b89a5",
     "antd": "^5.18.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
