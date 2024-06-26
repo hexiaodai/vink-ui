@@ -5,7 +5,7 @@ import { DiskLabelSelector, LabelsSelectorString, NameFieldSelector, OSFamilyLab
 import { namespaceNamed, formatMemory, formatOSFamily, GetDescription, getOperatingSystem } from '@/utils/k8s'
 import { IconFont } from '@/common/icon'
 import type { DataVolume } from '@kubevm.io/vink/management/datavolume/v1alpha1/datavolume.pb'
-import { useDataVolumes } from '@/hook/datavolume'
+import { useDataVolumes } from '@/apis/datavolume'
 import formItemStyles from '@/common/styles/form-item.module.less'
 import styles from '@/pages/virtualmachine/create/styles/add-root-disk.module.less'
 

@@ -5,7 +5,7 @@ import type { DataVolume } from '@kubevm.io/vink/management/datavolume/v1alpha1/
 import { NameFieldSelector } from '@/utils/search.ts'
 import { DiskLabelSelector } from '@/utils/search.ts'
 import { TableRowSelection } from 'antd/es/table/interface'
-import { useDataVolumes } from '@/hook/datavolume'
+import { useDataVolumes } from '@/apis/datavolume'
 import { formatMemory, namespaceNamed } from '@/utils/k8s'
 import formItemStyles from '@/common/styles/form-item.module.less'
 import styles from '@/pages/virtualmachine/create/styles/add-data-disk.module.less'
@@ -34,14 +34,6 @@ const columns: TableProps<DataVolume>['columns'] = [
         },
         render: (_, record) => (<Tooltip title={record.name}>{record.name}</Tooltip>)
     },
-    // {
-    //     title: '命名空间',
-    //     key: 'namespace',
-    //     ellipsis: {
-    //         showTitle: false,
-    //     },
-    //     render: (_, record) => (<Tooltip title={record.namespace}>{record.namespace}</Tooltip>)
-    // },
     {
         title: '容量',
         key: 'capacity',

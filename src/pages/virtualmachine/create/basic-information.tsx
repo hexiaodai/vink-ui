@@ -1,8 +1,7 @@
 import React from 'react'
-import { Button, Form, Input, Space, Select, Card } from 'antd'
-import { PlusOutlined } from '@ant-design/icons'
+import { Form, Input, Space, Select, Card } from 'antd'
 import { DefaultNamespace } from '@/utils/k8s'
-import { useNamespaces } from '@/hook/namespace'
+import { useNamespaces } from '@/apis/namespace'
 import formItemStyles from '@/common/styles/form-item.module.less'
 import { classNames } from '@/utils/utils'
 
@@ -43,13 +42,6 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ onSelectCallback })
                 title={
                     <Space>
                         <span>基本信息</span>
-                        {/* <Button
-                            type="text"
-                            icon={<PlusOutlined />}
-                            onClick={() => console.log('click')}
-                        >
-                            创建命名空间
-                        </Button> */}
                     </Space>
                 }
                 bordered={false}
