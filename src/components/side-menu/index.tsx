@@ -1,22 +1,21 @@
 import React, { useState } from 'react'
 import type { MenuProps } from 'antd'
 import { Menu } from 'antd'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { IconFont } from '@/components/icon/index'
-import Sider from 'antd/es/layout/Sider'
 import { DesktopOutlined, GlobalOutlined } from '@ant-design/icons'
+import Sider from 'antd/es/layout/Sider'
 
-interface SideMenuProps {
-  mainMenu: any
+interface SideMenuProps { }
+
+type ItemObject = {
+  key: string
+  items: Required<MenuProps>['items'][number][]
 }
 
-type MenuItem = {
-  values: Required<MenuProps>['items'][number][]
-  defaultSelected: string
-}
-
-const virtual: MenuItem = {
-  values: [
+const virtual: ItemObject = {
+  key: '/virtual',
+  items: [
     {
       key: '/virtual/machines',
       label: <Link to="/virtual/machines">虚拟机</Link>,
@@ -37,33 +36,38 @@ const virtual: MenuItem = {
       label: <Link to="/virtual/network">网络</Link>,
       icon: <GlobalOutlined />
     }
-  ],
-  defaultSelected: '/virtual/machines'
+  ]
 }
 
-const getMenuItems = (mainMenu: string) => {
-  switch (mainMenu) {
-    case 'virtual':
-      return virtual
-    default:
-      return { values: [], defaultSelected: '' }
-  }
-}
+const itemObjects = [virtual]
 
-const SideMenu: React.FC<SideMenuProps> = ({ mainMenu }) => {
+const SideMenu: React.FC<SideMenuProps> = () => {
   const [collapsed, setCollapsed] = useState(false)
 
-  const items = getMenuItems(mainMenu.key)
+  const location = useLocation()
+  const currentPath = location.pathname
+
+  const itemObject = itemObjects.find(obj => {
+    return currentPath.startsWith(obj?.key as string)
+  })
+
+  let defaultSelectedKey = itemObject?.items.find(item => {
+    return currentPath.startsWith(item?.key as string)
+  })?.key as string
+
+  if (defaultSelectedKey === undefined || defaultSelectedKey.length === 0) {
+    defaultSelectedKey = itemObject?.items[0]?.key as string
+  }
 
   return (
-    items?.values && items.values?.length > 0 ? (
+    itemObject?.items && itemObject.items.length > 0 ? (
       < Sider
         theme="light"
         collapsible
         collapsed={collapsed}
         onCollapse={setCollapsed}
       >
-        <Menu mode="inline" items={items.values} defaultSelectedKeys={[items.defaultSelected]} />
+        <Menu mode="inline" items={itemObject.items} defaultSelectedKeys={[defaultSelectedKey]} />
       </Sider >
     ) : null
   )

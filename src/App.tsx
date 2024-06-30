@@ -1,26 +1,23 @@
 import React, { useState } from 'react';
-import { Layout, theme } from 'antd'
+import { Layout } from 'antd'
 import MainMenu from '@/components/main-menu'
 import SideMenu from '@/components/side-menu'
 import AppRouter from '@/router/index'
+import styles from '@/App.module.less'
 
 const { Content } = Layout
 
 const App: React.FC = () => {
-  const {
-    token: { borderRadiusLG }
-  } = theme.useToken()
-
-  const [mainMenu, setMainMenu] = useState<any>({ key: 'vink' })
-
   return (
-    <Layout style={{ minHeight: '100vh' }}>
-      <MainMenu onSelect={(key: string) => setMainMenu(key)} />
+    <Layout className={styles.layout} >
+      <MainMenu />
       <Layout hasSider>
-        <SideMenu mainMenu={mainMenu} />
-        <Content style={{ borderRadius: borderRadiusLG }}>
-          <AppRouter />
-        </Content>
+        <SideMenu />
+        <Layout>
+          <Content>
+            <AppRouter />
+          </Content>
+        </Layout>
       </Layout>
     </Layout >
   )
