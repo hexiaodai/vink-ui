@@ -4,7 +4,7 @@ import { Menu } from 'antd'
 import { Link } from 'react-router-dom'
 import { IconFont } from '@/components/icon/index'
 import Sider from 'antd/es/layout/Sider'
-import { DesktopOutlined } from '@ant-design/icons'
+import { DesktopOutlined, GlobalOutlined } from '@ant-design/icons'
 
 interface SideMenuProps {
   mainMenu: any
@@ -30,12 +30,12 @@ const virtual: MenuItem = {
     {
       key: '/virtual/disks',
       label: <Link to="/virtual/disks">磁盘</Link>,
-      icon: <IconFont type="icon-guangpan" />
+      icon: <IconFont type="icon-disk" />
     },
     {
       key: '/virtual/network',
       label: <Link to="/virtual/network">网络</Link>,
-      icon: <IconFont type="icon-guangpan" />
+      icon: <GlobalOutlined />
     }
   ],
   defaultSelected: '/virtual/machines'
