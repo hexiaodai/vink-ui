@@ -7,7 +7,7 @@ export const osVersionLabel = group + '/os-version'
 export const descriptionLabel = group + '/description'
 export const diskTypeLabel = group + '/disk'
 
-export const DefaultNamespace = 'default'
+export const defaultNamespace = 'default'
 
 export const getOperatingSystem = (dv?: DataVolume): { family: string, version: string } => {
     const info = { family: 'linux', version: '' }
@@ -52,11 +52,7 @@ export const formatMemory = (value?: string): [string, string] => {
     return ['', '']
 }
 
-// export const namespaceNamed = (record: DataVolume) => {
-//     return `${record.namespace}/${record.name}`
-// }
-
-export const namespaceNamed = <T extends { namespace?: string; name?: string }>(obj: T) => {
+export const namespaceName = <T extends { namespace?: string; name?: string }>(obj: T) => {
     return `${obj.namespace}/${obj.name}`
 }
 

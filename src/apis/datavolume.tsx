@@ -1,18 +1,17 @@
 import { DataVolume, DataVolumeManagement, ListDataVolumesRequest } from "@kubevm.io/vink/management/datavolume/v1alpha1/datavolume.pb"
 import { ListOptions } from "@/utils/search"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
+import { useErrorNotification } from "@/components/notification"
 
 export const useDataVolumes = (initOpts: ListOptions) => {
     const [opts, setOpts] = useState<ListOptions>(initOpts)
     const [loading, setLoading] = useState(true)
     const [data, setData] = useState<DataVolume[]>([])
     const [error, setError] = useState<string>()
-    // const fetching = useRef(false)
+
+    const { contextHolder, showErrorNotification } = useErrorNotification()
 
     const fetchData = useCallback(async () => {
-        // if (fetching.current) return
-
-        // fetching.current = true
         setLoading(true)
         setError(undefined)
 
@@ -25,9 +24,9 @@ export const useDataVolumes = (initOpts: ListOptions) => {
             setData(response.items || [])
         } catch (err) {
             setError(String(err) || 'Error fetching data')
+            showErrorNotification('Fetch data volume', err)
         } finally {
             setLoading(false)
-            // fetching.current = false
         }
     }, [opts])
 
@@ -35,5 +34,5 @@ export const useDataVolumes = (initOpts: ListOptions) => {
         fetchData()
     }, [fetchData])
 
-    return { opts, setOpts, data, loading, error, fetchData }
+    return { opts, setOpts, data, loading, error, contextHolder, fetchData }
 }
