@@ -1,11 +1,11 @@
-import { ListNamespacesRequest, Namespace, NamespaceManagement } from "@kubevm.io/vink/management/namespace/v1alpha1/namespace.pb"
+import { ListVirtualMachinesRequest, VirtualMachine, VirtualMachineManagement } from "@kubevm.io/vink/management/virtualmachine/v1alpha1/virtualmachine.pb"
 import { ListOptions } from "@/utils/search"
 import { useCallback, useEffect, useState } from "react"
 import { useErrorNotification } from '@/components/notification'
 
-export const useNamespaces = (initOpts: ListOptions) => {
+export const useVirtualMachines = (initOpts: ListOptions) => {
     const [opts, setOpts] = useState<ListOptions>(initOpts)
-    const [data, setData] = useState<Namespace[]>([])
+    const [data, setData] = useState<VirtualMachine[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string>()
 
@@ -15,14 +15,15 @@ export const useNamespaces = (initOpts: ListOptions) => {
         setLoading(true)
         setError(undefined)
         try {
-            const request: ListNamespacesRequest = {
+            const request: ListVirtualMachinesRequest = {
+                namespace: opts.namespace,
                 options: opts.opts,
             }
-            const response = await NamespaceManagement.ListNamespaces(request)
+            const response = await VirtualMachineManagement.ListVirtualMachines(request)
             setData(response.items || [])
         } catch (err) {
             setError(String(err) || 'Error fetching data')
-            showErrorNotification('Fetch namespaces', err)
+            showErrorNotification('Fetch virtual machines', err)
         } finally {
             setLoading(false)
         }

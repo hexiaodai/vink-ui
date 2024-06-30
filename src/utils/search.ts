@@ -1,5 +1,7 @@
 import type { ListOptions as APIListOptions } from '@kubevm.io/vink/common/common.pb'
-import { osFamilyLabel, diskTypeLabel } from '@/utils/k8s.ts'
+// import { osFamilyLabel, diskTypeLabel } from '@/utils/k8s.ts'
+import { instances } from "@kubevm.io/vink/label/labels.gen.ts"
+
 
 export type ListOptions = {
     namespace?: string
@@ -41,25 +43,24 @@ export const NameFieldSelector = (name: string): string => {
     })
 }
 
-export const OSFamilyLabelSelector = (name: string): string => {
+export const virtualMachineOSLabelSelector = (name: string): string => {
     if (name.length === 0) {
         return ''
     }
     return LabelsSelector([{
-        key: osFamilyLabel,
+        key: instances.VinkVirtualmachineOs.name,
         operator: '=',
         value: name
     }])
 }
 
-export const DiskLabelSelector = (name: string): string => {
+export const dataVolumeTypeLabelSelector = (name: string) => {
     if (name.length === 0) {
         return ''
     }
     return LabelsSelector([{
-        key: diskTypeLabel,
+        key: instances.VinkDatavolumeType.name,
         operator: '=',
         value: name
     }])
 }
-
