@@ -27,7 +27,7 @@ const List = () => {
     const { opts, setOpts, data, loading, fetchData, contextHolder } = useDataVolumes({
         namespace: defaultNamespace, opts: {
             labelsSelector: LabelsSelectorString([
-                dataVolumeTypeLabelSelector('image')
+                dataVolumeTypeLabelSelector('data')
             ])
         }
     })
