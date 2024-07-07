@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Form, InputNumber, Space, Card, Button, FormInstance, Table, TableProps, Tooltip } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
-import AddDataDisk from '@/pages/virtual/machine/create/add-data-disk'
-import type { DataVolume } from '@kubevm.io/vink/management/datavolume/v1alpha1/datavolume.pb'
 import { formatMemory, namespaceName } from '@/utils/k8s'
+import type { DataVolume } from '@kubevm.io/vink/management/datavolume/v1alpha1/datavolume.pb'
+import AddDataDisk from '@/pages/virtual/machine/create/add-data-disk'
 import commonFormStyles from '@/common/styles/form.module.less'
 
 interface StorageProps {
@@ -11,66 +11,74 @@ interface StorageProps {
     form: FormInstance<any>
 }
 
+class StorageHandler {
+    private props: StorageProps
+
+    constructor(props: StorageProps) {
+        this.props = props
+    }
+
+    openDrawer = (setOpen: React.Dispatch<React.SetStateAction<boolean>>) => {
+        setOpen(true)
+    }
+
+    cancelDrawer = (setOpen: React.Dispatch<React.SetStateAction<boolean>>) => {
+        setOpen(false)
+    }
+
+    confirmDrawer = (setOpen: React.Dispatch<React.SetStateAction<boolean>>, setDataVolumes: React.Dispatch<React.SetStateAction<DataVolume[]>>, disks: DataVolume[]) => {
+        setDataVolumes(disks)
+        setOpen(false)
+    }
+
+    capacity = (dv: DataVolume) => {
+        const [value, unit] = formatMemory(dv.dataVolume?.spec?.pvc?.resources?.requests?.storage)
+        return `${value} ${unit}`
+    }
+
+    delete = (dv: DataVolume, dvs: DataVolume[], setDataVolumes: React.Dispatch<React.SetStateAction<DataVolume[]>>) => {
+        const newDataVolumes = dvs.filter(item => !(namespaceName(item) === namespaceName(dv)))
+        setDataVolumes(newDataVolumes)
+    }
+
+    setDataVolumes = (dvs: DataVolume[]) => {
+        this.props.form.setFieldsValue({
+            dataVolumes: dvs
+        })
+    }
+}
+
 const Storage: React.FC<StorageProps> = ({ namespace, form }) => {
+    const handler = new StorageHandler({ namespace, form })
+
     const [open, setOpen] = useState(false)
     const [dataVolumes, setDataVolumes] = useState<DataVolume[]>([])
 
     useEffect(() => {
-        form.setFieldsValue({
-            dataVolumes: dataVolumes
-        })
+        handler.setDataVolumes(dataVolumes)
     }, [dataVolumes])
-
 
     const columns: TableProps<DataVolume>['columns'] = [
         {
             title: '名称',
             key: 'name',
-            ellipsis: {
-                showTitle: false,
-            },
-            render: (_, dv) => (<Tooltip title={dv.name}>{dv.name}</Tooltip>)
+            ellipsis: true,
+            render: (_, dv) => (<>{dv.name}</>)
         },
         {
             title: '容量',
             key: 'capacity',
-            ellipsis: {
-                showTitle: false,
-            },
-            render: (_, dv) => {
-                const [value, uint] = formatMemory(dv.dataVolume?.spec?.pvc?.resources?.requests?.storage)
-                const capacity = `${value} ${uint}`
-                return (<Tooltip title={capacity}>{capacity}</Tooltip>)
-            }
+            ellipsis: true,
+            render: (_, dv) => handler.capacity(dv)
         },
         {
             title: '操作',
             key: 'action',
             width: 100,
             align: 'center',
-            render: (_, dv) => (
-                <a onClick={() => {
-                    const newDataVolumes = dataVolumes.filter(item => !(namespaceName(item) === namespaceName(dv)))
-                    setDataVolumes(newDataVolumes)
-                }}>
-                    删除
-                </a>
-            )
+            render: (_, dv) => (<a onClick={() => handler.delete(dv, dataVolumes, setDataVolumes)}>删除</a>)
         }
     ]
-
-    const handleCanel = () => {
-        setOpen(false)
-    }
-
-    const handleConfirm = (dvs: DataVolume[]) => {
-        setOpen(false)
-        setDataVolumes(dvs)
-    }
-
-    const handleAddDataDisk = () => {
-        setOpen(true)
-    }
 
     return (
         <Card title={
@@ -79,7 +87,7 @@ const Storage: React.FC<StorageProps> = ({ namespace, form }) => {
                 <Button
                     type="text"
                     icon={<PlusOutlined />}
-                    onClick={handleAddDataDisk}
+                    onClick={() => handler.openDrawer(setOpen)}
                 >添加数据盘</Button>
             </Space>}
             bordered={false}
@@ -117,8 +125,8 @@ const Storage: React.FC<StorageProps> = ({ namespace, form }) => {
                         open={open}
                         namespace={namespace}
                         current={dataVolumes}
-                        onCanelCallback={handleCanel}
-                        onConfirmCallback={handleConfirm}
+                        onCanelCallback={() => handler.cancelDrawer(setOpen)}
+                        onConfirmCallback={(disks: DataVolume[]) => handler.confirmDrawer(setOpen, setDataVolumes, disks)}
                     />
                 )
             }

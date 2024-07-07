@@ -1,33 +1,37 @@
 import { Dropdown, MenuProps, Modal } from 'antd'
 import { EllipsisOutlined } from '@ant-design/icons'
-import { ManageVirtualMachinePowerStateRequestPowerState, VirtualMachine, VirtualMachineManagement } from '@kubevm.io/vink/management/virtualmachine/v1alpha1/virtualmachine.pb'
-import { useErrorNotification } from '@/components/notification'
+import { ManageVirtualMachinePowerStateRequestPowerState, VirtualMachine } from '@kubevm.io/vink/management/virtualmachine/v1alpha1/virtualmachine.pb'
+import { useVirtualMachineNotification } from '@/components/notification'
+import { VirtualMachineManagement } from '@/apis-management/virtualmachine'
 import commonTableStyles from '@/common/styles/table.module.less'
 
-interface TableColumeProps {
+interface TableColumeActionProps {
     vm: VirtualMachine
 }
 
-const TableColumeAction: React.FC<TableColumeProps> = ({ vm }) => {
-    const { contextHolder, showErrorNotification } = useErrorNotification()
+interface Handler {
+    manageVirtualMachinePowerState: (state: ManageVirtualMachinePowerStateRequestPowerState) => void
+    deleteVirtualMachine: () => void
+    statusEqual: (status: string) => boolean
+}
 
-    const handlePowerState = async (vm: VirtualMachine, op: ManageVirtualMachinePowerStateRequestPowerState) => {
-        try {
-            const request = {
-                namespace: vm.namespace,
-                name: vm.name,
-                powerState: op,
-            }
-            await VirtualMachineManagement.ManageVirtualMachinePowerState(request)
-        } catch (err) {
-            showErrorNotification('Operate virtual machine power', err)
-        } finally { }
+class TableColumeActionHandler implements Handler {
+    private props: TableColumeActionProps
+    private notification: any
+
+    constructor(props: TableColumeActionProps, notification: any) {
+        this.props = props
+        this.notification = notification
     }
 
-    const handleDelete = async (vm: VirtualMachine) => {
+    manageVirtualMachinePowerState = async (state: ManageVirtualMachinePowerStateRequestPowerState) => {
+        await VirtualMachineManagement.ManageVirtualMachinePowerStateWithNotification(this.props.vm, state, this.notification)
+    }
+
+    deleteVirtualMachine = async () => {
         Modal.confirm({
             title: "删除虚拟机？",
-            content: `即将删除虚拟机 "${vm.namespace}/${vm.name}"，请确认。`,
+            content: `即将删除 "${this.props.vm.namespace}/${this.props.vm.name}" 虚拟机，请确认。`,
             okText: '确认删除',
             okType: 'danger',
             cancelText: '取消',
@@ -35,24 +39,21 @@ const TableColumeAction: React.FC<TableColumeProps> = ({ vm }) => {
                 disabled: false,
             },
             onOk: async () => {
-                await doDelete()
+                await VirtualMachineManagement.DeleteVirtualMachineWithNotification(this.props.vm, this.notification)
             },
-            onCancel() { },
+            onCancel() { }
         })
-
-        const doDelete = async () => {
-            try {
-                const request = {
-                    namespace: vm.namespace,
-                    name: vm.name,
-                }
-                await VirtualMachineManagement.DeleteVirtualMachine(request)
-            } catch (err) {
-                showErrorNotification('Delete virtual machine', err)
-            } finally {
-            }
-        }
     }
+
+    statusEqual = (status: string) => {
+        return this.props.vm.virtualMachine?.status?.printableStatus as string === status
+    }
+}
+
+const TableColumeAction: React.FC<TableColumeActionProps> = ({ vm }) => {
+    const { notificationContext, showVirtualMachineNotification } = useVirtualMachineNotification()
+
+    const handler = new TableColumeActionHandler({ vm }, showVirtualMachineNotification)
 
     const items: MenuProps['items'] = [
         {
@@ -61,18 +62,21 @@ const TableColumeAction: React.FC<TableColumeProps> = ({ vm }) => {
             children: [
                 {
                     key: 'start',
-                    onClick: () => handlePowerState(vm, ManageVirtualMachinePowerStateRequestPowerState.ON),
-                    label: "启动"
+                    onClick: () => handler.manageVirtualMachinePowerState(ManageVirtualMachinePowerStateRequestPowerState.ON),
+                    label: "启动",
+                    disabled: handler.statusEqual("Running")
                 },
                 {
                     key: 'restart',
-                    onClick: () => handlePowerState(vm, ManageVirtualMachinePowerStateRequestPowerState.UNSPECIFIED),
-                    label: "重启"
+                    onClick: () => handler.manageVirtualMachinePowerState(ManageVirtualMachinePowerStateRequestPowerState.UNSPECIFIED),
+                    label: "重启",
+                    disabled: true
                 },
                 {
                     key: 'stop',
-                    onClick: () => handlePowerState(vm, ManageVirtualMachinePowerStateRequestPowerState.OFF),
-                    label: "关机"
+                    onClick: () => handler.manageVirtualMachinePowerState(ManageVirtualMachinePowerStateRequestPowerState.OFF),
+                    label: "关机",
+                    disabled: handler.statusEqual("Stopped")
                 }
             ]
         },
@@ -95,14 +99,15 @@ const TableColumeAction: React.FC<TableColumeProps> = ({ vm }) => {
         {
             key: 'delete',
             danger: true,
-            onClick: () => handleDelete(vm),
+            onClick: () => handler.deleteVirtualMachine(),
             label: "删除"
         }
     ]
+
     return (
         <div className={commonTableStyles['action-bar']} >
-            {contextHolder}
-            < Dropdown menu={{ items }} trigger={['click']}>
+            {notificationContext}
+            <Dropdown menu={{ items }} trigger={['click']}>
                 <EllipsisOutlined className={commonTableStyles['action-bar-icon']} />
             </Dropdown>
         </div >

@@ -61,7 +61,7 @@ const SideMenu: React.FC<SideMenuProps> = () => {
 
   return (
     itemObject?.items && itemObject.items.length > 0 ? (
-      < Sider
+      <Sider
         theme="light"
         collapsible
         collapsed={collapsed}

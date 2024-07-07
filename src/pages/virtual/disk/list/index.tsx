@@ -1,50 +1,75 @@
-import { useState } from 'react'
-import { Table, Tooltip, Space, Spin } from 'antd'
+import { useEffect, useState } from 'react'
+import { Table, Space, Spin } from 'antd'
 import { LoadingOutlined } from '@ant-design/icons'
 import { defaultNamespace, namespaceName } from '@/utils/k8s'
-import { useDataVolumes } from '@/apis/datavolume'
+import { DataVolumeManagement } from '@/apis-management/datavolume'
+import { TableRowSelection } from 'antd/es/table/interface'
+import { LabelsSelectorString, dataVolumeTypeLabelSelector } from '@/utils/search'
 import type { TableProps } from 'antd'
 import type { DataVolume } from '@kubevm.io/vink/management/datavolume/v1alpha1/datavolume.pb'
 import Toolbar from '@/pages/virtual/disk/list/toolbar'
-import { TableRowSelection } from 'antd/es/table/interface'
-import { LabelsSelectorString, dataVolumeTypeLabelSelector } from '@/utils/search'
 import TableColumnAction from '@/pages/virtual/disk/list/table-column-action'
 import TableColumnStatus from '@/pages/virtual/disk/list/table-column-status'
 import commonTableStyles from '@/common/styles/table.module.less'
+import TableColumnOperatingSystem from '@/components/table-column-operating-system'
 import TableColumnCapacity from '@/pages/virtual/disk/list/table-column-capacity'
+import { ListOptions } from '@kubevm.io/vink/common/common.pb'
 
 interface SelectedRow {
     keys: React.Key[]
     dvs: DataVolume[]
 }
 
-const addSelectedRow = (selectedRow: SelectedRow, vm: DataVolume) => {
-    selectedRow.keys.push(namespaceName(vm))
-    selectedRow.dvs.push(vm)
+interface Handler {
+    useDataVolumes: (namespace: string, opts: ListOptions) => any
+    calculationSelectedRow: (keys: React.Key[], dvs: DataVolume[]) => SelectedRow
+}
+
+class DataVolumeListHandler implements Handler {
+    private addSelectedRow = (selectedRow: SelectedRow, dv: DataVolume) => {
+        selectedRow.keys.push(namespaceName(dv))
+        selectedRow.dvs.push(dv)
+    }
+
+    useDataVolumes = (namespace: string, initOpts: ListOptions) => {
+        return DataVolumeManagement.UseDataVolumes({ namespace: namespace, opts: initOpts })
+    }
+
+    calculationSelectedRow = (keys: React.Key[], dvs: DataVolume[]) => {
+        const newSelectedRow: SelectedRow = { keys: [], dvs: [] }
+        keys.forEach(key => {
+            const dv = dvs.find(v => namespaceName(v) === key)
+            if (dv) {
+                this.addSelectedRow(newSelectedRow, dv)
+            }
+        })
+        return newSelectedRow
+    }
 }
 
 const List = () => {
-    const { opts, setOpts, data, loading, fetchData, contextHolder } = useDataVolumes({
-        namespace: defaultNamespace, opts: {
+    const handler = new DataVolumeListHandler()
+    const { opts, setOpts, data, loading, fetchData, notificationContext } = handler.useDataVolumes(
+        defaultNamespace,
+        {
             labelsSelector: LabelsSelectorString([
                 dataVolumeTypeLabelSelector('data')
             ])
         }
-    })
+    )
 
     const [selectedRow, setSelectedRow] = useState<SelectedRow>({ keys: [], dvs: [] })
 
+    useEffect(() => {
+        const newSelectedRow = handler.calculationSelectedRow(selectedRow.keys, data)
+        setSelectedRow(newSelectedRow)
+    }, [data])
+
     const rowSelection: TableRowSelection<DataVolume> = {
-        columnWidth: 30,
+        columnWidth: 25,
         selectedRowKeys: selectedRow.keys,
         onChange: (keys: React.Key[]) => {
-            const newSelectedRow: SelectedRow = { keys: [], dvs: [] }
-            keys.forEach(key => {
-                const vm = data.find(v => namespaceName(v) === key)
-                if (vm) {
-                    addSelectedRow(newSelectedRow, vm)
-                }
-            })
+            const newSelectedRow = handler.calculationSelectedRow(keys, data)
             setSelectedRow(newSelectedRow)
         }
     }
@@ -54,42 +79,33 @@ const List = () => {
             key: 'name',
             title: '名称',
             fixed: 'left',
-            ellipsis: {
-                showTitle: false,
-            },
-            render: (_, dv) => <Tooltip title={dv.name}>{dv.name}</Tooltip>
+            ellipsis: true,
+            render: (_, dv) => <>{dv.name}</>
         },
         {
             key: 'namespace',
             title: '命名空间',
-            ellipsis: {
-                showTitle: false,
-            },
-            render: (_, dv) => <Tooltip title={dv.namespace}>{dv.namespace}</Tooltip>
+            ellipsis: true,
+            render: (_, dv) => <>{dv.namespace}</>
         },
         {
             key: 'status',
             title: '状态',
-            ellipsis: {
-                showTitle: false,
-            },
+            ellipsis: true,
             render: (_, dv) => <TableColumnStatus dv={dv} />
         },
         {
             title: '容量',
             key: 'capacity',
-            ellipsis: {
-                showTitle: false,
-            },
+            ellipsis: true,
             render: (_, dv) => <TableColumnCapacity dv={dv} />
         },
         {
             title: '创建时间',
             key: 'created',
-            ellipsis: {
-                showTitle: false,
-            },
-            render: (_, dv) => <Tooltip title={dv.creationTimestamp}>{dv.creationTimestamp}</Tooltip>
+            width: 195,
+            ellipsis: true,
+            render: (_, dv) => <>{dv.creationTimestamp}</>
         },
         {
             title: '操作',
@@ -108,7 +124,7 @@ const List = () => {
                 opts={opts}
                 setOpts={setOpts}
                 fetchData={fetchData}
-                selectd={selectedRow.dvs}
+                selectdDataVolumes={selectedRow.dvs}
             />
             <Spin
                 indicator={<LoadingOutlined />}
@@ -126,7 +142,7 @@ const List = () => {
                     dataSource={data}
                 />
             </Spin>
-            {contextHolder}
+            <div>{notificationContext}</div>
         </Space>
     )
 }

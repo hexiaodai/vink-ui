@@ -1,48 +1,67 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { Button, Space, Card, Alert, Input, Form, FormInstance, Descriptions, DescriptionsProps, Flex } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
 import { DataVolume } from '@kubevm.io/vink/management/datavolume/v1alpha1/datavolume.pb'
 import { IconFont } from '@/components/icon'
-import AddRootDisk from '@/pages/virtual/machine/create/add-root-disk'
 import { formatMemory } from '@/utils/k8s'
+import AddRootDisk from '@/pages/virtual/machine/create/add-root-disk'
 import styles from '@/pages/virtual/machine/create/styles/operating-system.module.less'
 
-interface NamespaceProps {
+interface OperatingSystemProps {
     namespace: string
     form: FormInstance<any>
 }
 
-const OperatingSystem: React.FC<NamespaceProps> = ({ namespace, form }) => {
-    const [open, setOpen] = useState(false)
-    const [dataVolume, setDataVolume] = useState<DataVolume>({})
+class OperatingSystemHandler {
+    private props: OperatingSystemProps
 
-    useEffect(() => {
-        form.setFieldsValue({
-            operatingSystem: dataVolume
-        })
-    }, [dataVolume])
-
-    if (dataVolume.namespace && namespace !== dataVolume.namespace) {
-        setDataVolume({})
+    constructor(props: OperatingSystemProps) {
+        this.props = props
     }
 
-    const handleCanel = () => {
+    openDrawer = (setOpen: React.Dispatch<React.SetStateAction<boolean>>) => {
+        setOpen(true)
+    }
+
+    cancelDrawer = (setOpen: React.Dispatch<React.SetStateAction<boolean>>) => {
         setOpen(false)
     }
 
-    const handleConfirm = (disk?: DataVolume) => {
+    confirmDrawer = (setOpen: React.Dispatch<React.SetStateAction<boolean>>, setDataVolume: React.Dispatch<React.SetStateAction<DataVolume>>, disk?: DataVolume) => {
         if (disk) {
             setDataVolume(disk)
         }
         setOpen(false)
     }
 
-    const validateRootDisk = (_: any, value: string) => {
-        if (value) {
+    validateRootDisk = (disk: DataVolume) => {
+        if (disk && (disk.name?.length || 0) > 0) {
             return Promise.resolve()
         }
         return Promise.reject(new Error('请选择系统镜像'))
     }
+
+    capacity = (dv: DataVolume) => {
+        const [value, unit] = formatMemory(dv.dataVolume?.spec?.pvc?.resources?.requests?.storage)
+        return `${value} ${unit}`
+    }
+
+    setOperatingSystem = (dv: DataVolume) => {
+        this.props.form.setFieldsValue({
+            operatingSystem: dv
+        })
+    }
+}
+
+const OperatingSystem: React.FC<OperatingSystemProps> = ({ namespace, form }) => {
+    const handler = new OperatingSystemHandler({ namespace, form })
+
+    const [open, setOpen] = useState(false)
+    const [dataVolume, setDataVolume] = useState<DataVolume>({})
+
+    useEffect(() => {
+        handler.setOperatingSystem(dataVolume)
+    }, [dataVolume])
 
     const items: DescriptionsProps['items'] = [
         {
@@ -63,10 +82,7 @@ const OperatingSystem: React.FC<NamespaceProps> = ({ namespace, form }) => {
         {
             key: 'capacity',
             label: '容量',
-            children: (() => {
-                const [value, unit] = formatMemory(dataVolume.dataVolume?.spec?.pvc?.resources?.requests?.storage)
-                return `${value} ${unit}`
-            })(),
+            children: handler.capacity(dataVolume),
         },
     ]
 
@@ -79,7 +95,7 @@ const OperatingSystem: React.FC<NamespaceProps> = ({ namespace, form }) => {
                     <Button
                         type="text"
                         icon={<PlusOutlined />}
-                        onClick={() => setOpen(true)}
+                        onClick={() => handler.openDrawer(setOpen)}
                     >添加系统镜像</Button>
                 </Space>
             }
@@ -89,13 +105,13 @@ const OperatingSystem: React.FC<NamespaceProps> = ({ namespace, form }) => {
                 name="operatingSystem"
                 label="系统镜像"
                 hidden
-                rules={[{ required: true, message: '', validator: validateRootDisk }]}
+                rules={[{ required: true, message: '', validator: (_: any, value: any) => handler.validateRootDisk(value) }]}
             >
                 <Input />
             </Form.Item>
 
             {
-                dataVolume.name ? (
+                dataVolume?.name ? (
                     <Descriptions
                         style={{ width: 554 }}
                         bordered
@@ -116,8 +132,8 @@ const OperatingSystem: React.FC<NamespaceProps> = ({ namespace, form }) => {
                     open={open}
                     namespace={namespace}
                     current={dataVolume}
-                    onCanel={handleCanel}
-                    onConfirm={handleConfirm}
+                    onCanel={() => handler.cancelDrawer(setOpen)}
+                    onConfirm={(dv: DataVolume | undefined) => handler.confirmDrawer(setOpen, setDataVolume, dv)}
                 />)
             }
         </Card>

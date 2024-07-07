@@ -1,44 +1,67 @@
-import { useState } from 'react'
-import { Table, Tooltip, Space, Spin } from 'antd'
+import { useEffect, useState } from 'react'
+import { Table, Space, Spin, TableProps } from 'antd'
 import { LoadingOutlined } from '@ant-design/icons'
 import { defaultNamespace, namespaceName } from '@/utils/k8s'
-import { useVirtualMachines } from '@/apis/virtualmachine'
-import type { TableProps } from 'antd'
-import type { VirtualMachine } from '@kubevm.io/vink/management/virtualmachine/v1alpha1/virtualmachine.pb'
+import { VirtualMachineManagement } from '@/apis-management/virtualmachine'
 import { TableRowSelection } from 'antd/es/table/interface'
+import { TableColumnCPU, TableColumnMem } from '@/pages/virtual/machine/list/table-column-cpu-mem'
+import { ListOptions } from '@kubevm.io/vink/common/common.pb'
 import Toolbar from '@/pages/virtual/machine/list/toolbar'
 import TableColumeAction from '@/pages/virtual/machine/list/table-column-action'
 import TableColumeIPv4 from '@/pages/virtual/machine/list/table-column-ipv4'
 import commonTableStyles from '@/common/styles/table.module.less'
 import TableColumnOperatingSystem from '@/components/table-column-operating-system'
 import TableColumnStatus from '@/pages/virtual/machine/list/table-column-status'
-import { TableColumnCPU, TableColumnMem } from '@/pages/virtual/machine/list/table-column-cpu-mem'
+import type { VirtualMachine } from '@kubevm.io/vink/management/virtualmachine/v1alpha1/virtualmachine.pb'
 
 interface SelectedRow {
     keys: React.Key[]
     vms: VirtualMachine[]
 }
 
-const addSelectedRow = (selectedRow: SelectedRow, vm: VirtualMachine) => {
-    selectedRow.keys.push(namespaceName(vm))
-    selectedRow.vms.push(vm)
+interface Handler {
+    useVirtualMachines: (namespace: string, opts: ListOptions) => any
+    calculationSelectedRow: (keys: React.Key[], vms: VirtualMachine[]) => SelectedRow
+}
+
+class VirtalMachineListHandler implements Handler {
+    private addSelectedRow = (selectedRow: SelectedRow, vm: VirtualMachine) => {
+        selectedRow.keys.push(namespaceName(vm))
+        selectedRow.vms.push(vm)
+    }
+
+    useVirtualMachines = (namespace: string, initOpts: ListOptions) => {
+        return VirtualMachineManagement.UseVirtualMachines({ namespace: namespace, opts: initOpts })
+    }
+
+    calculationSelectedRow = (keys: React.Key[], vms: VirtualMachine[]) => {
+        const newSelectedRow: SelectedRow = { keys: [], vms: [] }
+        keys.forEach(key => {
+            const vm = vms.find(v => namespaceName(v) === key)
+            if (vm) {
+                this.addSelectedRow(newSelectedRow, vm)
+            }
+        })
+        return newSelectedRow
+    }
 }
 
 const List = () => {
-    const { opts, setOpts, data, loading, fetchData, contextHolder } = useVirtualMachines({ namespace: defaultNamespace, opts: {} })
+    const handler = new VirtalMachineListHandler()
+    const { opts, setOpts, data, loading, fetchData, notificationContext } = handler.useVirtualMachines(defaultNamespace, {})
+
     const [selectedRow, setSelectedRow] = useState<SelectedRow>({ keys: [], vms: [] })
 
+    useEffect(() => {
+        const newSelectedRow = handler.calculationSelectedRow(selectedRow.keys, data)
+        setSelectedRow(newSelectedRow)
+    }, [data])
+
     const rowSelection: TableRowSelection<VirtualMachine> = {
-        columnWidth: 30,
+        columnWidth: 25,
         selectedRowKeys: selectedRow.keys,
         onChange: (keys: React.Key[]) => {
-            const newSelectedRow: SelectedRow = { keys: [], vms: [] }
-            keys.forEach(key => {
-                const vm = data.find(v => namespaceName(v) === key)
-                if (vm) {
-                    addSelectedRow(newSelectedRow, vm)
-                }
-            })
+            const newSelectedRow = handler.calculationSelectedRow(keys, data)
             setSelectedRow(newSelectedRow)
         }
     }
@@ -48,41 +71,31 @@ const List = () => {
             key: 'name',
             title: '名称',
             fixed: 'left',
-            ellipsis: {
-                showTitle: false,
-            },
-            render: (_, vm) => <Tooltip title={vm.name}>{vm.name}</Tooltip>
+            ellipsis: true,
+            render: (_, vm) => <>{vm.name}</>
         },
         {
             key: 'namespace',
             title: '命名空间',
-            ellipsis: {
-                showTitle: false,
-            },
-            render: (_, vm) => <Tooltip title={vm.namespace}>{vm.namespace}</Tooltip>
+            ellipsis: true,
+            render: (_, vm) => <>{vm.namespace}</>
         },
         {
             key: 'status',
             title: '状态',
-            ellipsis: {
-                showTitle: false,
-            },
+            ellipsis: true,
             render: (_, vm) => <TableColumnStatus vm={vm} />
         },
         {
             key: 'operatingSystem',
             title: '操作系统',
-            ellipsis: {
-                showTitle: false,
-            },
+            ellipsis: true,
             render: (_, vm) => <TableColumnOperatingSystem dv={vm.virtualMachineDataVolume?.root} />
         },
         {
             key: 'ipv4',
             title: 'IPv4',
-            ellipsis: {
-                showTitle: false,
-            },
+            ellipsis: true,
             render: (_, vm) => <TableColumeIPv4 vm={vm} />
         },
         {
@@ -104,18 +117,15 @@ const List = () => {
         {
             key: 'node',
             title: '节点',
-            ellipsis: {
-                showTitle: false,
-            },
-            render: (_, vm) => <Tooltip title={vm.virtualMachineInstance?.status?.nodeName}>{vm.virtualMachineInstance?.status?.nodeName}</Tooltip>
+            ellipsis: true,
+            render: (_, vm) => <>{vm.virtualMachineInstance?.status?.nodeName}</>
         },
         {
             title: '创建时间',
             key: 'created',
-            ellipsis: {
-                showTitle: false,
-            },
-            render: (_, vm) => <Tooltip title={vm.creationTimestamp}>{vm.creationTimestamp}</Tooltip>
+            width: 195,
+            ellipsis: true,
+            render: (_, vm) => <>{vm.creationTimestamp}</>
         },
         {
             title: '操作',
@@ -129,12 +139,14 @@ const List = () => {
 
     return (
         <Space className={commonTableStyles['table-container']} direction="vertical">
+            {/* <Summary /> */}
+
             <Toolbar
                 loading={loading}
                 opts={opts}
                 setOpts={setOpts}
                 fetchData={fetchData}
-                selectd={selectedRow.vms}
+                selectdVirtuaMachines={selectedRow.vms}
             />
 
             <Spin
@@ -145,16 +157,15 @@ const List = () => {
                 <Table
                     className={commonTableStyles.table}
                     virtual
-                    size="middle"
                     pagination={false}
                     rowSelection={rowSelection}
                     rowKey={(vm) => namespaceName(vm)}
                     columns={columns}
                     dataSource={data}
-                    scroll={{ x: 1200, y: 300 }}
+                    scroll={{ x: 1350, y: '100vh' }}
                 />
             </Spin>
-            <div>{contextHolder}</div>
+            <div>{notificationContext}</div>
         </Space>
     )
 }

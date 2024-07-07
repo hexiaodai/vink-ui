@@ -1,97 +1,109 @@
 import React, { useState } from 'react'
-import { Button, Form, Space, Row, Col } from 'antd'
+import { Button, Form, Space, Row, Col, FormInstance } from 'antd'
 import { defaultNamespace } from '@/utils/k8s'
+import { useVirtualMachineNotification } from '@/components/notification'
+import { NavigateFunction, useNavigate } from 'react-router-dom'
+import { VirtualMachineManagement } from '@/apis-management/virtualmachine'
+import type { CreateVirtualMachineRequest, VirtualMachineConfigStorageDataVolume } from '@kubevm.io/vink/management/virtualmachine/v1alpha1/virtualmachine.pb'
 import BasicInformation from '@/pages/virtual/machine/create/basic-information'
 import OperatingSystem from '@/pages/virtual/machine/create/operating-system'
 import CPUMemory from '@/pages/virtual/machine/create/cpu-mem'
 import Storage from '@/pages/virtual/machine/create/storage'
-import { VirtualMachineManagement } from '@kubevm.io/vink/management/virtualmachine/v1alpha1/virtualmachine.pb'
-import { useErrorNotification } from '@/components/notification'
-import type { CreateVirtualMachineRequest, VirtualMachineConfigStorageDataVolume } from '@kubevm.io/vink/management/virtualmachine/v1alpha1/virtualmachine.pb'
-import { useNavigate } from 'react-router-dom'
 import commonFormStyles from '@/common/styles/form.module.less'
 
-const Create: React.FC = () => {
-    const [form] = Form.useForm()
-    const values = Form.useWatch([], form)
+class VirtalMachineCreateHandler {
+    private notification: any
 
-    const [namespace, setNamespace] = useState<string>(defaultNamespace)
-    const [submittable, setSubmittable] = React.useState<boolean>(false)
+    constructor(notification: any) {
+        this.notification = notification
+    }
 
-    const [loading, setLoading] = useState(false)
-    const { contextHolder, showErrorNotification } = useErrorNotification()
-
-    React.useEffect(() => {
+    validateFields = (form: FormInstance<any>, setSubmittable: React.Dispatch<React.SetStateAction<boolean>>) => {
         form
             .validateFields({ validateOnly: false })
             .then(() => setSubmittable(true))
             .catch(() => setSubmittable(false))
-    }, [form, values])
+    }
 
-    const navigate = useNavigate()
-
-    const handleSelectNamespace = (namespace: string) => {
+    selectNamespace = (setNamespace: React.Dispatch<React.SetStateAction<string>>, namespace: string) => {
         setNamespace(namespace)
     }
 
-    const handleSubmit = async (values: any) => {
+    submit = async (formValues: any, setLoading: React.Dispatch<React.SetStateAction<boolean>>, navigate: NavigateFunction) => {
         setLoading(true)
+
         const dataVolumes: VirtualMachineConfigStorageDataVolume[] = []
-        values.dataVolumes?.forEach((item: any) => {
+        formValues.dataVolumes?.forEach((item: any) => {
             dataVolumes.push({ ref: { name: item.name, namespace: item.namespace } })
         })
-        try {
-            const request: CreateVirtualMachineRequest = {
-                namespace: values.namespace,
-                name: values.name,
-                config: {
-                    storage: {
-                        root: {
-                            ref: {
-                                namespace: values.operatingSystem?.namespace,
-                                name: values.operatingSystem?.name
-                            },
-                            // TODO: 
-                            capacity: values.rootVolumeCapacity + "Gi",
-                            storageClassName: "local-path"
+
+        const request: CreateVirtualMachineRequest = {
+            namespace: formValues.namespace,
+            name: formValues.name,
+            config: {
+                storage: {
+                    root: {
+                        ref: {
+                            namespace: formValues.operatingSystem?.namespace,
+                            name: formValues.operatingSystem?.name
                         },
-                        data: dataVolumes,
+                        // TODO: 
+                        capacity: formValues.rootVolumeCapacity + "Gi",
+                        storageClassName: "local-path"
                     },
-                    compute: {
-                        cpuCores: values.cpu,
-                        // TODO:
-                        memory: values.memory + "Gi"
-                    },
-                    userConfig: {
-                        cloudInitBase64: "I2Nsb3VkLWNvbmZpZwpzc2hfcHdhdXRoOiB0cnVlCmRpc2FibGVfcm9vdDogZmFsc2UKY2hwYXNzd2Q6IHsibGlzdCI6ICJyb290OmRhbmdlcm91cyIsIGV4cGlyZTogRmFsc2V9CgpydW5jbWQ6CiAgLSBzZWQgLWkgIi8jXD9QZXJtaXRSb290TG9naW4vcy9eLiokL1Blcm1pdFJvb3RMb2dpbiB5ZXMvZyIgL2V0Yy9zc2gvc3NoZF9jb25maWcKICAtIHN5c3RlbWN0bCByZXN0YXJ0IHNzaGQuc2VydmljZQo="
-                    }
+                    data: dataVolumes,
+                },
+                compute: {
+                    cpuCores: formValues.cpu,
+                    // TODO:
+                    memory: formValues.memory + "Gi"
+                },
+                userConfig: {
+                    cloudInitBase64: "I2Nsb3VkLWNvbmZpZwpzc2hfcHdhdXRoOiB0cnVlCmRpc2FibGVfcm9vdDogZmFsc2UKY2hwYXNzd2Q6IHsibGlzdCI6ICJyb290OmRhbmdlcm91cyIsIGV4cGlyZTogRmFsc2V9CgpydW5jbWQ6CiAgLSBzZWQgLWkgIi8jXD9QZXJtaXRSb290TG9naW4vcy9eLiokL1Blcm1pdFJvb3RMb2dpbiB5ZXMvZyIgL2V0Yy9zc2gvc3NoZF9jb25maWcKICAtIHN5c3RlbWN0bCByZXN0YXJ0IHNzaGQuc2VydmljZQo="
                 }
             }
-            await VirtualMachineManagement.CreateVirtualMachine(request)
+        }
+        try {
+            await VirtualMachineManagement.CreateVirtualMachineWithNotification(request, this.notification)
             navigate('/virtual/machines')
-        } catch (err) {
-            showErrorNotification('Create VirtualMachine', err)
         } finally {
             setLoading(false)
         }
     }
+}
+
+const Create: React.FC = () => {
+    const { notificationContext, showVirtualMachineNotification } = useVirtualMachineNotification()
+    const navigate = useNavigate()
+
+    const handler = new VirtalMachineCreateHandler(showVirtualMachineNotification)
+
+    const [namespace, setNamespace] = useState<string>(defaultNamespace)
+    const [submittable, setSubmittable] = React.useState<boolean>(false)
+    const [loading, setLoading] = useState(false)
+
+    const [form] = Form.useForm()
+    const values = Form.useWatch([], form)
+    React.useEffect(() => {
+        handler.validateFields(form, setSubmittable)
+    }, [form, values])
 
     return (
         <div>
-            {contextHolder}
+            {notificationContext}
             <Form
                 className={commonFormStyles.form}
                 form={form}
-                onFinish={handleSubmit}
-                name="virtualmachine"
+                onFinish={(values: any) => handler.submit(values, setLoading, navigate)}
+                name="create-virtual-machine"
                 initialValues={{ namespace: namespace, cpu: 2, memory: 4, rootVolumeCapacity: 40 }}
                 layout='vertical'
             >
                 <Space
                     className={commonFormStyles.space}
-                    size="small" direction="vertical"
+                    size="middle" direction="vertical"
                 >
-                    <BasicInformation onSelectCallback={handleSelectNamespace} />
+                    <BasicInformation onSelectCallback={(value: string) => handler.selectNamespace(setNamespace, value)} />
 
                     <OperatingSystem form={form} namespace={namespace} />
 
