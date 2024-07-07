@@ -1,32 +1,47 @@
 import React from 'react'
 import { Form, Input, Space, Select, Card } from 'antd'
 import { defaultNamespace } from '@/utils/k8s'
-import { useNamespaces } from '@/apis/namespace'
+import { NamespaceManagement } from '@/apis-management/namespace'
+import { ListOptions } from '@/utils/search'
 import TextArea from 'antd/es/input/TextArea'
 
 interface BasicInformationProps {
     onSelectCallback?: (namespace: string) => void
 }
 
-const validateName = (_: any, value: string) => {
-    // 仅允许使用小写字母、数字和短横线（-），且必须以字母开头和结尾，长度不超过 16 个字符
-    const pattern = /^[a-z]([-a-z0-9]{0,14}[a-z0-9])?$/
-    if (value && pattern.test(value)) {
-        return Promise.resolve()
+class BasicInformationHandler {
+    private props: BasicInformationProps
+
+    constructor(props: BasicInformationProps) {
+        this.props = props
     }
-    return Promise.reject(new Error('name must start with a letter and end with a letter or number, and can only contain letters, numbers, and hyphens (-).'))
+
+    validateName = (value: string) => {
+        // 仅允许使用小写字母、数字和短横线（-），且必须以字母开头和结尾，长度不超过 16 个字符
+        const pattern = /^[a-z]([-a-z0-9]{0,14}[a-z0-9])?$/
+        if (value && pattern.test(value)) {
+            return Promise.resolve()
+        }
+        return Promise.reject(new Error("only allows lowercase letters, numbers, and hyphens (-), must start and end with a letter, and be no longer than 63 characters."))
+    }
+
+    selectNamespace = (ns: string) => {
+        if (this.props.onSelectCallback) this.props.onSelectCallback(ns)
+    }
+
+    useNamespaces = (opts: ListOptions) => {
+        return NamespaceManagement.UseNamespaces(opts)
+    }
 }
 
 const BasicInformation: React.FC<BasicInformationProps> = ({ onSelectCallback }) => {
-    const { data, fetchData, loading, contextHolder } = useNamespaces({})
+    const handler = new BasicInformationHandler({ onSelectCallback })
 
-    const handleSelect = (namespace: string) => {
-        if (onSelectCallback) onSelectCallback(namespace)
-    }
+    const { data, fetchData, loading, notificationContext } = handler.useNamespaces({})
 
     return (
         <div>
-            {contextHolder}
+            {notificationContext}
             <Card
                 title="基本信息"
                 bordered={false}
@@ -49,7 +64,7 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ onSelectCallback })
                                 filterSort={(optionA, optionB) =>
                                     (optionA?.label ?? '').toLowerCase().localeCompare((optionB?.label ?? '').toLowerCase())
                                 }
-                                onSelect={(value) => handleSelect(value)}
+                                onSelect={(value) => handler.selectNamespace(value)}
                                 onClick={() => fetchData()}
                                 options={data.map((ns) => ({ value: ns.name, label: ns.name }))}
                             />
@@ -57,11 +72,11 @@ const BasicInformation: React.FC<BasicInformationProps> = ({ onSelectCallback })
                         <Form.Item
                             name="name"
                             label="名称"
-                            rules={[{ required: true, message: '', validator: validateName }]}
+                            rules={[{ required: true, message: '', validator: (_: any, value: string) => handler.validateName(value) }]}
                             tooltip="仅允许使用小写字母、数字和短横线（-），且必须以字母开头和结尾，长度不超过 16 个字符。"
                         >
                             <Input
-                                placeholder="输入系统镜像名称"
+                                placeholder="输入系统镜像的名称"
                                 maxLength={16}
                             />
                         </Form.Item>

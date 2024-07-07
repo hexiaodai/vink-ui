@@ -1,4 +1,4 @@
-import { Flex, Tooltip } from 'antd'
+import { Flex } from 'antd'
 import { DataVolume } from '@kubevm.io/vink/management/datavolume/v1alpha1/datavolume.pb'
 import { IconFont } from '@/components/icon'
 import { getOperatingSystemFromDataVolume } from '@/utils/operating-system'
@@ -14,7 +14,7 @@ const TableColumnOperatingSystem: React.FC<TableColumnOperatingSystemProps> = ({
     return (
         <Flex justify="flex-start" align="center">
             <IconFont type={`icon-${info.family}`} className={styles['icon']} />
-            <Tooltip title={`${formatOSFamily(info.family)} ${info.version}`}>{formatOSFamily(info.family)}</Tooltip>
+            {formatOSFamily(info.family)} {info.version}
         </Flex>
     )
 }

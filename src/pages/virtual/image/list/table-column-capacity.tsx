@@ -6,10 +6,28 @@ interface TableColumnCapacityProps {
     dv: DataVolume
 }
 
+interface Handler {
+    capacity: () => string
+}
+
+class TableColumnCapacityHandler implements Handler {
+    private props: TableColumnCapacityProps
+
+    constructor(props: TableColumnCapacityProps) {
+        this.props = props
+    }
+
+    capacity = () => {
+        const [value, uint] = formatMemory(this.props.dv.dataVolume?.spec?.pvc?.resources?.requests?.storage)
+        const capacity = `${value} ${uint}`
+        return capacity
+    }
+}
+
 const TableColumnCapacity: React.FC<TableColumnCapacityProps> = ({ dv }) => {
-    const [value, uint] = formatMemory(dv.dataVolume?.spec?.pvc?.resources?.requests?.storage)
-    const capacity = `${value} ${uint}`
-    return (<Tooltip title={capacity}>{capacity}</Tooltip>)
+    const handler = new TableColumnCapacityHandler({ dv })
+
+    return (<>{handler.capacity()}</>)
 }
 
 export default TableColumnCapacity

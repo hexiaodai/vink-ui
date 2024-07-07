@@ -4,15 +4,25 @@ import { IconFont } from '@/components/icon'
 
 interface BasicInformationProps { }
 
-const validateImageSource = (_: any, value: string) => {
-    const regex = /^(http(s)?:\/\/|s3:\/\/|docker:\/\/)/
-    if (!regex.test(value)) {
-        return Promise.reject(new Error('仅支持 http(s)://、s3://、docker://'))
+class BasicInformationHandler {
+    private props: BasicInformationProps
+
+    constructor(props: BasicInformationProps) {
+        this.props = props
     }
-    return Promise.resolve()
+
+    validateImageSource = (value: string) => {
+        const regex = /^(http(s)?:\/\/|s3:\/\/|docker:\/\/)/
+        if (!regex.test(value)) {
+            return Promise.reject(new Error('仅支持 http(s)、s3、docker'))
+        }
+        return Promise.resolve()
+    }
 }
 
 const BasicInformation: React.FC<BasicInformationProps> = () => {
+    const handler = new BasicInformationHandler({})
+
     const options = [
         {
             value: 'ubuntu',
@@ -108,7 +118,7 @@ const BasicInformation: React.FC<BasicInformationProps> = () => {
                 <Space direction="vertical" size="large">
                     <Space wrap={true} size="large">
                         <Form.Item
-                            name="operatingSystemType"
+                            name="operatingSystem"
                             label="操作系统"
                             tooltip="操作系统类型"
                             rules={[{ required: true, message: '' }]}
@@ -122,14 +132,14 @@ const BasicInformation: React.FC<BasicInformationProps> = () => {
                             rules={[{ required: true, message: '' }]}
                             tooltip="建议大于镜像实际的容量。"
                         >
-                            <InputNumber min={10} style={{ width: 265 }} addonAfter="Gi" />
+                            <InputNumber min={10} addonAfter="Gi" />
                         </Form.Item>
                     </Space>
                     <Space>
                         <Form.Item
                             name="imageSource"
                             label="镜像源"
-                            rules={[{ required: true, message: '', validator: validateImageSource }]}
+                            rules={[{ required: true, message: '', validator: (_: any, value: string) => handler.validateImageSource(value) }]}
                             tooltip='HTTP(S)、S3、Docker. 例如: https://example.com, s3://example.com, docker://example.com'
                         >
                             <Input placeholder='https://example.com' />
