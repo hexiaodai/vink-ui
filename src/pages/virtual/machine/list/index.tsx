@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Table, Space, Spin, TableProps } from 'antd'
-import { LoadingOutlined } from '@ant-design/icons'
+import { LoadingOutlined, CodeOutlined } from '@ant-design/icons'
 import { defaultNamespace, namespaceName } from '@/utils/k8s'
 import { VirtualMachineManagement } from '@/apis-management/virtualmachine'
 import { TableRowSelection } from 'antd/es/table/interface'
@@ -79,6 +79,12 @@ const List = () => {
             title: '命名空间',
             ellipsis: true,
             render: (_, vm) => <>{vm.namespace}</>
+        },
+        {
+            key: 'console',
+            title: '控制台',
+            ellipsis: true,
+            render: (_, vm) => <CodeOutlined />
         },
         {
             key: 'status',
