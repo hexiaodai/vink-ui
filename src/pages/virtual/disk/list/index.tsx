@@ -11,7 +11,6 @@ import Toolbar from '@/pages/virtual/disk/list/toolbar'
 import TableColumnAction from '@/pages/virtual/disk/list/table-column-action'
 import TableColumnStatus from '@/pages/virtual/disk/list/table-column-status'
 import commonTableStyles from '@/common/styles/table.module.less'
-import TableColumnOperatingSystem from '@/components/table-column-operating-system'
 import TableColumnCapacity from '@/pages/virtual/disk/list/table-column-capacity'
 import { ListOptions } from '@kubevm.io/vink/common/common.pb'
 
