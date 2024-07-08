@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { Button, Space, Card, Alert, Input, Form, FormInstance, Descriptions, DescriptionsProps, Flex } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
 import { DataVolume } from '@kubevm.io/vink/management/datavolume/v1alpha1/datavolume.pb'
@@ -35,7 +35,7 @@ class OperatingSystemHandler {
     }
 
     validateRootDisk = (disk: DataVolume) => {
-        if (disk && (disk.name?.length || 0) > 0) {
+        if (disk && ((disk.name?.length || 0) > 0) && ((disk.namespace?.length || 0) > 0)) {
             return Promise.resolve()
         }
         return Promise.reject(new Error('请选择系统镜像'))

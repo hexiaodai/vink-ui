@@ -1,5 +1,7 @@
 import { Form, InputNumber, Space, Card } from 'antd'
 
+export const memoryUnit = "Gi"
+
 const CPUMemory = () => {
     return (
         <Card
@@ -27,7 +29,7 @@ const CPUMemory = () => {
                 >
                     <InputNumber
                         min={1}
-                        addonAfter="Gi"
+                        addonAfter={memoryUnit}
                     />
                 </Form.Item>
             </Space>

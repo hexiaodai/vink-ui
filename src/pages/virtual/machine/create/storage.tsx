@@ -11,6 +11,8 @@ interface StorageProps {
     form: FormInstance<any>
 }
 
+export const rootVolumeCapacityUnit = 'Gi'
+
 class StorageHandler {
     private props: StorageProps
 
@@ -99,7 +101,7 @@ const Storage: React.FC<StorageProps> = ({ namespace, form }) => {
                     rules={[{ required: true, message: '' }]}
                     tooltip="建议大于系统镜像的容量。"
                 >
-                    <InputNumber min={10} addonAfter="Gi" />
+                    <InputNumber min={10} addonAfter={rootVolumeCapacityUnit} />
                 </Form.Item>
                 {
                     dataVolumes.length > 0 && (

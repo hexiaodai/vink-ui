@@ -4,11 +4,14 @@ import { defaultNamespace } from '@/utils/k8s'
 import { useVirtualMachineNotification } from '@/components/notification'
 import { NavigateFunction, useNavigate } from 'react-router-dom'
 import { VirtualMachineManagement } from '@/apis-management/virtualmachine'
+import { rootVolumeCapacityUnit } from '@/pages/virtual/machine/create/storage'
+import { memoryUnit } from '@/pages/virtual/machine/create/cpu-mem'
 import type { CreateVirtualMachineRequest, VirtualMachineConfigStorageDataVolume } from '@kubevm.io/vink/management/virtualmachine/v1alpha1/virtualmachine.pb'
 import BasicInformation from '@/pages/virtual/machine/create/basic-information'
 import OperatingSystem from '@/pages/virtual/machine/create/operating-system'
 import CPUMemory from '@/pages/virtual/machine/create/cpu-mem'
 import Storage from '@/pages/virtual/machine/create/storage'
+import SystemConfiguration from '@/pages/virtual/machine/create/system-configuration'
 import commonFormStyles from '@/common/styles/form.module.less'
 
 class VirtalMachineCreateHandler {
@@ -44,22 +47,21 @@ class VirtalMachineCreateHandler {
                 storage: {
                     root: {
                         ref: {
-                            namespace: formValues.operatingSystem?.namespace,
-                            name: formValues.operatingSystem?.name
+                            namespace: formValues.operatingSystem.namespace,
+                            name: formValues.operatingSystem.name
                         },
-                        // TODO: 
-                        capacity: formValues.rootVolumeCapacity + "Gi",
+                        capacity: formValues.rootVolumeCapacity + rootVolumeCapacityUnit,
+                        // FIXME: remove it
                         storageClassName: "local-path"
                     },
-                    data: dataVolumes,
+                    data: dataVolumes
                 },
                 compute: {
                     cpuCores: formValues.cpu,
-                    // TODO:
-                    memory: formValues.memory + "Gi"
+                    memory: formValues.memory + memoryUnit
                 },
                 userConfig: {
-                    cloudInitBase64: "I2Nsb3VkLWNvbmZpZwpzc2hfcHdhdXRoOiB0cnVlCmRpc2FibGVfcm9vdDogZmFsc2UKY2hwYXNzd2Q6IHsibGlzdCI6ICJyb290OmRhbmdlcm91cyIsIGV4cGlyZTogRmFsc2V9CgpydW5jbWQ6CiAgLSBzZWQgLWkgIi8jXD9QZXJtaXRSb290TG9naW4vcy9eLiokL1Blcm1pdFJvb3RMb2dpbiB5ZXMvZyIgL2V0Yy9zc2gvc3NoZF9jb25maWcKICAtIHN5c3RlbWN0bCByZXN0YXJ0IHNzaGQuc2VydmljZQo="
+                    cloudInitBase64: btoa(formValues.cloudInit)
                 }
             }
         }
@@ -110,6 +112,8 @@ const Create: React.FC = () => {
                     <CPUMemory />
 
                     <Storage form={form} namespace={namespace} />
+
+                    <SystemConfiguration form={form} />
 
                     <Form.Item
                         wrapperCol={{ span: 23 }}
