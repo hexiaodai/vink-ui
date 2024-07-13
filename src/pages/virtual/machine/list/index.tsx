@@ -1,18 +1,19 @@
 import { useEffect, useState } from 'react'
 import { Table, Space, Spin, TableProps } from 'antd'
-import { LoadingOutlined, CodeOutlined } from '@ant-design/icons'
+import { LoadingOutlined } from '@ant-design/icons'
 import { defaultNamespace, namespaceName } from '@/utils/k8s'
 import { VirtualMachineManagement } from '@/apis-management/virtualmachine'
 import { TableRowSelection } from 'antd/es/table/interface'
 import { TableColumnCPU, TableColumnMem } from '@/pages/virtual/machine/list/table-column-cpu-mem'
 import { ListOptions } from '@kubevm.io/vink/common/common.pb'
+import type { VirtualMachine } from '@kubevm.io/vink/management/virtualmachine/v1alpha1/virtualmachine.pb'
 import Toolbar from '@/pages/virtual/machine/list/toolbar'
 import TableColumeAction from '@/pages/virtual/machine/list/table-column-action'
 import TableColumeIPv4 from '@/pages/virtual/machine/list/table-column-ipv4'
 import commonTableStyles from '@/common/styles/table.module.less'
 import TableColumnOperatingSystem from '@/components/table-column-operating-system'
 import TableColumnStatus from '@/pages/virtual/machine/list/table-column-status'
-import type { VirtualMachine } from '@kubevm.io/vink/management/virtualmachine/v1alpha1/virtualmachine.pb'
+import TableColumnConsole from '@/pages/virtual/machine/list/table-column-console'
 
 interface SelectedRow {
     keys: React.Key[]
@@ -81,12 +82,6 @@ const List = () => {
             render: (_, vm) => <>{vm.namespace}</>
         },
         {
-            key: 'console',
-            title: '控制台',
-            ellipsis: true,
-            render: (_, vm) => <CodeOutlined />
-        },
-        {
             key: 'status',
             title: '状态',
             ellipsis: true,
@@ -97,6 +92,14 @@ const List = () => {
             title: '操作系统',
             ellipsis: true,
             render: (_, vm) => <TableColumnOperatingSystem dv={vm.virtualMachineDataVolume?.root} />
+        },
+        {
+            key: 'console',
+            title: '控制台',
+            ellipsis: true,
+            align: "center",
+            width: 80,
+            render: (_, vm) => <TableColumnConsole vm={vm} />
         },
         {
             key: 'ipv4',
@@ -168,7 +171,7 @@ const List = () => {
                     rowKey={(vm) => namespaceName(vm)}
                     columns={columns}
                     dataSource={data}
-                    scroll={{ x: 1350, y: '100vh' }}
+                    scroll={{ x: 1350 }}
                 />
             </Spin>
             <div>{notificationContext}</div>
