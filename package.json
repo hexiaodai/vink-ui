@@ -11,12 +11,17 @@
   },
   "dependencies": {
     "@kubevm.io/vink": "^0.0.0-9840710c",
+    "ansi-escapes": "^5.0.0",
     "antd": "^5.18.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router": "^6.23.1",
     "react-router-dom": "^6.23.1",
-    "react-transition-group": "^4.4.5"
+    "xterm": "5.0.0",
+    "xterm-addon-fit": "0.6.0",
+    "xterm-addon-search": "0.10.0",
+    "xterm-addon-web-links": "0.7.0",
+    "xterm-addon-webgl": "0.13.0"
   },
   "devDependencies": {
     "@types/node": "^20.13.0",

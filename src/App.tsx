@@ -3,7 +3,7 @@ import { Layout } from 'antd'
 import MainMenu from '@/components/main-menu'
 import SideMenu from '@/components/side-menu'
 import AppRouter from '@/router/index'
-import styles from '@/App.module.less'
+import styles from '@/styles/app.module.less'
 
 const { Content } = Layout
 
