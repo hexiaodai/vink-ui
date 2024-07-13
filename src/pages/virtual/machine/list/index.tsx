@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
-import { Table, Space, Spin, TableProps } from 'antd'
+import { Table, Space, Spin } from 'antd'
 import { LoadingOutlined } from '@ant-design/icons'
 import { defaultNamespace, namespaceName } from '@/utils/k8s'
 import { VirtualMachineManagement } from '@/apis-management/virtualmachine'
 import { TableRowSelection } from 'antd/es/table/interface'
 import { TableColumnCPU, TableColumnMem } from '@/pages/virtual/machine/list/table-column-cpu-mem'
 import { ListOptions } from '@kubevm.io/vink/common/common.pb'
+import { TableColumns } from '@/utils/table-columns'
 import type { VirtualMachine } from '@kubevm.io/vink/management/virtualmachine/v1alpha1/virtualmachine.pb'
 import Toolbar from '@/pages/virtual/machine/list/toolbar'
 import TableColumeAction from '@/pages/virtual/machine/list/table-column-action'
@@ -67,7 +68,7 @@ const List = () => {
         }
     }
 
-    const columns: TableProps<VirtualMachine>['columns'] = [
+    const columns = new TableColumns("columns", [
         {
             key: 'name',
             title: '名称',
@@ -82,6 +83,13 @@ const List = () => {
             render: (_, vm) => <>{vm.namespace}</>
         },
         {
+            key: 'console',
+            title: '控制台',
+            ellipsis: true,
+            width: 90,
+            render: (_, vm) => <TableColumnConsole vm={vm} />
+        },
+        {
             key: 'status',
             title: '状态',
             ellipsis: true,
@@ -94,14 +102,6 @@ const List = () => {
             render: (_, vm) => <TableColumnOperatingSystem dv={vm.virtualMachineDataVolume?.root} />
         },
         {
-            key: 'console',
-            title: '控制台',
-            ellipsis: true,
-            align: "center",
-            width: 80,
-            render: (_, vm) => <TableColumnConsole vm={vm} />
-        },
-        {
             key: 'ipv4',
             title: 'IPv4',
             ellipsis: true,
@@ -110,17 +110,13 @@ const List = () => {
         {
             key: 'cpu',
             title: '处理器',
-            ellipsis: {
-                showTitle: false,
-            },
+            ellipsis: true,
             render: (_, vm) => <TableColumnCPU vm={vm} />
         },
         {
             key: 'memory',
             title: '内存',
-            ellipsis: {
-                showTitle: false,
-            },
+            ellipsis: true,
             render: (_, vm) => <TableColumnMem vm={vm} />
         },
         {
@@ -128,6 +124,11 @@ const List = () => {
             title: '节点',
             ellipsis: true,
             render: (_, vm) => <>{vm.virtualMachineInstance?.status?.nodeName}</>
+        },
+        {
+            key: 'nodeIP',
+            title: '节点 IP',
+            ellipsis: true
         },
         {
             title: '创建时间',
@@ -144,7 +145,10 @@ const List = () => {
             align: 'center',
             render: (_, vm) => <TableColumeAction vm={vm} />
         }
-    ]
+    ])
+
+    // columns.setNotVisible("name")
+    // columns.setVisible("name")
 
     return (
         <Space className={commonTableStyles['table-container']} direction="vertical">
@@ -156,6 +160,7 @@ const List = () => {
                 setOpts={setOpts}
                 fetchData={fetchData}
                 selectdVirtuaMachines={selectedRow.vms}
+                columns={columns}
             />
 
             <Spin
@@ -169,9 +174,9 @@ const List = () => {
                     pagination={false}
                     rowSelection={rowSelection}
                     rowKey={(vm) => namespaceName(vm)}
-                    columns={columns}
+                    columns={columns.visibleColumns()}
                     dataSource={data}
-                    scroll={{ x: 1350 }}
+                    scroll={{ x: 1500 }}
                 />
             </Spin>
             <div>{notificationContext}</div>

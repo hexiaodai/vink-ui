@@ -1,11 +1,13 @@
-import { Space, Input, Button, Flex, Dropdown, MenuProps, Drawer } from 'antd'
+import { Space, Input, Button, Flex, Dropdown, MenuProps, Drawer, Checkbox } from 'antd'
 import { SyncOutlined, PlusOutlined, PlayCircleOutlined, PoweroffOutlined, SettingOutlined, DownOutlined } from '@ant-design/icons'
 import { ListOptions, NameFieldSelector } from '@/utils/search'
 import { ManageVirtualMachinePowerStateRequestPowerState, VirtualMachine } from '@kubevm.io/vink/management/virtualmachine/v1alpha1/virtualmachine.pb'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useVirtualMachineNotification } from '@/components/notification'
 import { VirtualMachineManagement } from '@/apis-management/virtualmachine'
+import { TableColumns, Column } from '@/utils/table-columns'
+import { CheckboxChangeEvent } from 'antd/es/checkbox'
 
 const { Search } = Input
 
@@ -15,17 +17,10 @@ interface ToolbarProps {
     opts: ListOptions
     setOpts: React.Dispatch<React.SetStateAction<ListOptions>>
     selectdVirtuaMachines: VirtualMachine[]
+    columns: TableColumns
 }
 
-interface Handler {
-    batchManageVirtualMachinePowerState: (state: ManageVirtualMachinePowerStateRequestPowerState) => void
-    batchDeleteVirtualMachines: () => void
-    search: (name: string) => void
-    cleanSearch: (e: React.ChangeEvent<HTMLInputElement>) => void
-    isAnySelectedVmInStatus: (status: string) => boolean
-}
-
-class ToolbarHandler implements Handler {
+class ToolbarHandler {
     private props: ToolbarProps
     private notification: any
 
@@ -59,13 +54,41 @@ class ToolbarHandler implements Handler {
         }
         return (this.props.selectdVirtuaMachines.some(vm => vm.virtualMachine?.status?.printableStatus as string === status))
     }
+
+    change = (e: CheckboxChangeEvent, cacheColumns: Column[], setCacheColumns: React.Dispatch<React.SetStateAction<Column[]>>, selected: Column) => {
+        const newCacheColumns: Column[] = [...cacheColumns]
+        newCacheColumns.forEach(item => {
+            if (item.data.key === selected.data.key) {
+                item.visible = e.target.checked
+            }
+        })
+        setCacheColumns(newCacheColumns)
+    }
+
+    save = (setDrawer: React.Dispatch<React.SetStateAction<boolean>>, cacheColumns: Column[]) => {
+        this.props.columns.reset(cacheColumns)
+        setDrawer(false)
+    }
+
+    reset = (setCacheColumns: React.Dispatch<React.SetStateAction<Column[]>>) => {
+        const deepCopyColumns: Column[] = JSON.parse(JSON.stringify(this.props.columns.columns()))
+        setCacheColumns(deepCopyColumns)
+    }
 }
 
-const Toolbar: React.FC<ToolbarProps> = ({ loading, fetchData, opts, setOpts, selectdVirtuaMachines }) => {
+const Toolbar: React.FC<ToolbarProps> = ({ loading, fetchData, opts, setOpts, selectdVirtuaMachines, columns }) => {
     const [drawer, setDrawer] = useState(false)
+
+    const deepCopyColumns: Column[] = JSON.parse(JSON.stringify(columns.columns()))
+    const [cacheColumns, setCacheColumns] = useState(deepCopyColumns)
+
+    useEffect(() => {
+        setCacheColumns(deepCopyColumns)
+    }, [drawer])
+
     const { notificationContext, showVirtualMachineNotification } = useVirtualMachineNotification()
 
-    const handle = new ToolbarHandler({ loading, fetchData, opts, setOpts, selectdVirtuaMachines }, showVirtualMachineNotification)
+    const handler = new ToolbarHandler({ loading, fetchData, opts, setOpts, selectdVirtuaMachines, columns }, showVirtualMachineNotification)
 
     const isDisabled = selectdVirtuaMachines?.length === 0
 
@@ -77,8 +100,8 @@ const Toolbar: React.FC<ToolbarProps> = ({ loading, fetchData, opts, setOpts, se
                 {
                     key: 'power-start',
                     label: '启动',
-                    onClick: () => handle.batchManageVirtualMachinePowerState(ManageVirtualMachinePowerStateRequestPowerState.ON),
-                    disabled: !handle.isAnySelectedVmInStatus("Stopped")
+                    onClick: () => handler.batchManageVirtualMachinePowerState(ManageVirtualMachinePowerStateRequestPowerState.ON),
+                    disabled: !handler.isAnySelectedVmInStatus("Stopped")
                 },
                 {
                     key: 'power-restart',
@@ -88,8 +111,8 @@ const Toolbar: React.FC<ToolbarProps> = ({ loading, fetchData, opts, setOpts, se
                 {
                     key: 'power-shutdown',
                     label: '关机',
-                    onClick: () => handle.batchManageVirtualMachinePowerState(ManageVirtualMachinePowerStateRequestPowerState.OFF),
-                    disabled: !handle.isAnySelectedVmInStatus("Running")
+                    onClick: () => handler.batchManageVirtualMachinePowerState(ManageVirtualMachinePowerStateRequestPowerState.OFF),
+                    disabled: !handler.isAnySelectedVmInStatus("Running")
                 }
             ]
         },
@@ -110,7 +133,7 @@ const Toolbar: React.FC<ToolbarProps> = ({ loading, fetchData, opts, setOpts, se
             key: 'delete',
             label: '删除',
             danger: true,
-            onClick: () => handle.batchDeleteVirtualMachines(),
+            onClick: () => handler.batchDeleteVirtualMachines(),
             disabled: isDisabled
         }
     ]
@@ -129,15 +152,15 @@ const Toolbar: React.FC<ToolbarProps> = ({ loading, fetchData, opts, setOpts, se
                         <Button icon={<PlusOutlined />}>创建虚拟机</Button>
                     </NavLink>
                     <Button
-                        onClick={() => handle.batchManageVirtualMachinePowerState(ManageVirtualMachinePowerStateRequestPowerState.ON)}
-                        disabled={!handle.isAnySelectedVmInStatus("Stopped")}
+                        onClick={() => handler.batchManageVirtualMachinePowerState(ManageVirtualMachinePowerStateRequestPowerState.ON)}
+                        disabled={!handler.isAnySelectedVmInStatus("Stopped")}
                         icon={<PlayCircleOutlined />}
                     >
                         启动
                     </Button>
                     <Button
-                        onClick={() => handle.batchManageVirtualMachinePowerState(ManageVirtualMachinePowerStateRequestPowerState.OFF)}
-                        disabled={!handle.isAnySelectedVmInStatus("Running")}
+                        onClick={() => handler.batchManageVirtualMachinePowerState(ManageVirtualMachinePowerStateRequestPowerState.OFF)}
+                        disabled={!handler.isAnySelectedVmInStatus("Running")}
                         danger
                         icon={<PoweroffOutlined />}
                     >
@@ -153,8 +176,8 @@ const Toolbar: React.FC<ToolbarProps> = ({ loading, fetchData, opts, setOpts, se
                     </Dropdown>
                     <Search
                         allowClear
-                        onChange={handle.cleanSearch}
-                        onSearch={handle.search}
+                        onChange={handler.cleanSearch}
+                        onSearch={handler.search}
                         placeholder="默认搜索名称"
                     />
                 </Space>
@@ -175,13 +198,24 @@ const Toolbar: React.FC<ToolbarProps> = ({ loading, fetchData, opts, setOpts, se
                 footer={
                     <Flex justify="space-between" align="flex-start">
                         <Space>
-                            <Button type="primary">确定</Button>
+                            <Button type="primary" onClick={() => handler.save(setDrawer, cacheColumns)}>确定</Button>
                             <Button onClick={() => setDrawer(false)}>取消</Button>
                         </Space>
-                        <Button type='text'>重置</Button>
+                        <Button type='text' onClick={() => handler.reset(setCacheColumns)}>重置</Button>
                     </Flex>
                 }
             >
+                <Space direction='vertical' size="middle">
+                    {cacheColumns.map(item => (
+                        <Checkbox
+                            key={item.data.key}
+                            checked={item.visible}
+                            onChange={(e: any) => handler.change(e, cacheColumns, setCacheColumns, item)}
+                        >
+                            {item.data.title as string}
+                        </Checkbox>
+                    ))}
+                </Space>
             </Drawer>
         </div>
     )
