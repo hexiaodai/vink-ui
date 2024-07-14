@@ -1,4 +1,4 @@
-import { TableProps } from "antd";
+import { TableProps } from "antd"
 import { ColumnType } from "antd/es/table"
 
 export interface StoreColumn {
@@ -7,7 +7,7 @@ export interface StoreColumn {
     original: ColumnType<any>
 }
 
-export class TableColumns {
+export class TableColumnStore {
     private persistentStorageKey: string
     private data: StoreColumn[] = []
 
@@ -20,30 +20,42 @@ export class TableColumns {
             store = JSON.parse(serializedValue) as StoreColumn[]
         }
 
-        const storeIdx = this.generateStoreIdx(store)
-
+        const colIdx = new Map<string, ColumnType<any>>()
         columns?.forEach(column => {
-            let visible = true
-            const temp = storeIdx.get(column.key as string)
-            if (temp != null) {
-                visible = temp.visible
-            }
-            this.data.push({
-                key: column.key as string,
-                visible: visible,
-                original: column
-            })
+            colIdx.set(column.key as string, column)
         })
-
-        window.localStorage.setItem(this.persistentStorageKey, JSON.stringify(this.data))
-    }
-
-    private generateStoreIdx = (store: StoreColumn[]) => {
         const storeIdx = new Map<string, StoreColumn>()
         store?.forEach(column => {
             storeIdx.set(column.original.key as string, column)
         })
-        return storeIdx
+
+        const data: StoreColumn[] = []
+
+        store.forEach(column => {
+            const temp = colIdx.get(column.key as string)
+            if (temp != null) {
+                data.push({
+                    key: column.key,
+                    visible: column.visible,
+                    original: temp
+                })
+            }
+        })
+
+        columns?.forEach(column => {
+            const temp = storeIdx.get(column.key as string)
+            if (temp == null) {
+                data.push({
+                    key: column.key as string,
+                    visible: true,
+                    original: column
+                })
+            }
+        })
+
+        this.data = data
+
+        window.localStorage.setItem(this.persistentStorageKey, JSON.stringify(this.data))
     }
 
     storeColumns = () => {
@@ -60,16 +72,25 @@ export class TableColumns {
         return columns
     }
 
-    save = async (columns: StoreColumn[]) => {
-        const storeIdx = this.generateStoreIdx(columns)
+    save = (sc: StoreColumn[]) => {
+        const idx = new Map<string, StoreColumn>()
+        this.data?.forEach(column => {
+            idx.set(column.key, column)
+        })
 
-        this.data.forEach(column => {
-            const temp = storeIdx.get(column.original.key as string)
+        const newData: StoreColumn[] = []
+        sc.forEach(column => {
+            const temp = idx.get(column.key)
             if (temp != null) {
-                column.visible = temp.visible
+                newData.push({
+                    key: column.key,
+                    visible: column.visible,
+                    original: temp.original
+                })
             }
         })
 
+        this.data = newData
         window.localStorage.setItem(this.persistentStorageKey, JSON.stringify(this.data))
     }
 

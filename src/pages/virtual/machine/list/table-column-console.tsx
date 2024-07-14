@@ -1,15 +1,13 @@
 import { CodeOutlined } from '@ant-design/icons'
 import { VirtualMachine } from "@kubevm.io/vink/management/virtualmachine/v1alpha1/virtualmachine.pb"
 import styles from '@/pages/virtual/machine/list/styles/table-column-console.module.less'
+import React from 'react'
 
-interface TableColumnConsoleProps {
+export interface TableColumnConsoleProps {
     vm: VirtualMachine
 }
 
-interface Handler {
-}
-
-class TableColumnConsoleHandler implements Handler {
+export class TableColumnConsoleHandler {
     private props: TableColumnConsoleProps
 
     private width = screen.width - 400

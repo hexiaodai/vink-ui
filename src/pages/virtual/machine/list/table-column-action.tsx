@@ -3,19 +3,14 @@ import { EllipsisOutlined } from '@ant-design/icons'
 import { ManageVirtualMachinePowerStateRequestPowerState, VirtualMachine } from '@kubevm.io/vink/management/virtualmachine/v1alpha1/virtualmachine.pb'
 import { useVirtualMachineNotification } from '@/components/notification'
 import { VirtualMachineManagement } from '@/apis-management/virtualmachine'
+import { TableColumnConsoleHandler } from '@/pages/virtual/machine/list/table-column-console'
 import commonTableStyles from '@/common/styles/table.module.less'
 
 interface TableColumeActionProps {
     vm: VirtualMachine
 }
 
-interface Handler {
-    manageVirtualMachinePowerState: (state: ManageVirtualMachinePowerStateRequestPowerState) => void
-    deleteVirtualMachine: () => void
-    statusEqual: (status: string) => boolean
-}
-
-class TableColumeActionHandler implements Handler {
+class TableColumeActionHandler {
     private props: TableColumeActionProps
     private notification: any
 
@@ -48,12 +43,19 @@ class TableColumeActionHandler implements Handler {
     statusEqual = (status: string) => {
         return this.props.vm.virtualMachine?.status?.printableStatus as string === status
     }
+
+    console = () => {
+
+    }
 }
 
 const TableColumeAction: React.FC<TableColumeActionProps> = ({ vm }) => {
     const { notificationContext, showVirtualMachineNotification } = useVirtualMachineNotification()
 
     const handler = new TableColumeActionHandler({ vm }, showVirtualMachineNotification)
+
+    const consoleHandler = new TableColumnConsoleHandler({ vm })
+
 
     const items: MenuProps['items'] = [
         {
@@ -85,6 +87,16 @@ const TableColumeAction: React.FC<TableColumeActionProps> = ({ vm }) => {
             type: 'divider'
         },
         {
+            key: 'console',
+            label: '控制台',
+            onClick: () => consoleHandler.open(),
+            disabled: !consoleHandler.isRunning()
+        },
+        {
+            key: 'divider-2',
+            type: 'divider'
+        },
+        {
             key: 'bindlabel',
             label: '绑定标签'
         },
@@ -93,7 +105,7 @@ const TableColumeAction: React.FC<TableColumeActionProps> = ({ vm }) => {
             label: "编辑"
         },
         {
-            key: 'divider-2',
+            key: 'divider-3',
             type: 'divider'
         },
         {
