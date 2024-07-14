@@ -6,7 +6,7 @@ import { VirtualMachineManagement } from '@/apis-management/virtualmachine'
 import { ColumnsType, TableRowSelection } from 'antd/es/table/interface'
 import { TableColumnCPU, TableColumnMem } from '@/pages/virtual/machine/list/table-column-cpu-mem'
 import { ListOptions } from '@kubevm.io/vink/common/common.pb'
-import { TableColumns } from '@/utils/table-columns'
+import { StoreColumn, TableColumns } from '@/utils/table-columns'
 import type { VirtualMachine } from '@kubevm.io/vink/management/virtualmachine/v1alpha1/virtualmachine.pb'
 import Toolbar from '@/pages/virtual/machine/list/toolbar'
 import TableColumeAction from '@/pages/virtual/machine/list/table-column-action'
@@ -15,6 +15,7 @@ import commonTableStyles from '@/common/styles/table.module.less'
 import TableColumnOperatingSystem from '@/components/table-column-operating-system'
 import TableColumnStatus from '@/pages/virtual/machine/list/table-column-status'
 import TableColumnConsole from '@/pages/virtual/machine/list/table-column-console'
+import { TableColumnStore } from '@/components/table-column-mgr/store'
 
 interface SelectedRow {
     keys: React.Key[]
@@ -42,7 +43,8 @@ class VirtalMachineListHandler {
         return newSelectedRow
     }
 
-    saveCustomColumns = (tc: TableColumns, setVisibleColumns: React.Dispatch<React.SetStateAction<ColumnsType<any>>>) => {
+    saveCustomColumns = (tc: TableColumns, setVisibleColumns: React.Dispatch<React.SetStateAction<ColumnsType<any>>>, newStoreColumns: StoreColumn[]) => {
+        tc.save(newStoreColumns)
         setVisibleColumns(tc.visibleColumns())
     }
 }
@@ -67,7 +69,7 @@ const List = () => {
         }
     }
 
-    const columns = new TableColumns("virtual-machine-list-table-columns", [
+    const store = new TableColumnStore("virtual-machine-list-table-columns", [
         {
             key: 'name',
             title: '名称',
@@ -85,7 +87,6 @@ const List = () => {
             key: 'console',
             title: '控制台',
             ellipsis: true,
-            width: 90,
             render: (_, vm) => <TableColumnConsole vm={vm} />
         },
         {
@@ -146,7 +147,7 @@ const List = () => {
         }
     ])
 
-    const [visibleColumns, setVisibleColumns] = useState(columns.visibleColumns())
+    const [visibleColumns, setVisibleColumns] = useState(store.visibleColumns())
 
     return (
         <Space className={commonTableStyles['table-container']} direction="vertical">
@@ -158,8 +159,8 @@ const List = () => {
                 setOpts={setOpts}
                 fetchData={fetchData}
                 selectdVirtuaMachines={selectedRow.vms}
-                columns={columns}
-                onSaveCustomColumns={(() => { handler.saveCustomColumns(columns, setVisibleColumns) })}
+                store={store}
+                onSaveCustomColumns={() => setVisibleColumns(store.visibleColumns())}
             />
 
             <Spin
