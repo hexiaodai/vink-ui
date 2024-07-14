@@ -3,7 +3,7 @@ import { Table, Space, Spin } from 'antd'
 import { LoadingOutlined } from '@ant-design/icons'
 import { defaultNamespace, namespaceName } from '@/utils/k8s'
 import { VirtualMachineManagement } from '@/apis-management/virtualmachine'
-import { TableRowSelection } from 'antd/es/table/interface'
+import { ColumnsType, TableRowSelection } from 'antd/es/table/interface'
 import { TableColumnCPU, TableColumnMem } from '@/pages/virtual/machine/list/table-column-cpu-mem'
 import { ListOptions } from '@kubevm.io/vink/common/common.pb'
 import { TableColumns } from '@/utils/table-columns'
@@ -21,12 +21,7 @@ interface SelectedRow {
     vms: VirtualMachine[]
 }
 
-interface Handler {
-    useVirtualMachines: (namespace: string, opts: ListOptions) => any
-    calculationSelectedRow: (keys: React.Key[], vms: VirtualMachine[]) => SelectedRow
-}
-
-class VirtalMachineListHandler implements Handler {
+class VirtalMachineListHandler {
     private addSelectedRow = (selectedRow: SelectedRow, vm: VirtualMachine) => {
         selectedRow.keys.push(namespaceName(vm))
         selectedRow.vms.push(vm)
@@ -45,6 +40,10 @@ class VirtalMachineListHandler implements Handler {
             }
         })
         return newSelectedRow
+    }
+
+    saveCustomColumns = (tc: TableColumns, setVisibleColumns: React.Dispatch<React.SetStateAction<ColumnsType<any>>>) => {
+        setVisibleColumns(tc.visibleColumns())
     }
 }
 
@@ -68,7 +67,7 @@ const List = () => {
         }
     }
 
-    const columns = new TableColumns("columns", [
+    const columns = new TableColumns("virtual-machine-list-table-columns", [
         {
             key: 'name',
             title: '名称',
@@ -147,8 +146,7 @@ const List = () => {
         }
     ])
 
-    // columns.setNotVisible("name")
-    // columns.setVisible("name")
+    const [visibleColumns, setVisibleColumns] = useState(columns.visibleColumns())
 
     return (
         <Space className={commonTableStyles['table-container']} direction="vertical">
@@ -161,6 +159,7 @@ const List = () => {
                 fetchData={fetchData}
                 selectdVirtuaMachines={selectedRow.vms}
                 columns={columns}
+                onSaveCustomColumns={(() => { handler.saveCustomColumns(columns, setVisibleColumns) })}
             />
 
             <Spin
@@ -174,9 +173,9 @@ const List = () => {
                     pagination={false}
                     rowSelection={rowSelection}
                     rowKey={(vm) => namespaceName(vm)}
-                    columns={columns.visibleColumns()}
+                    columns={visibleColumns}
                     dataSource={data}
-                    scroll={{ x: 1500 }}
+                    scroll={{ x: visibleColumns.length * 150 }}
                 />
             </Spin>
             <div>{notificationContext}</div>
