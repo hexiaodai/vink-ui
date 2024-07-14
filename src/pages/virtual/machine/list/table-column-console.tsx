@@ -29,7 +29,8 @@ class TableColumnConsoleHandler implements Handler {
         if (!this.isRunning()) {
             return
         }
-        window.open(this.url(), '_blank', `toolbars=0, width=${this.width}, height=${this.height}, left=${this.left}, top=${this.top}, noreferrer`)
+        window.open(this.url(), `${this.props.vm.namespace}/${this.props.vm.name}`, `toolbars=0, width=${this.width}, height=${this.height}, left=${this.left}, top=${this.top}`)
+        // window.open(this.url(), '_blank', `toolbars=0, width=${this.width}, height=${this.height}, left=${this.left}, top=${this.top}, noreferrer`)
     }
 
     isRunning = () => {
