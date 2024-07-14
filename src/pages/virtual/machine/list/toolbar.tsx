@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useVirtualMachineNotification } from '@/components/notification'
 import { VirtualMachineManagement } from '@/apis-management/virtualmachine'
-import { TableColumns, Column } from '@/utils/table-columns'
+import { TableColumns, StoreColumn } from '@/utils/table-columns'
 import { CheckboxChangeEvent } from 'antd/es/checkbox'
 
 const { Search } = Input
@@ -18,6 +18,7 @@ interface ToolbarProps {
     setOpts: React.Dispatch<React.SetStateAction<ListOptions>>
     selectdVirtuaMachines: VirtualMachine[]
     columns: TableColumns
+    onSaveCustomColumns: () => void
 }
 
 class ToolbarHandler {
@@ -55,31 +56,36 @@ class ToolbarHandler {
         return (this.props.selectdVirtuaMachines.some(vm => vm.virtualMachine?.status?.printableStatus as string === status))
     }
 
-    change = (e: CheckboxChangeEvent, cacheColumns: Column[], setCacheColumns: React.Dispatch<React.SetStateAction<Column[]>>, selected: Column) => {
-        const newCacheColumns: Column[] = [...cacheColumns]
+    change = (e: CheckboxChangeEvent, cacheColumns: StoreColumn[], setCacheColumns: React.Dispatch<React.SetStateAction<StoreColumn[]>>, selected: StoreColumn) => {
+        const newCacheColumns: StoreColumn[] = [...cacheColumns]
         newCacheColumns.forEach(item => {
-            if (item.data.key === selected.data.key) {
+            if (item.original.key === selected.original.key) {
                 item.visible = e.target.checked
             }
         })
         setCacheColumns(newCacheColumns)
     }
 
-    save = (setDrawer: React.Dispatch<React.SetStateAction<boolean>>, cacheColumns: Column[]) => {
+    save = (setDrawer: React.Dispatch<React.SetStateAction<boolean>>, cacheColumns: StoreColumn[]) => {
         this.props.columns.reset(cacheColumns)
+
+        if (this.props.onSaveCustomColumns) {
+            this.props.onSaveCustomColumns()
+        }
+
         setDrawer(false)
     }
 
-    reset = (setCacheColumns: React.Dispatch<React.SetStateAction<Column[]>>) => {
-        const deepCopyColumns: Column[] = JSON.parse(JSON.stringify(this.props.columns.columns()))
+    reset = (setCacheColumns: React.Dispatch<React.SetStateAction<StoreColumn[]>>) => {
+        const deepCopyColumns: StoreColumn[] = JSON.parse(JSON.stringify(this.props.columns.columns()))
         setCacheColumns(deepCopyColumns)
     }
 }
 
-const Toolbar: React.FC<ToolbarProps> = ({ loading, fetchData, opts, setOpts, selectdVirtuaMachines, columns }) => {
+const Toolbar: React.FC<ToolbarProps> = ({ loading, fetchData, opts, setOpts, selectdVirtuaMachines, columns, onSaveCustomColumns }) => {
     const [drawer, setDrawer] = useState(false)
 
-    const deepCopyColumns: Column[] = JSON.parse(JSON.stringify(columns.columns()))
+    const deepCopyColumns: StoreColumn[] = JSON.parse(JSON.stringify(columns.columns()))
     const [cacheColumns, setCacheColumns] = useState(deepCopyColumns)
 
     useEffect(() => {
@@ -88,7 +94,7 @@ const Toolbar: React.FC<ToolbarProps> = ({ loading, fetchData, opts, setOpts, se
 
     const { notificationContext, showVirtualMachineNotification } = useVirtualMachineNotification()
 
-    const handler = new ToolbarHandler({ loading, fetchData, opts, setOpts, selectdVirtuaMachines, columns }, showVirtualMachineNotification)
+    const handler = new ToolbarHandler({ loading, fetchData, opts, setOpts, selectdVirtuaMachines, columns, onSaveCustomColumns }, showVirtualMachineNotification)
 
     const isDisabled = selectdVirtuaMachines?.length === 0
 
@@ -208,11 +214,11 @@ const Toolbar: React.FC<ToolbarProps> = ({ loading, fetchData, opts, setOpts, se
                 <Space direction='vertical' size="middle">
                     {cacheColumns.map(item => (
                         <Checkbox
-                            key={item.data.key}
+                            key={item.original.key}
                             checked={item.visible}
                             onChange={(e: any) => handler.change(e, cacheColumns, setCacheColumns, item)}
                         >
-                            {item.data.title as string}
+                            {item.original.title as string}
                         </Checkbox>
                     ))}
                 </Space>
