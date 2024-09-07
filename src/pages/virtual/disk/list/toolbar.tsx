@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom'
 import { Space, Input, Button, Flex, Dropdown, MenuProps, Drawer } from 'antd'
 import { SyncOutlined, PlusOutlined, SettingOutlined, DownOutlined } from '@ant-design/icons'
 import { ListOptions, NameFieldSelector } from '@/utils/search'
-import { DataVolumeManagement } from '@/apis-management/datavolume'
+import { DataVolumeManagement } from '../../../../../temp/apis-management/datavolume'
 import { DataVolume } from '@kubevm.io/vink/management/datavolume/v1alpha1/datavolume.pb'
 import { useDataVolumeNotification } from '@/components/notification'
 

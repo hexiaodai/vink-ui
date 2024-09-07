@@ -4,7 +4,7 @@ import { Table, Spin, TableProps, Space, Button, Input, Drawer, Flex } from 'ant
 import { ListOptions, NameFieldSelector } from '@/utils/search.ts'
 import { dataVolumeTypeLabelSelector } from '@/utils/search.ts'
 import { TableRowSelection } from 'antd/es/table/interface'
-import { DataVolumeManagement } from '@/apis-management/datavolume'
+import { DataVolumeManagement } from '../../../../../temp/apis-management/datavolume'
 import { formatMemory, namespaceName } from '@/utils/k8s'
 import type { DataVolume } from '@kubevm.io/vink/management/datavolume/v1alpha1/datavolume.pb'
 import styles from '@/pages/virtual/machine/create/styles/add-data-disk.module.less'

@@ -1,0 +1,860 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "management/network/v1alpha1/network.proto",
+    "version": "version not set"
+  },
+  "tags": [
+    {
+      "name": "NetworkManagement"
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/apis/vink.io/v1alpha1/network/ippools": {
+      "get": {
+        "operationId": "NetworkManagement_ListIPPools",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1alpha1ListIPPoolsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "options.limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "options.continue",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "options.labelsSelector",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "options.fieldSelector",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "NetworkManagement"
+        ]
+      }
+    },
+    "/apis/vink.io/v1alpha1/network/ippools/{name}": {
+      "delete": {
+        "operationId": "NetworkManagement_DeleteIPPool",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1alpha1DeleteIPPoolResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "NetworkManagement"
+        ]
+      },
+      "post": {
+        "operationId": "NetworkManagement_CreateIPPool",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1alpha1IPPool"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "config": {
+                  "$ref": "#/definitions/v1alpha1IPPoolConfig"
+                }
+              }
+            }
+          }
+        ],
+        "tags": [
+          "NetworkManagement"
+        ]
+      },
+      "put": {
+        "operationId": "NetworkManagement_UpdateIPPool",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1alpha1IPPool"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "config": {
+                  "$ref": "#/definitions/v1alpha1IPPoolConfig"
+                }
+              }
+            }
+          }
+        ],
+        "tags": [
+          "NetworkManagement"
+        ]
+      }
+    },
+    "/apis/vink.io/v1alpha1/network/multus-configs": {
+      "get": {
+        "operationId": "NetworkManagement_ListMultusConfigs",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1alpha1ListMultusConfigsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "options.limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "options.continue",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "options.labelsSelector",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "options.fieldSelector",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "NetworkManagement"
+        ]
+      }
+    },
+    "/apis/vink.io/v1alpha1/network/multus-configs/{name}": {
+      "delete": {
+        "operationId": "NetworkManagement_DeleteMultusConfig",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1alpha1DeleteMultusConfigResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "NetworkManagement"
+        ]
+      },
+      "post": {
+        "operationId": "NetworkManagement_CreateMultusConfig",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1alpha1MultusConfig"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "nic": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "tags": [
+          "NetworkManagement"
+        ]
+      },
+      "put": {
+        "operationId": "NetworkManagement_UpdateMultusConfig",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1alpha1MultusConfig"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "nic": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        ],
+        "tags": [
+          "NetworkManagement"
+        ]
+      }
+    },
+    "/apis/vink.io/v1alpha1/network/nodes/network-interfaces": {
+      "get": {
+        "operationId": "NetworkManagement_ListNodesNetworkInterfaces",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1alpha1ListNodesNetworkInterfacesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "options.limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "options.continue",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "options.labelsSelector",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "options.fieldSelector",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "NetworkManagement"
+        ]
+      }
+    },
+    "/apis/vink.io/v1alpha1/network/subnets": {
+      "get": {
+        "operationId": "NetworkManagement_ListSubnets",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1alpha1ListSubnetsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "options.limit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "options.continue",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "options.labelsSelector",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "options.fieldSelector",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "NetworkManagement"
+        ]
+      }
+    },
+    "/apis/vink.io/v1alpha1/network/subnets/{name}": {
+      "delete": {
+        "operationId": "NetworkManagement_DeleteSubnet",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1alpha1DeleteSubnetResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "NetworkManagement"
+        ]
+      },
+      "post": {
+        "operationId": "NetworkManagement_CreateSubnet",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1alpha1Subnet"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "config": {
+                  "$ref": "#/definitions/v1alpha1SubnetConfig"
+                }
+              }
+            }
+          }
+        ],
+        "tags": [
+          "NetworkManagement"
+        ]
+      },
+      "put": {
+        "operationId": "NetworkManagement_UpdateSubnet",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1alpha1Subnet"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object",
+              "properties": {
+                "config": {
+                  "$ref": "#/definitions/v1alpha1SubnetConfig"
+                }
+              }
+            }
+          }
+        ],
+        "tags": [
+          "NetworkManagement"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "NodeNetworkInterfaceNetworkInterface": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "ip": {
+          "type": "string"
+        },
+        "subnet": {
+          "type": "string"
+        },
+        "gateway": {
+          "type": "string"
+        },
+        "state": {
+          "type": "string"
+        }
+      }
+    },
+    "NodeNetworkInterfaceNode": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        }
+      }
+    },
+    "commonListOptions": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "continue": {
+          "type": "string"
+        },
+        "labelsSelector": {
+          "type": "string"
+        },
+        "fieldSelector": {
+          "type": "string"
+        }
+      }
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {}
+    },
+    "protobufNullValue": {
+      "type": "string",
+      "enum": [
+        "NULL_VALUE"
+      ],
+      "default": "NULL_VALUE",
+      "description": "`NullValue` is a singleton enumeration to represent the null value for the\n`Value` type union.\n\n The JSON representation for `NullValue` is JSON `null`.\n\n - NULL_VALUE: Null value."
+    },
+    "rpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
+    "v1alpha1DeleteIPPoolResponse": {
+      "type": "object"
+    },
+    "v1alpha1DeleteMultusConfigResponse": {
+      "type": "object"
+    },
+    "v1alpha1DeleteSubnetResponse": {
+      "type": "object"
+    },
+    "v1alpha1IPPool": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "creationTimestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "spec": {
+          "type": "object"
+        },
+        "status": {
+          "type": "object"
+        }
+      }
+    },
+    "v1alpha1IPPoolConfig": {
+      "type": "object",
+      "properties": {
+        "gateway": {
+          "type": "string"
+        },
+        "ips": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "excludeIps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "subnet": {
+          "type": "string"
+        },
+        "routes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1alpha1IPPoolConfigRoute"
+          }
+        }
+      }
+    },
+    "v1alpha1IPPoolConfigRoute": {
+      "type": "object",
+      "properties": {
+        "dst": {
+          "type": "string"
+        },
+        "gw": {
+          "type": "string"
+        }
+      }
+    },
+    "v1alpha1ListIPPoolsResponse": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1alpha1IPPool"
+          }
+        },
+        "options": {
+          "$ref": "#/definitions/commonListOptions",
+          "title": "common.Pagination pagination = 2;"
+        }
+      }
+    },
+    "v1alpha1ListMultusConfigsResponse": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1alpha1MultusConfig"
+          }
+        },
+        "options": {
+          "$ref": "#/definitions/commonListOptions",
+          "title": "common.Pagination pagination = 2;"
+        }
+      }
+    },
+    "v1alpha1ListNodesNetworkInterfacesResponse": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1alpha1NodeNetworkInterface"
+          }
+        },
+        "options": {
+          "$ref": "#/definitions/commonListOptions",
+          "title": "common.Pagination pagination = 2;"
+        }
+      }
+    },
+    "v1alpha1ListSubnetsResponse": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1alpha1Subnet"
+          }
+        },
+        "options": {
+          "$ref": "#/definitions/commonListOptions",
+          "title": "common.Pagination pagination = 2;"
+        }
+      }
+    },
+    "v1alpha1MultusConfig": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "creationTimestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "spec": {
+          "type": "object"
+        },
+        "status": {
+          "type": "object"
+        }
+      }
+    },
+    "v1alpha1NodeNetworkInterface": {
+      "type": "object",
+      "properties": {
+        "node": {
+          "$ref": "#/definitions/NodeNetworkInterfaceNode"
+        },
+        "networkInterface": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/NodeNetworkInterfaceNetworkInterface"
+          }
+        }
+      }
+    },
+    "v1alpha1Subnet": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "creationTimestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "spec": {
+          "type": "object"
+        },
+        "status": {
+          "type": "object"
+        }
+      }
+    },
+    "v1alpha1SubnetConfig": {
+      "type": "object",
+      "properties": {
+        "gateway": {
+          "type": "string"
+        },
+        "ips": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "excludeIps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "subnet": {
+          "type": "string"
+        },
+        "routes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1alpha1SubnetConfigRoute"
+          }
+        }
+      }
+    },
+    "v1alpha1SubnetConfigRoute": {
+      "type": "object",
+      "properties": {
+        "dst": {
+          "type": "string"
+        },
+        "gw": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

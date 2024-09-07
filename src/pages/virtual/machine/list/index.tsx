@@ -1,187 +1,130 @@
-import { useEffect, useState } from 'react'
-import { Table, Space, Spin } from 'antd'
-import { LoadingOutlined } from '@ant-design/icons'
-import { defaultNamespace, namespaceName } from '@/utils/k8s'
-import { VirtualMachineManagement } from '@/apis-management/virtualmachine'
-import { ColumnsType, TableRowSelection } from 'antd/es/table/interface'
-import { TableColumnCPU, TableColumnMem } from '@/pages/virtual/machine/list/table-column-cpu-mem'
-import { ListOptions } from '@kubevm.io/vink/common/common.pb'
-import { StoreColumn, TableColumns } from '@/utils/table-columns'
-import type { VirtualMachine } from '@kubevm.io/vink/management/virtualmachine/v1alpha1/virtualmachine.pb'
-import Toolbar from '@/pages/virtual/machine/list/toolbar'
-import TableColumeAction from '@/pages/virtual/machine/list/table-column-action'
-import TableColumeIPv4 from '@/pages/virtual/machine/list/table-column-ipv4'
-import commonTableStyles from '@/common/styles/table.module.less'
-import TableColumnOperatingSystem from '@/components/table-column-operating-system'
-import TableColumnStatus from '@/pages/virtual/machine/list/table-column-status'
-import TableColumnConsole from '@/pages/virtual/machine/list/table-column-console'
-import { TableColumnStore } from '@/components/table-column-mgr/store'
+import { PlusOutlined, LoadingOutlined } from '@ant-design/icons'
+import { ProTable } from '@ant-design/pro-components'
+import { App, Button, Select, Space } from 'antd'
+import { useEffect, useRef, useState } from 'react'
+import { namespaceName } from '@/utils/k8s'
+import { NavLink, Params } from 'react-router-dom'
+import { VirtualMachinePowerStateRequest_PowerState } from '@/apis/management/virtualmachine/v1alpha1/virtualmachine'
+import { CustomResourceDefinition } from "@/apis/apiextensions/v1alpha1/custom_resource_definition"
+import { batchDeleteVirtualMachines, batchManageVirtualMachinePowerState, ResourceUpdater } from '@/pages/virtual/machine/list/resource-manager'
+import type { ActionType, ColumnsState } from '@ant-design/pro-components'
+import TableStyles from '@/common/styles/table.module.less'
+import columnsFunc from '@/pages/virtual/machine/list/table-columns.tsx'
 
-interface SelectedRow {
-    keys: React.Key[]
-    vms: VirtualMachine[]
+const calcScroll = (obj: Record<string, ColumnsState>) => {
+    let count = 0
+    Object.keys(obj).forEach((key) => {
+        if (obj[key].show) {
+            count++
+        }
+    })
+    return count * 150
 }
 
-class VirtalMachineListHandler {
-    private addSelectedRow = (selectedRow: SelectedRow, vm: VirtualMachine) => {
-        selectedRow.keys.push(namespaceName(vm))
-        selectedRow.vms.push(vm)
+export default () => {
+    const ctrl = useRef<AbortController>()
+
+    const { notification } = App.useApp()
+
+    const [searchFilter, setSearchFilter] = useState<string>("name")
+    const [scroll, setScroll] = useState(0)
+    const [selectedRows, setSelectedRows] = useState<CustomResourceDefinition[]>([])
+
+    const actionRef = useRef<ActionType>()
+
+    const [virtualMachine, setVirtualMachine] = useState<Map<string, CustomResourceDefinition>>(new Map<string, CustomResourceDefinition>())
+    const [virtualMachineInstance, setVirtualMachineInstance] = useState<Map<string, CustomResourceDefinition>>(new Map<string, CustomResourceDefinition>())
+    const [rootDisk, setRootDisk] = useState<Map<string, CustomResourceDefinition>>(new Map<string, CustomResourceDefinition>())
+    const [node, setNode] = useState<Map<string, CustomResourceDefinition>>(new Map<string, CustomResourceDefinition>())
+
+    const resource = useRef<ResourceUpdater>()
+
+    const columns = columnsFunc(virtualMachineInstance, rootDisk, node, notification)
+
+    const dataSource = (): CustomResourceDefinition[] | undefined => {
+        let items = Array.from(virtualMachine.values())
+        if (items.length > 0) {
+            return items
+        }
+        return undefined
     }
-
-    useVirtualMachines = (namespace: string, initOpts: ListOptions) => {
-        return VirtualMachineManagement.UseVirtualMachines({ namespace: namespace, opts: initOpts })
-    }
-
-    calculationSelectedRow = (keys: React.Key[], vms: VirtualMachine[]) => {
-        const newSelectedRow: SelectedRow = { keys: [], vms: [] }
-        keys.forEach(key => {
-            const vm = vms.find(v => namespaceName(v) === key)
-            if (vm) {
-                this.addSelectedRow(newSelectedRow, vm)
-            }
-        })
-        return newSelectedRow
-    }
-
-    saveCustomColumns = (tc: TableColumns, setVisibleColumns: React.Dispatch<React.SetStateAction<ColumnsType<any>>>, newStoreColumns: StoreColumn[]) => {
-        tc.save(newStoreColumns)
-        setVisibleColumns(tc.visibleColumns())
-    }
-}
-
-const List = () => {
-    const handler = new VirtalMachineListHandler()
-    const { opts, setOpts, data, loading, fetchData, notificationContext } = handler.useVirtualMachines(defaultNamespace, {})
-
-    const [selectedRow, setSelectedRow] = useState<SelectedRow>({ keys: [], vms: [] })
 
     useEffect(() => {
-        const newSelectedRow = handler.calculationSelectedRow(selectedRow.keys, data)
-        setSelectedRow(newSelectedRow)
-    }, [data])
+        if (resource.current) return
+        resource.current = new ResourceUpdater(virtualMachine, setVirtualMachine, virtualMachineInstance, setVirtualMachineInstance, rootDisk, setRootDisk, node, setNode, notification)
+    }, [])
 
-    const rowSelection: TableRowSelection<VirtualMachine> = {
-        columnWidth: 25,
-        selectedRowKeys: selectedRow.keys,
-        onChange: (keys: React.Key[]) => {
-            const newSelectedRow = handler.calculationSelectedRow(keys, data)
-            setSelectedRow(newSelectedRow)
+    useEffect(() => {
+        return () => {
+            console.log('Component is unmounting and aborting operation')
+            ctrl.current?.abort()
         }
-    }
-
-    const store = new TableColumnStore("virtual-machine-list-table-columns", [
-        {
-            key: 'name',
-            title: '名称',
-            fixed: 'left',
-            ellipsis: true,
-            render: (_, vm) => <>{vm.name}</>
-        },
-        {
-            key: 'namespace',
-            title: '命名空间',
-            ellipsis: true,
-            render: (_, vm) => <>{vm.namespace}</>
-        },
-        {
-            key: 'console',
-            title: '控制台',
-            ellipsis: true,
-            render: (_, vm) => <TableColumnConsole vm={vm} />
-        },
-        {
-            key: 'status',
-            title: '状态',
-            ellipsis: true,
-            render: (_, vm) => <TableColumnStatus vm={vm} />
-        },
-        {
-            key: 'operatingSystem',
-            title: '操作系统',
-            ellipsis: true,
-            render: (_, vm) => <TableColumnOperatingSystem dv={vm.virtualMachineDataVolume?.root} />
-        },
-        {
-            key: 'ipv4',
-            title: 'IPv4',
-            ellipsis: true,
-            render: (_, vm) => <TableColumeIPv4 vm={vm} />
-        },
-        {
-            key: 'cpu',
-            title: '处理器',
-            ellipsis: true,
-            render: (_, vm) => <TableColumnCPU vm={vm} />
-        },
-        {
-            key: 'memory',
-            title: '内存',
-            ellipsis: true,
-            render: (_, vm) => <TableColumnMem vm={vm} />
-        },
-        {
-            key: 'node',
-            title: '节点',
-            ellipsis: true,
-            render: (_, vm) => <>{vm.virtualMachineInstance?.status?.nodeName}</>
-        },
-        {
-            key: 'nodeIP',
-            title: '节点 IP',
-            ellipsis: true
-        },
-        {
-            title: '创建时间',
-            key: 'created',
-            width: 195,
-            ellipsis: true,
-            render: (_, vm) => <>{vm.creationTimestamp}</>
-        },
-        {
-            title: '操作',
-            key: 'action',
-            fixed: 'right',
-            width: 80,
-            align: 'center',
-            render: (_, vm) => <TableColumeAction vm={vm} />
-        }
-    ])
-
-    const [visibleColumns, setVisibleColumns] = useState(store.visibleColumns())
+    }, [])
 
     return (
-        <Space className={commonTableStyles['table-container']} direction="vertical">
-            {/* <Summary /> */}
+        <ProTable<CustomResourceDefinition, Params>
+            className={TableStyles["table-container"]}
+            scroll={{ x: scroll }}
+            rowSelection={{
+                defaultSelectedRowKeys: [],
+                onChange: (_, selectedRows) => {
+                    setSelectedRows(selectedRows)
+                }
+            }}
+            tableAlertRender={({ selectedRowKeys, onCleanSelected }) => {
+                return (
+                    <Space size={16}>
+                        <span>已选 {selectedRowKeys.length} 项</span>
+                        <a onClick={onCleanSelected}>取消选择</a>
+                    </Space>
+                )
+            }}
+            tableAlertOptionRender={() => {
+                return (
+                    <Space size={16}>
+                        <a onClick={async () => await batchManageVirtualMachinePowerState(selectedRows, VirtualMachinePowerStateRequest_PowerState.ON, notification)}>批量开机</a>
+                        <a onClick={async () => await batchManageVirtualMachinePowerState(selectedRows, VirtualMachinePowerStateRequest_PowerState.REBOOT, notification)}>批量重启</a>
+                        <a onClick={async () => await batchManageVirtualMachinePowerState(selectedRows, VirtualMachinePowerStateRequest_PowerState.OFF, notification)}>批量关机</a>
+                        <a className={TableStyles["warning"]} onClick={() => batchDeleteVirtualMachines(selectedRows)}>批量删除</a>
+                    </Space>
+                )
+            }}
+            columns={columns}
+            actionRef={actionRef}
+            loading={{ indicator: <LoadingOutlined /> }}
+            dataSource={dataSource()}
+            request={async (params) => {
+                ctrl.current?.abort()
+                ctrl.current = new AbortController()
 
-            <Toolbar
-                loading={loading}
-                opts={opts}
-                setOpts={setOpts}
-                fetchData={fetchData}
-                selectdVirtuaMachines={selectedRow.vms}
-                store={store}
-                onSaveCustomColumns={() => setVisibleColumns(store.visibleColumns())}
-            />
-
-            <Spin
-                indicator={<LoadingOutlined />}
-                spinning={loading}
-                delay={500}
-            >
-                <Table
-                    className={commonTableStyles.table}
-                    virtual
-                    pagination={false}
-                    rowSelection={rowSelection}
-                    rowKey={(vm) => namespaceName(vm)}
-                    columns={visibleColumns}
-                    dataSource={data}
-                    scroll={{ x: visibleColumns.length * 150 }}
-                />
-            </Spin>
-            <div>{notificationContext}</div>
-        </Space>
+                const advancedParams = { searchFilter: searchFilter, params: params }
+                await resource.current?.updateResource(advancedParams, ctrl.current)
+                return { success: true }
+            }}
+            columnsState={{
+                persistenceKey: 'virtual-machine-list-table-columns',
+                persistenceType: 'localStorage',
+                onChange: (obj) => setScroll(calcScroll(obj))
+            }}
+            rowKey={(vm) => namespaceName(vm.metadata)}
+            search={false}
+            options={{
+                fullScreen: true,
+                search: {
+                    allowClear: true,
+                    style: { width: 280 },
+                    addonBefore: <Select defaultValue="name" onChange={(value) => setSearchFilter(value)} options={[
+                        { value: 'name', label: '名称' },
+                        { value: 'namespace', label: '命名空间' }
+                    ]} />
+                }
+            }}
+            pagination={false}
+            toolbar={{
+                actions: [
+                    <NavLink to='/virtual/machines/create'><Button icon={<PlusOutlined />}>创建虚拟机</Button></NavLink>
+                ]
+            }}
+        />
     )
 }
-
-export default List

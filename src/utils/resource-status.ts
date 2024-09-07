@@ -1,0 +1,18 @@
+export const virtualMachineStatusMap: { [key: string]: 'default' | 'processing' | 'success' | 'warning' | 'error' } = {
+    'Stopped': 'default',
+    'Provisioning': 'processing',
+    'Starting': 'processing',
+    'Running': 'success',
+    'Paused': 'warning',
+    'Stopping': 'processing',
+    'Terminating': 'processing',
+    'CrashLoopBackOff': 'error',
+    'Migrating': 'processing',
+    'Unknown': 'default',
+    'ErrorUnschedulable': 'error',
+    'ErrImagePull': 'error',
+    'ImagePullBackOff': 'error',
+    'ErrorPvcNotFound': 'error',
+    'DataVolumeError': 'error',
+    'WaitingForVolumeBinding': 'processing',
+}

@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package vink.kubevm.io.apis.types;
+
+option go_package = "github.com/kubevm.io/vink/apis/types";
+
+import "types/namespace_name.proto";
+import "validate/validate.proto";
+
+message ListOptions {
+	string label_selector = 1;
+	string field_selector = 2;
+    int32 limit = 3 [(validate.rules).int32.gte = 0];
+    string continue = 4;
+    repeated NamespaceName namespace_names = 5;
+    bool watch = 6;
+}

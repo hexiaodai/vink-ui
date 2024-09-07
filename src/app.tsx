@@ -1,26 +1,36 @@
-import React from 'react'
-import { Layout } from 'antd'
-import MainMenu from '@/components/main-menu'
-import SideMenu from '@/components/side-menu'
-import AppRouter from '@/router/index'
-import styles from '@/styles/app.module.less'
+import { useState } from 'react'
+import { App, ConfigProvider } from 'antd'
+import { PageContainer, ProCard, ProLayout } from '@ant-design/pro-components'
+import { NavLink, useLocation } from 'react-router-dom'
+import { LayoutSettings } from '@/layout-config'
+import AppRouter from '@/router'
+import Styles from '@/styles/app.module.less'
 
-const { Content } = Layout
+export default () => {
+  const location = useLocation()
+  const [pathname, setPathname] = useState(location.pathname)
 
-const App: React.FC = () => {
   return (
-    <Layout className={styles.layout} >
-      <MainMenu />
-      <Layout hasSider>
-        <SideMenu />
-        <Layout>
-          <Content>
+    <ConfigProvider
+      theme={{
+        components: {
+          Form: {
+            screenXSMax: 0
+          }
+        }
+      }}
+    >
+      <App className={Styles.vink}>
+        <ProLayout
+          {...LayoutSettings}
+          location={{ pathname }}
+          menuItemRender={(item, dom) => <NavLink onClick={() => setPathname(item.path || '/')} to={item.path || '/'}>{dom}</NavLink>}
+        >
+          <PageContainer title={false}>
             <AppRouter />
-          </Content>
-        </Layout>
-      </Layout>
-    </Layout >
+          </PageContainer>
+        </ProLayout>
+      </App >
+    </ConfigProvider>
   )
 }
-
-export default App

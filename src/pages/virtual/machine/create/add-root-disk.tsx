@@ -5,9 +5,9 @@ import { virtualMachineOSLabelSelector, LabelsSelectorString, NameFieldSelector,
 import { namespaceName, formatMemory, GetDescription } from '@/utils/k8s'
 import { IconFont } from '@/components/icon'
 import type { DataVolume } from '@kubevm.io/vink/management/datavolume/v1alpha1/datavolume.pb'
-import { DataVolumeManagement } from '@/apis-management/datavolume'
+import { DataVolumeManagement } from '../../../../../temp/apis-management/datavolume'
 import styles from '@/pages/virtual/machine/create/styles/add-root-disk.module.less'
-import TableColumnOperatingSystem from '@/components/table-column-operating-system'
+import TableColumnOperatingSystem from '@/components/table-column'
 
 const { Search } = Input
 

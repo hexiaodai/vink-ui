@@ -5,8 +5,6 @@ import { lazyComponents } from '@/components/lazy'
 
 const Virtual = lazy(() => import("@/pages/virtual/index"))
 
-// const SerialConsole = lazy(() => import("@/pages/virtual/machine/console/index"))
-
 const AppRouter = () => {
     return (
         <Suspense>
@@ -20,13 +18,3 @@ const AppRouter = () => {
 }
 
 export default AppRouter
-
-// export const OverlayRouter = () => {
-//     return (
-//         <Suspense>
-//             <Routes>
-//                 <Route path="console" element={lazyComponents(<SerialConsole />)} />
-//             </Routes>
-//         </Suspense>
-//     )
-// }

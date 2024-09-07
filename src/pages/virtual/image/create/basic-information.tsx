@@ -1,7 +1,7 @@
 import React from 'react'
 import { Form, Input, Space, Select, Card } from 'antd'
 import { defaultNamespace } from '@/utils/k8s'
-import { NamespaceManagement } from '@/apis-management/namespace'
+import { NamespaceManagement } from '../../../../../temp/apis-management/namespace'
 import { ListOptions } from '@/utils/search'
 import TextArea from 'antd/es/input/TextArea'
 

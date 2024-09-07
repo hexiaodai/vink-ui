@@ -10,10 +10,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "grpc-web-client-gen": "file:src/apis/management/virtualmachine/v1alpha1",
+    "@ant-design/pro-components": "^2.7.13",
     "@dnd-kit/core": "^6.1.0",
     "@dnd-kit/modifiers": "^7.0.0",
     "@dnd-kit/sortable": "^8.0.0",
     "@kubevm.io/vink": "^0.0.0-9840710c",
+    "@originjs/vite-plugin-commonjs": "^1.0.3",
     "ansi-escapes": "^5.0.0",
     "antd": "^5.18.3",
     "react": "^18.2.0",
@@ -22,6 +25,7 @@
     "react-router-dom": "^6.23.1",
     "redux": "^5.0.1",
     "redux-persist": "^6.0.0",
+    "umi-request": "^1.4.0",
     "xterm": "5.0.0",
     "xterm-addon-fit": "0.6.0",
     "xterm-addon-search": "0.10.0",

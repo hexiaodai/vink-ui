@@ -4,7 +4,7 @@ import { defaultNamespace } from '@/utils/k8s'
 import { CreateDataVolumeRequest, DataVolumeType } from '@kubevm.io/vink/management/datavolume/v1alpha1/datavolume.pb'
 import { useDataVolumeNotification } from '@/components/notification'
 import { NavigateFunction, useNavigate } from 'react-router-dom'
-import { DataVolumeManagement } from '@/apis-management/datavolume'
+import { DataVolumeManagement } from '../../../../../temp/apis-management/datavolume'
 import commonFormStyles from '@/common/styles/form.module.less'
 import BasicInformation from '@/pages/virtual/disk/create/basic-information'
 

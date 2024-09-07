@@ -1,3 +1,28 @@
-.layout {
+.vink {
   min-height: 100vh;
+  min-width: 1200px;
+  max-width: 2560px;
+  margin: auto;
+  // position: relative;
+
+  .content-card {
+    min-height: 100vh;
+
+    // min-width: 1200px;
+    // max-width: 100%;
+  }
+
+  :global {
+    .ant-pro-layout {
+      // inset-inline-start: 100px;
+    }
+
+    .ant-layout {
+      .ant-pro-sider-fixed {
+        inset-inline-start: unset;
+        inset-inline-start: unset;
+      }
+    }
+
+  }
 }
