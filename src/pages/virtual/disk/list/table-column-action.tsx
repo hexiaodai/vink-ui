@@ -2,7 +2,7 @@ import { Dropdown, MenuProps, Modal } from 'antd'
 import { EllipsisOutlined } from '@ant-design/icons'
 import { DataVolume } from '@kubevm.io/vink/management/datavolume/v1alpha1/datavolume.pb'
 import { useDataVolumeNotification } from '@/components/notification'
-import { DataVolumeManagement } from '@/apis-management/datavolume'
+import { DataVolumeManagement } from '../../../../../temp/apis-management/datavolume'
 import commonTableStyles from '@/common/styles/table.module.less'
 
 interface TableColumnActionProps {

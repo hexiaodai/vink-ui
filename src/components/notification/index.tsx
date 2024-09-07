@@ -1,4 +1,23 @@
 import { notification } from "antd"
+import { NotificationInstance } from "antd/es/notification/interface"
+
+export const notificationSummary = (notification: NotificationInstance, title: string, items: any[], opresult: any[]) => {
+    const errors = opresult.filter(err => err !== null && err !== undefined)
+    const successCount = items.length - errors.length
+    const type = errors.length === 0 ? "success" : errors.length >= items.length ? "error" : "warning"
+    const desc = `Success: ${successCount}, Failed: ${errors.length}`
+    switch (type) {
+        case "success":
+            notification.success({ message: title, description: desc })
+            break
+        case "error":
+            notification.error({ message: title, description: desc })
+            break
+        case "warning":
+            notification.warning({ message: title, description: desc })
+            break
+    }
+}
 
 export const useNotification = () => {
     const [api, contextHolder] = notification.useNotification()

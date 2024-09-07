@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package vink.kubevm.io.apis.types;
+
+option go_package = "github.com/kubevm.io/vink/apis/types";
+
+message FieldSelector {
+    enum Operator {
+        AND = 0;
+        OR = 1;
+    }
+    repeated Condition conditions = 1;
+    Operator operator = 2;
+}
+
+message Condition {
+    enum Operator {
+        EQUAL = 0;
+        NOT_EQUAL = 1;
+        FUZZY = 2;
+    }
+    repeated string fields = 1;
+    Operator operator = 2;
+    string value = 3;
+}

@@ -8,6 +8,7 @@ import { TableRowSelection } from 'antd/es/table/interface'
 import { StoreColumn, TableColumnStore } from '@/components/table-column-mgr/store'
 import type { ColumnsType } from 'antd/es/table'
 import type { DragEndEvent } from '@dnd-kit/core'
+import styles from '@/components/table-column-mgr/index.module.less'
 
 interface TableColumnMrgProps {
     store: TableColumnStore
@@ -91,16 +92,17 @@ class TableColumnMrgHandler {
 const columns: ColumnsType<StoreColumn> = [
     {
         key: 'name',
-        title: '列名',
+        title: '列展示',
         ellipsis: true,
         render: (_, col) => <>{col.original.title}</>
     },
-    {
-        key: 'width',
-        title: '列宽',
-        ellipsis: true,
-        render: (_, col) => <>{col.original.width || 'auto'}</>
-    }
+    // {
+    //     key: 'width',
+    //     title: '列宽',
+    //     ellipsis: true,
+    //     render: (_, col) => <>{col.original.width}</>
+    //     // render: (_, col) => <>{col.original.width || 'auto'}</>
+    // }
 ]
 
 const TableColumnMgr: React.FC<TableColumnMrgProps> = ({ store, open, onClose, onSave }) => {
@@ -154,6 +156,7 @@ const TableColumnMgr: React.FC<TableColumnMrgProps> = ({ store, open, onClose, o
                         pagination={false}
                         rowSelection={rowSelection}
                         bordered={false}
+                        className={styles["table-mgr"]}
                     />
                 </SortableContext>
             </DndContext>

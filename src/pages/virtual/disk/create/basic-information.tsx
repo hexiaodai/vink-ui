@@ -3,7 +3,7 @@ import { Form, Input, Space, Select, Card, InputNumber } from 'antd'
 import { defaultNamespace } from '@/utils/k8s'
 import TextArea from 'antd/es/input/TextArea'
 import { ListOptions } from '@/utils/search'
-import { NamespaceManagement } from '@/apis-management/namespace'
+import { NamespaceManagement } from '../../../../../temp/apis-management/namespace'
 
 interface BasicInformationProps {
     onSelectCallback?: (namespace: string) => void

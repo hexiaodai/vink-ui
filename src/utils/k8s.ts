@@ -1,4 +1,5 @@
 import type { DataVolume } from "@kubevm.io/vink/management/datavolume/v1alpha1/datavolume.pb"
+import { ObjectMeta } from "@/apis/types/object_meta"
 
 const group = 'vink.io'
 
@@ -52,26 +53,7 @@ export const formatMemory = (value?: string): [string, string] => {
     return ['', '']
 }
 
-export const namespaceName = <T extends { namespace?: string; name?: string }>(obj: T) => {
+export const namespaceName = <T extends ObjectMeta>(obj?: T) => {
+    if (!obj) return ""
     return `${obj.namespace}/${obj.name}`
-}
-
-
-export const statusMap: { [key: string]: 'default' | 'processing' | 'success' | 'warning' | 'error' } = {
-    'Stopped': 'default',
-    'Provisioning': 'processing',
-    'Starting': 'processing',
-    'Running': 'success',
-    'Paused': 'warning',
-    'Stopping': 'processing',
-    'Terminating': 'processing',
-    'CrashLoopBackOff': 'error',
-    'Migrating': 'processing',
-    'Unknown': 'default',
-    'ErrorUnschedulable': 'error',
-    'ErrImagePull': 'error',
-    'ImagePullBackOff': 'error',
-    'ErrorPvcNotFound': 'error',
-    'DataVolumeError': 'error',
-    'WaitingForVolumeBinding': 'processing',
 }
