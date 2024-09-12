@@ -1,106 +1,131 @@
-import React, { useState } from 'react'
-import { Button, Form, Space, Row, Col, FormInstance } from 'antd'
+import { FooterToolbar, ProCard, ProForm, ProFormItem, ProFormSelect, ProFormText, ProFormTextArea } from '@ant-design/pro-components'
+import { App, InputNumber, Space } from 'antd'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { defaultNamespace } from '@/utils/k8s'
-import { CreateDataVolumeRequest, DataVolumeType } from '@kubevm.io/vink/management/datavolume/v1alpha1/datavolume.pb'
-import { useDataVolumeNotification } from '@/components/notification'
-import { NavigateFunction, useNavigate } from 'react-router-dom'
-import { DataVolumeManagement } from '../../../../../temp/apis-management/datavolume'
-import commonFormStyles from '@/common/styles/form.module.less'
-import BasicInformation from '@/pages/virtual/disk/create/basic-information'
+import { CustomResourceDefinition } from '@/apis/apiextensions/v1alpha1/custom_resource_definition'
+import { createDataDisk, updateNamespaces } from './resource-manager'
+import { imageYaml } from './constant'
+import { useNavigate } from 'react-router-dom'
+import { instances as labels } from "@/apis/sdks/ts/label/labels.gen"
+import type { ProFormInstance } from '@ant-design/pro-components'
+import * as yaml from 'js-yaml'
+import Styles from '@/pages/virtual/machine/create/styles/index.module.less'
 
-class DiskCreateHandler {
-    private notification: any
+export default () => {
+    const { notification } = App.useApp()
 
-    constructor(notification: any) {
-        this.notification = notification
-    }
-
-    validateFields = (form: FormInstance<any>, setSubmittable: React.Dispatch<React.SetStateAction<boolean>>) => {
-        form
-            .validateFields({ validateOnly: false })
-            .then(() => setSubmittable(true))
-            .catch(() => setSubmittable(false))
-    }
-
-    selectNamespace = (setNamespace: React.Dispatch<React.SetStateAction<string>>, namespace: string) => {
-        setNamespace(namespace)
-    }
-
-    submit = async (formValues: any, setLoading: React.Dispatch<React.SetStateAction<boolean>>, navigate: NavigateFunction) => {
-        setLoading(true)
-
-        const request: CreateDataVolumeRequest = {
-            namespace: formValues.namespace,
-            name: formValues.name,
-            config: {
-                dataVolumeType: DataVolumeType.DATA,
-                dataSource: {
-                    blank: {}
-                },
-                boundPvc: {
-                    storageClassName: 'local-path',
-                    capacity: '10Gi'
-                }
-            }
-        }
-        try {
-            await DataVolumeManagement.CreateDataVolumeWithNotification(request, this.notification)
-            navigate('/virtual/disks')
-        } finally {
-            setLoading(false)
-        }
-    }
-}
-
-const Create: React.FC = () => {
-    const { notificationContext, showDataVolumeNotification } = useDataVolumeNotification()
-
-    const handler = new DiskCreateHandler(showDataVolumeNotification)
+    const formRef = useRef<ProFormInstance>()
 
     const navigate = useNavigate()
 
-    const [namespace, setNamespace] = useState<string>(defaultNamespace)
-    const [submittable, setSubmittable] = React.useState<boolean>(false)
+    const [namespaces, setNamespaces] = useState<CustomResourceDefinition[]>([])
+    const updateNamespacesCallback = useCallback(updateNamespaces, [])
 
-    const [loading, setLoading] = useState(false)
+    useEffect(() => {
+        updateNamespacesCallback(setNamespaces, notification)
+    }, [])
 
-    const [form] = Form.useForm()
-    const values = Form.useWatch([], form)
-    React.useEffect(() => {
-        handler.validateFields(form, setSubmittable)
-    }, [form, values])
+    const submit = async () => {
+        formRef.current?.
+            validateFields({ validateOnly: false }).
+            then(async () => {
+                const fields = formRef.current?.getFieldsValue()
+
+                console.log(fields)
+
+                const instance: any = yaml.load(imageYaml)
+                instance.metadata.name = fields.name
+                instance.metadata.namespace = fields.namespace
+                instance.spec.pvc.resources.requests.storage = `${fields.dataDiskCapacity}Gi`
+
+                instance.metadata.labels[labels.VinkDatavolumeType.name] = "data"
+
+                console.log(instance)
+
+                await createDataDisk(instance, notification).then(() => {
+                    navigate('/virtual/disks')
+                })
+            }).
+            catch((err: any) => {
+                const errorMessage = err.errorFields?.map((field: any, idx: number) => `${idx + 1}. ${field.errors}`).join('<br />') || `表单校验失败: ${err}`
+                notification.error({
+                    message: "表单错误",
+                    description: (
+                        <div dangerouslySetInnerHTML={{ __html: errorMessage }} />
+                    )
+                })
+            })
+    }
 
     return (
-        <>
-            <div>{notificationContext}</div>
-            <Form
-                className={commonFormStyles.form}
-                form={form}
-                onFinish={(values: any) => handler.submit(values, setLoading, navigate)}
-                name="datavolume"
-                initialValues={{ namespace: namespace, dataVolumeCapacity: 40 }}
-                layout='vertical'
+        <ProForm
+            className={Styles["form"]}
+            labelCol={{ span: 4 }}
+            layout="horizontal"
+            labelAlign="left"
+            colon={false}
+            formRef={formRef}
+            onReset={() => { }}
+            submitter={{
+                onSubmit: submit,
+                render: (_, dom) => <FooterToolbar>{dom}</FooterToolbar>
+            }}
+        >
+            <Space
+                direction="vertical"
+                size="middle"
+                className={Styles["container"]}
             >
-                <Space
-                    className={commonFormStyles.space}
-                    size="middle"
-                    direction="vertical"
-                >
-                    <BasicInformation onSelectCallback={(value: string) => handler.selectNamespace(setNamespace, value)} />
-
-                    <Form.Item wrapperCol={{ span: 23 }} className={commonFormStyles['submit-item']}>
-                        <Row justify="end">
-                            <Col>
-                                <Button type="primary" htmlType="submit" disabled={!submittable || loading}>
-                                    创建磁盘
-                                </Button>
-                            </Col>
-                        </Row>
-                    </Form.Item>
-                </Space>
-            </Form >
-        </>
+                <ProCard title="基本信息" headerBordered>
+                    <ProFormSelect
+                        width="lg"
+                        label="命名空间"
+                        name="namespace"
+                        placeholder="选择命名空间"
+                        initialValue={defaultNamespace}
+                        fieldProps={{ allowClear: false, showSearch: true }}
+                        options={namespaces.map((ns: CustomResourceDefinition) => ({ value: ns.metadata?.name, label: ns.metadata?.name }))}
+                        rules={[{
+                            required: true,
+                            pattern: /^[a-z]([-a-z0-9]{0,61}[a-z0-9])?$/,
+                            message: "名称只能包含小写字母、数字和连字符（-），且必须以字母开头和结尾，最大长度为 64 个字符。"
+                        }]}
+                    />
+                    <ProFormText
+                        width="lg"
+                        name="name"
+                        label="名称"
+                        placeholder="输入数据盘名称"
+                        rules={[{
+                            required: true,
+                            pattern: /^[a-z]([-a-z0-9]{0,61}[a-z0-9])?$/,
+                            message: "名称只能包含小写字母、数字和连字符（-），且必须以字母开头和结尾，最大长度为 64 个字符。"
+                        }]}
+                    />
+                    <ProFormItem
+                        name="dataDiskCapacity"
+                        label="数据盘容量"
+                        initialValue={50}
+                        rules={[{
+                            required: true,
+                            message: "请输入数据盘容量。"
+                        }]}
+                    >
+                        <InputNumber<number>
+                            min={1}
+                            style={{ width: 250 }}
+                            formatter={(value) => `${value} Gi`}
+                            parser={(value) => value?.replace(' Gi', '') as unknown as number}
+                        />
+                    </ProFormItem>
+                    <ProFormText
+                        width="lg"
+                        name="description"
+                        label="简介"
+                        placeholder="输入数据盘的简介，用于描述数据盘的用途。"
+                    />
+                </ProCard>
+            </Space>
+        </ProForm >
     )
 }
-
-export default Create

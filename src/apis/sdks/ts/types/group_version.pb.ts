@@ -19,6 +19,7 @@ export enum GroupVersionResourceEnum {
   VIRTUAL_MACHINE_INSTANCE = "VIRTUAL_MACHINE_INSTANCE",
   DATA_VOLUME = "DATA_VOLUME",
   NODE = "NODE",
+  NAMESPACE = "NAMESPACE",
 }
 
 export type GroupVersionResource = {

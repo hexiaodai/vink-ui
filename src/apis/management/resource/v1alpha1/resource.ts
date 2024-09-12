@@ -6,16 +6,42 @@ import { CustomResourceDefinition } from "../../../apiextensions/v1alpha1/custom
 import { ServiceType } from "@protobuf-ts/runtime-rpc";
 import type { BinaryWriteOptions } from "@protobuf-ts/runtime";
 import type { IBinaryWriter } from "@protobuf-ts/runtime";
-import { UnknownFieldHandler } from "@protobuf-ts/runtime";
+import { WireType } from "@protobuf-ts/runtime";
 import type { BinaryReadOptions } from "@protobuf-ts/runtime";
 import type { IBinaryReader } from "@protobuf-ts/runtime";
+import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
+import { GroupVersionResourceIdentifier } from "../../../types/group_version";
+import { NamespaceName } from "../../../types/namespace_name";
+import { GroupVersionKind } from "../../../types/group_version";
+/**
+ * @generated from protobuf message vink.kubevm.io.apis.management.resource.v1alpha1.GetRequest
+ */
+export interface GetRequest {
+    /**
+     * @generated from protobuf field: vink.kubevm.io.apis.types.GroupVersionKind group_version_resource = 1;
+     */
+    groupVersionResource?: GroupVersionKind;
+    /**
+     * @generated from protobuf field: vink.kubevm.io.apis.types.NamespaceName namespace_name = 2;
+     */
+    namespaceName?: NamespaceName;
+}
 /**
  * @generated from protobuf message vink.kubevm.io.apis.management.resource.v1alpha1.CreateRequest
  */
 export interface CreateRequest {
+    /**
+     * @generated from protobuf field: vink.kubevm.io.apis.types.GroupVersionResourceIdentifier group_version_resource = 1;
+     */
+    groupVersionResource?: GroupVersionResourceIdentifier;
+    /**
+     * @generated from protobuf field: string data = 2;
+     */
+    data: string; // google.protobuf.Struct crd = 2;
+    // vink.kubevm.io.apis.apiextensions.v1alpha1.CustomResourceDefinition crd = 2;
 }
 /**
  * @generated from protobuf message vink.kubevm.io.apis.management.resource.v1alpha1.UpdateRequest
@@ -26,22 +52,112 @@ export interface UpdateRequest {
  * @generated from protobuf message vink.kubevm.io.apis.management.resource.v1alpha1.DeleteRequest
  */
 export interface DeleteRequest {
+    /**
+     * @generated from protobuf field: vink.kubevm.io.apis.types.GroupVersionResourceIdentifier group_version_resource = 1;
+     */
+    groupVersionResource?: GroupVersionResourceIdentifier;
+    /**
+     * @generated from protobuf field: vink.kubevm.io.apis.types.NamespaceName namespace_name = 2;
+     */
+    namespaceName?: NamespaceName;
 }
+// @generated message type with reflection information, may provide speed optimized methods
+class GetRequest$Type extends MessageType<GetRequest> {
+    constructor() {
+        super("vink.kubevm.io.apis.management.resource.v1alpha1.GetRequest", [
+            { no: 1, name: "group_version_resource", kind: "message", T: () => GroupVersionKind },
+            { no: 2, name: "namespace_name", kind: "message", T: () => NamespaceName }
+        ]);
+    }
+    create(value?: PartialMessage<GetRequest>): GetRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<GetRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetRequest): GetRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* vink.kubevm.io.apis.types.GroupVersionKind group_version_resource */ 1:
+                    message.groupVersionResource = GroupVersionKind.internalBinaryRead(reader, reader.uint32(), options, message.groupVersionResource);
+                    break;
+                case /* vink.kubevm.io.apis.types.NamespaceName namespace_name */ 2:
+                    message.namespaceName = NamespaceName.internalBinaryRead(reader, reader.uint32(), options, message.namespaceName);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* vink.kubevm.io.apis.types.GroupVersionKind group_version_resource = 1; */
+        if (message.groupVersionResource)
+            GroupVersionKind.internalBinaryWrite(message.groupVersionResource, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* vink.kubevm.io.apis.types.NamespaceName namespace_name = 2; */
+        if (message.namespaceName)
+            NamespaceName.internalBinaryWrite(message.namespaceName, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message vink.kubevm.io.apis.management.resource.v1alpha1.GetRequest
+ */
+export const GetRequest = new GetRequest$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class CreateRequest$Type extends MessageType<CreateRequest> {
     constructor() {
-        super("vink.kubevm.io.apis.management.resource.v1alpha1.CreateRequest", []);
+        super("vink.kubevm.io.apis.management.resource.v1alpha1.CreateRequest", [
+            { no: 1, name: "group_version_resource", kind: "message", T: () => GroupVersionResourceIdentifier },
+            { no: 2, name: "data", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
     }
     create(value?: PartialMessage<CreateRequest>): CreateRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
+        message.data = "";
         if (value !== undefined)
             reflectionMergePartial<CreateRequest>(this, message, value);
         return message;
     }
     internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CreateRequest): CreateRequest {
-        return target ?? this.create();
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* vink.kubevm.io.apis.types.GroupVersionResourceIdentifier group_version_resource */ 1:
+                    message.groupVersionResource = GroupVersionResourceIdentifier.internalBinaryRead(reader, reader.uint32(), options, message.groupVersionResource);
+                    break;
+                case /* string data */ 2:
+                    message.data = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
     }
     internalBinaryWrite(message: CreateRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* vink.kubevm.io.apis.types.GroupVersionResourceIdentifier group_version_resource = 1; */
+        if (message.groupVersionResource)
+            GroupVersionResourceIdentifier.internalBinaryWrite(message.groupVersionResource, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string data = 2; */
+        if (message.data !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.data);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -80,7 +196,10 @@ export const UpdateRequest = new UpdateRequest$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class DeleteRequest$Type extends MessageType<DeleteRequest> {
     constructor() {
-        super("vink.kubevm.io.apis.management.resource.v1alpha1.DeleteRequest", []);
+        super("vink.kubevm.io.apis.management.resource.v1alpha1.DeleteRequest", [
+            { no: 1, name: "group_version_resource", kind: "message", T: () => GroupVersionResourceIdentifier },
+            { no: 2, name: "namespace_name", kind: "message", T: () => NamespaceName }
+        ]);
     }
     create(value?: PartialMessage<DeleteRequest>): DeleteRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
@@ -89,9 +208,34 @@ class DeleteRequest$Type extends MessageType<DeleteRequest> {
         return message;
     }
     internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: DeleteRequest): DeleteRequest {
-        return target ?? this.create();
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* vink.kubevm.io.apis.types.GroupVersionResourceIdentifier group_version_resource */ 1:
+                    message.groupVersionResource = GroupVersionResourceIdentifier.internalBinaryRead(reader, reader.uint32(), options, message.groupVersionResource);
+                    break;
+                case /* vink.kubevm.io.apis.types.NamespaceName namespace_name */ 2:
+                    message.namespaceName = NamespaceName.internalBinaryRead(reader, reader.uint32(), options, message.namespaceName);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
     }
     internalBinaryWrite(message: DeleteRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* vink.kubevm.io.apis.types.GroupVersionResourceIdentifier group_version_resource = 1; */
+        if (message.groupVersionResource)
+            GroupVersionResourceIdentifier.internalBinaryWrite(message.groupVersionResource, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* vink.kubevm.io.apis.types.NamespaceName namespace_name = 2; */
+        if (message.namespaceName)
+            NamespaceName.internalBinaryWrite(message.namespaceName, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -106,6 +250,7 @@ export const DeleteRequest = new DeleteRequest$Type();
  * @generated ServiceType for protobuf service vink.kubevm.io.apis.management.resource.v1alpha1.ResourceManagement
  */
 export const ResourceManagement = new ServiceType("vink.kubevm.io.apis.management.resource.v1alpha1.ResourceManagement", [
+    { name: "Get", options: {}, I: GetRequest, O: CustomResourceDefinition },
     { name: "Create", options: {}, I: CreateRequest, O: CustomResourceDefinition },
     { name: "Update", options: {}, I: UpdateRequest, O: CustomResourceDefinition },
     { name: "Delete", options: {}, I: DeleteRequest, O: Empty }

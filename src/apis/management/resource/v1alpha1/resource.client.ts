@@ -7,15 +7,20 @@ import { ResourceManagement } from "./resource";
 import type { Empty } from "../../../google/protobuf/empty";
 import type { DeleteRequest } from "./resource";
 import type { UpdateRequest } from "./resource";
+import type { CreateRequest } from "./resource";
 import { stackIntercept } from "@protobuf-ts/runtime-rpc";
 import type { CustomResourceDefinition } from "../../../apiextensions/v1alpha1/custom_resource_definition";
-import type { CreateRequest } from "./resource";
+import type { GetRequest } from "./resource";
 import type { UnaryCall } from "@protobuf-ts/runtime-rpc";
 import type { RpcOptions } from "@protobuf-ts/runtime-rpc";
 /**
  * @generated from protobuf service vink.kubevm.io.apis.management.resource.v1alpha1.ResourceManagement
  */
 export interface IResourceManagementClient {
+    /**
+     * @generated from protobuf rpc: Get(vink.kubevm.io.apis.management.resource.v1alpha1.GetRequest) returns (vink.kubevm.io.apis.apiextensions.v1alpha1.CustomResourceDefinition);
+     */
+    get(input: GetRequest, options?: RpcOptions): UnaryCall<GetRequest, CustomResourceDefinition>;
     /**
      * @generated from protobuf rpc: Create(vink.kubevm.io.apis.management.resource.v1alpha1.CreateRequest) returns (vink.kubevm.io.apis.apiextensions.v1alpha1.CustomResourceDefinition);
      */
@@ -39,24 +44,31 @@ export class ResourceManagementClient implements IResourceManagementClient, Serv
     constructor(private readonly _transport: RpcTransport) {
     }
     /**
+     * @generated from protobuf rpc: Get(vink.kubevm.io.apis.management.resource.v1alpha1.GetRequest) returns (vink.kubevm.io.apis.apiextensions.v1alpha1.CustomResourceDefinition);
+     */
+    get(input: GetRequest, options?: RpcOptions): UnaryCall<GetRequest, CustomResourceDefinition> {
+        const method = this.methods[0], opt = this._transport.mergeOptions(options);
+        return stackIntercept<GetRequest, CustomResourceDefinition>("unary", this._transport, method, opt, input);
+    }
+    /**
      * @generated from protobuf rpc: Create(vink.kubevm.io.apis.management.resource.v1alpha1.CreateRequest) returns (vink.kubevm.io.apis.apiextensions.v1alpha1.CustomResourceDefinition);
      */
     create(input: CreateRequest, options?: RpcOptions): UnaryCall<CreateRequest, CustomResourceDefinition> {
-        const method = this.methods[0], opt = this._transport.mergeOptions(options);
+        const method = this.methods[1], opt = this._transport.mergeOptions(options);
         return stackIntercept<CreateRequest, CustomResourceDefinition>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: Update(vink.kubevm.io.apis.management.resource.v1alpha1.UpdateRequest) returns (vink.kubevm.io.apis.apiextensions.v1alpha1.CustomResourceDefinition);
      */
     update(input: UpdateRequest, options?: RpcOptions): UnaryCall<UpdateRequest, CustomResourceDefinition> {
-        const method = this.methods[1], opt = this._transport.mergeOptions(options);
+        const method = this.methods[2], opt = this._transport.mergeOptions(options);
         return stackIntercept<UpdateRequest, CustomResourceDefinition>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: Delete(vink.kubevm.io.apis.management.resource.v1alpha1.DeleteRequest) returns (google.protobuf.Empty);
      */
     delete(input: DeleteRequest, options?: RpcOptions): UnaryCall<DeleteRequest, Empty> {
-        const method = this.methods[2], opt = this._transport.mergeOptions(options);
+        const method = this.methods[3], opt = this._transport.mergeOptions(options);
         return stackIntercept<DeleteRequest, Empty>("unary", this._transport, method, opt, input);
     }
 }

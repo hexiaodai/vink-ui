@@ -24,6 +24,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ResourceManagementClient interface {
+	Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*v1alpha1.CustomResourceDefinition, error)
 	Create(ctx context.Context, in *CreateRequest, opts ...grpc.CallOption) (*v1alpha1.CustomResourceDefinition, error)
 	Update(ctx context.Context, in *UpdateRequest, opts ...grpc.CallOption) (*v1alpha1.CustomResourceDefinition, error)
 	Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
@@ -35,6 +36,15 @@ type resourceManagementClient struct {
 
 func NewResourceManagementClient(cc grpc.ClientConnInterface) ResourceManagementClient {
 	return &resourceManagementClient{cc}
+}
+
+func (c *resourceManagementClient) Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*v1alpha1.CustomResourceDefinition, error) {
+	out := new(v1alpha1.CustomResourceDefinition)
+	err := c.cc.Invoke(ctx, "/vink.kubevm.io.apis.management.resource.v1alpha1.ResourceManagement/Get", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *resourceManagementClient) Create(ctx context.Context, in *CreateRequest, opts ...grpc.CallOption) (*v1alpha1.CustomResourceDefinition, error) {
@@ -68,6 +78,7 @@ func (c *resourceManagementClient) Delete(ctx context.Context, in *DeleteRequest
 // All implementations must embed UnimplementedResourceManagementServer
 // for forward compatibility
 type ResourceManagementServer interface {
+	Get(context.Context, *GetRequest) (*v1alpha1.CustomResourceDefinition, error)
 	Create(context.Context, *CreateRequest) (*v1alpha1.CustomResourceDefinition, error)
 	Update(context.Context, *UpdateRequest) (*v1alpha1.CustomResourceDefinition, error)
 	Delete(context.Context, *DeleteRequest) (*emptypb.Empty, error)
@@ -78,6 +89,9 @@ type ResourceManagementServer interface {
 type UnimplementedResourceManagementServer struct {
 }
 
+func (UnimplementedResourceManagementServer) Get(context.Context, *GetRequest) (*v1alpha1.CustomResourceDefinition, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Get not implemented")
+}
 func (UnimplementedResourceManagementServer) Create(context.Context, *CreateRequest) (*v1alpha1.CustomResourceDefinition, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
 }
@@ -98,6 +112,24 @@ type UnsafeResourceManagementServer interface {
 
 func RegisterResourceManagementServer(s grpc.ServiceRegistrar, srv ResourceManagementServer) {
 	s.RegisterService(&ResourceManagement_ServiceDesc, srv)
+}
+
+func _ResourceManagement_Get_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ResourceManagementServer).Get(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/vink.kubevm.io.apis.management.resource.v1alpha1.ResourceManagement/Get",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ResourceManagementServer).Get(ctx, req.(*GetRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _ResourceManagement_Create_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -161,6 +193,10 @@ var ResourceManagement_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "vink.kubevm.io.apis.management.resource.v1alpha1.ResourceManagement",
 	HandlerType: (*ResourceManagementServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "Get",
+			Handler:    _ResourceManagement_Get_Handler,
+		},
 		{
 			MethodName: "Create",
 			Handler:    _ResourceManagement_Create_Handler,

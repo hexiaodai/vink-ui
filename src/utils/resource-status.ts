@@ -1,4 +1,5 @@
 export const virtualMachineStatusMap: { [key: string]: 'default' | 'processing' | 'success' | 'warning' | 'error' } = {
+    '': 'default',
     'Stopped': 'default',
     'Provisioning': 'processing',
     'Starting': 'processing',
@@ -15,4 +16,30 @@ export const virtualMachineStatusMap: { [key: string]: 'default' | 'processing' 
     'ErrorPvcNotFound': 'error',
     'DataVolumeError': 'error',
     'WaitingForVolumeBinding': 'processing',
+}
+
+export const dataVolumeStatusMap: { [key: string]: 'default' | 'processing' | 'success' | 'warning' | 'error' } = {
+    '': 'default',
+    'Pending': 'processing',
+    'PVCBound': 'processing',
+    'ImportScheduled': 'processing',
+    'ImportInProgress': 'processing',
+    'CloneScheduled': 'processing',
+    'CloneInProgress': 'processing',
+    'SnapshotForSmartCloneInProgress': 'processing',
+    'CloneFromSnapshotSourceInProgress': 'processing',
+    'SmartClonePVCInProgress': 'processing',
+    'CSICloneInProgress': 'processing',
+    'ExpansionInProgress': 'processing',
+    'NamespaceTransferInProgress': 'processing',
+    'UploadScheduled': 'processing',
+    'UploadReady': 'processing',
+    'WaitForFirstConsumer': 'processing',
+    'PendingPopulation': 'processing',
+    'Succeeded': 'success',
+    'Failed': 'error',
+    'Unknown': 'default',
+    'Paused': 'warning',
+    'PrepClaimInProgress': 'processing',
+    'RebindInProgress': 'processing',
 }

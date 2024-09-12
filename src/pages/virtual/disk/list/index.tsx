@@ -1,149 +1,121 @@
-import { useEffect, useState } from 'react'
-import { Table, Space, Spin } from 'antd'
-import { LoadingOutlined } from '@ant-design/icons'
-import { defaultNamespace, namespaceName } from '@/utils/k8s'
-import { DataVolumeManagement } from '../../../../../temp/apis-management/datavolume'
-import { TableRowSelection } from 'antd/es/table/interface'
-import { LabelsSelectorString, dataVolumeTypeLabelSelector } from '@/utils/search'
-import type { TableProps } from 'antd'
-import type { DataVolume } from '@kubevm.io/vink/management/datavolume/v1alpha1/datavolume.pb'
-import Toolbar from '@/pages/virtual/disk/list/toolbar'
-import TableColumnAction from '@/pages/virtual/disk/list/table-column-action'
-import TableColumnStatus from '@/pages/virtual/disk/list/table-column-status'
-import commonTableStyles from '@/common/styles/table.module.less'
-import TableColumnCapacity from '@/pages/virtual/disk/list/table-column-capacity'
-import { ListOptions } from '@kubevm.io/vink/common/common.pb'
+import { PlusOutlined, LoadingOutlined } from '@ant-design/icons'
+import { ProTable } from '@ant-design/pro-components'
+import { App, Button, Modal, Select, Space } from 'antd'
+import { useEffect, useRef, useState } from 'react'
+import { namespaceName } from '@/utils/k8s'
+import { NavLink, Params } from 'react-router-dom'
+import { CustomResourceDefinition } from "@/apis/apiextensions/v1alpha1/custom_resource_definition"
+import { batchDeleteDataVolumes, ResourceUpdater } from '@/pages/virtual/disk/list/resource-manager'
+import { calcScroll, dataSource, generateMessage } from '@/utils/utils'
+import type { ActionType } from '@ant-design/pro-components'
+import TableStyles from '@/common/styles/table.module.less'
+import columnsFunc from '@/pages/virtual/disk/list/table-columns.tsx'
 
-interface SelectedRow {
-    keys: React.Key[]
-    dvs: DataVolume[]
-}
+export default () => {
+    const ctrl = useRef<AbortController>()
 
-interface Handler {
-    useDataVolumes: (namespace: string, opts: ListOptions) => any
-    calculationSelectedRow: (keys: React.Key[], dvs: DataVolume[]) => SelectedRow
-}
+    const { notification } = App.useApp()
 
-class DataVolumeListHandler implements Handler {
-    private addSelectedRow = (selectedRow: SelectedRow, dv: DataVolume) => {
-        selectedRow.keys.push(namespaceName(dv))
-        selectedRow.dvs.push(dv)
-    }
+    const [searchFilter, setSearchFilter] = useState<string>("name")
+    const [scroll, setScroll] = useState(150 * 6)
+    const [selectedRows, setSelectedRows] = useState<CustomResourceDefinition[]>([])
 
-    useDataVolumes = (namespace: string, initOpts: ListOptions) => {
-        return DataVolumeManagement.UseDataVolumes({ namespace: namespace, opts: initOpts })
-    }
+    const actionRef = useRef<ActionType>()
 
-    calculationSelectedRow = (keys: React.Key[], dvs: DataVolume[]) => {
-        const newSelectedRow: SelectedRow = { keys: [], dvs: [] }
-        keys.forEach(key => {
-            const dv = dvs.find(v => namespaceName(v) === key)
-            if (dv) {
-                this.addSelectedRow(newSelectedRow, dv)
-            }
-        })
-        return newSelectedRow
-    }
-}
+    const [disk, setDisk] = useState<Map<string, CustomResourceDefinition>>(new Map<string, CustomResourceDefinition>())
 
-const List = () => {
-    const handler = new DataVolumeListHandler()
-    const { opts, setOpts, data, loading, fetchData, notificationContext } = handler.useDataVolumes(
-        defaultNamespace,
-        {
-            labelsSelector: LabelsSelectorString([
-                dataVolumeTypeLabelSelector('data')
-            ])
-        }
-    )
+    const resource = useRef<ResourceUpdater>()
 
-    const [selectedRow, setSelectedRow] = useState<SelectedRow>({ keys: [], dvs: [] })
+    const columns = columnsFunc(notification)
 
     useEffect(() => {
-        const newSelectedRow = handler.calculationSelectedRow(selectedRow.keys, data)
-        setSelectedRow(newSelectedRow)
-    }, [data])
+        if (resource.current) return
+        resource.current = new ResourceUpdater(disk, setDisk, notification)
+    }, [])
 
-    const rowSelection: TableRowSelection<DataVolume> = {
-        columnWidth: 25,
-        selectedRowKeys: selectedRow.keys,
-        onChange: (keys: React.Key[]) => {
-            const newSelectedRow = handler.calculationSelectedRow(keys, data)
-            setSelectedRow(newSelectedRow)
+    useEffect(() => {
+        return () => {
+            console.log('Component is unmounting and aborting operation')
+            ctrl.current?.abort()
         }
-    }
-
-    const columns: TableProps<DataVolume>['columns'] = [
-        {
-            key: 'name',
-            title: '名称',
-            fixed: 'left',
-            ellipsis: true,
-            render: (_, dv) => <>{dv.name}</>
-        },
-        {
-            key: 'namespace',
-            title: '命名空间',
-            ellipsis: true,
-            render: (_, dv) => <>{dv.namespace}</>
-        },
-        {
-            key: 'status',
-            title: '状态',
-            ellipsis: true,
-            render: (_, dv) => <TableColumnStatus dv={dv} />
-        },
-        {
-            title: '容量',
-            key: 'capacity',
-            ellipsis: true,
-            render: (_, dv) => <TableColumnCapacity dv={dv} />
-        },
-        {
-            title: '创建时间',
-            key: 'created',
-            width: 195,
-            ellipsis: true,
-            render: (_, dv) => <>{dv.creationTimestamp}</>
-        },
-        {
-            title: '操作',
-            key: 'action',
-            fixed: 'right',
-            width: 80,
-            align: 'center',
-            render: (_, dv) => <TableColumnAction dv={dv} />
-        }
-    ]
+    }, [])
 
     return (
-        <Space className={commonTableStyles['table-container']} direction="vertical">
-            <Toolbar
-                loading={loading}
-                opts={opts}
-                setOpts={setOpts}
-                fetchData={fetchData}
-                selectdDataVolumes={selectedRow.dvs}
-            />
-            <Spin
-                indicator={<LoadingOutlined />}
-                spinning={loading}
-                delay={500}
-            >
-                <Table
-                    className={commonTableStyles.table}
-                    virtual
-                    size="middle"
-                    pagination={false}
-                    rowSelection={rowSelection}
-                    rowKey={(dv) => namespaceName(dv)}
-                    columns={columns}
-                    dataSource={data}
-                />
-            </Spin>
-            <div>{notificationContext}</div>
-        </Space>
+        <ProTable<CustomResourceDefinition, Params>
+            className={TableStyles["table-container"]}
+            scroll={{ x: scroll }}
+            rowSelection={{
+                defaultSelectedRowKeys: [],
+                onChange: (_, selectedRows) => {
+                    setSelectedRows(selectedRows)
+                }
+            }}
+            tableAlertRender={({ selectedRowKeys, onCleanSelected }) => {
+                return (
+                    <Space size={16}>
+                        <span>已选 {selectedRowKeys.length} 项</span>
+                        <a onClick={onCleanSelected}>取消选择</a>
+                    </Space>
+                )
+            }}
+            tableAlertOptionRender={() => {
+                return (
+                    <Space size={16}>
+                        <a className={TableStyles["warning"]} onClick={async () => {
+                            Modal.confirm({
+                                title: "批量删除系统镜像？",
+                                content: generateMessage(selectedRows, `即将删除 "{names}" 磁盘，请确认`, `即将删除 "{names}" 等 {count} 个磁盘，请确认。`),
+                                okText: '确认删除',
+                                okType: 'danger',
+                                cancelText: '取消',
+                                okButtonProps: {
+                                    disabled: false,
+                                },
+                                onOk: async () => {
+                                    await batchDeleteDataVolumes(selectedRows, notification)
+                                }
+                            })
+                        }}>批量删除</a>
+                    </Space>
+                )
+            }}
+            columns={columns}
+            actionRef={actionRef}
+            loading={{ indicator: <LoadingOutlined /> }}
+            dataSource={dataSource(disk)}
+            request={async (params) => {
+                ctrl.current?.abort()
+                ctrl.current = new AbortController()
+
+                const advancedParams = { searchFilter: searchFilter, params: params }
+                await resource.current?.updateResource(advancedParams, ctrl.current)
+                return { success: true }
+            }}
+            columnsState={{
+                persistenceKey: 'virtual-disk-list-table-columns',
+                persistenceType: 'localStorage',
+                onChange: (obj) => setScroll(calcScroll(obj))
+            }}
+            rowKey={(vm) => namespaceName(vm.metadata)}
+            search={false}
+            options={{
+                fullScreen: true,
+                search: {
+                    allowClear: true,
+                    style: { width: 280 },
+                    addonBefore: <Select defaultValue="name" onChange={(value) => setSearchFilter(value)} options={[
+                        { value: 'name', label: '名称' },
+                        { value: 'namespace', label: '命名空间' },
+                        { value: 'labels["vink.kubevm.io/datavolume.type"]', label: '类型' }
+                    ]} />
+                }
+            }}
+            pagination={false}
+            toolbar={{
+                actions: [
+                    <NavLink to='/virtual/disks/create'><Button icon={<PlusOutlined />}>添加磁盘</Button></NavLink>
+                ]
+            }}
+        />
     )
 }
-
-export default List

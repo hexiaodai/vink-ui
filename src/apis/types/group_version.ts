@@ -96,7 +96,11 @@ export enum GroupVersionResourceEnum {
     /**
      * @generated from protobuf enum value: NODE = 4;
      */
-    NODE = 4
+    NODE = 4,
+    /**
+     * @generated from protobuf enum value: NAMESPACE = 5;
+     */
+    NAMESPACE = 5
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class GroupVersionResource$Type extends MessageType<GroupVersionResource> {

@@ -1,17 +1,16 @@
 import { ProColumns } from "@ant-design/pro-components"
-import { Dropdown, List, MenuProps, Modal, Popover } from "antd"
+import { Dropdown, List, MenuProps, Modal, Popover, Badge } from "antd"
 import { formatMemory, namespaceName } from '@/utils/k8s'
 import { CodeOutlined, EllipsisOutlined } from '@ant-design/icons'
 import { VirtualMachinePowerStateRequest_PowerState } from '@/apis/management/virtualmachine/v1alpha1/virtualmachine'
 import { jsonParse, formatTimestamp, removeTrailingDot } from '@/utils/utils'
-import { clients } from "@/clients/clients"
 import { NotificationInstance } from "antd/es/notification/interface"
+import { CustomResourceDefinition } from "@/apis/apiextensions/v1alpha1/custom_resource_definition"
+import { virtualMachineStatusMap } from "@/utils/resource-status"
+import { deleteVirtualMachine, manageVirtualMachinePowerState } from "./resource-manager"
 import TableColumnOperatingSystem from "@/components/table-column/operating-system"
 import TableStyles from '@/common/styles/table.module.less'
-import Styles from "@/pages/virtual/machine/list/styles/table-columns.module.less"
-import { CustomResourceDefinition } from "@/apis/apiextensions/v1alpha1/custom_resource_definition"
-import Badge from "antd/lib/badge"
-import { virtualMachineStatusMap } from "@/utils/resource-status"
+import CommonStyles from '@/common/styles/common.module.less'
 
 const columnsFunc = (virtualMachineInstance: Map<string, CustomResourceDefinition>, rootDisk: Map<string, CustomResourceDefinition>, node: Map<string, CustomResourceDefinition>, notification: NotificationInstance) => {
     const columns: ProColumns<CustomResourceDefinition>[] = [
@@ -39,7 +38,7 @@ const columnsFunc = (virtualMachineInstance: Map<string, CustomResourceDefinitio
                 if (conditions.length > 0) {
                     content = (
                         <List
-                            className={Styles["status-tips"]}
+                            className={TableStyles["status-tips"]}
                             size="small"
                             dataSource={conditions}
                             renderItem={(item: any, index: number) => {
@@ -75,7 +74,7 @@ const columnsFunc = (virtualMachineInstance: Map<string, CustomResourceDefinitio
 
                 return (
                     <a href='#'
-                        className={isRunning ? "" : Styles["console-disable"]}
+                        className={isRunning ? "" : CommonStyles["a-disable"]}
                         onClick={() => { openConsole(namespace!, name!, status) }}
                     >
                         <CodeOutlined />
@@ -203,17 +202,6 @@ const columnsFunc = (virtualMachineInstance: Map<string, CustomResourceDefinitio
     return columns
 }
 
-
-const virtualMachinePowerState = (namespace: string, name: string, state: VirtualMachinePowerStateRequest_PowerState, notification: NotificationInstance) => {
-    const call = clients.virtualmachine.virtualMachinePowerState({
-        namespaceName: { namespace: namespace, name: name },
-        powerState: state
-    })
-    call.response.catch((err: Error) => {
-        notification.error({ message: "VirtualMachine", description: err.message })
-    })
-}
-
 const statusConditions = (status: any) => {
     return status.conditions
         ?.filter((c: any) => c.message?.length > 0)
@@ -235,20 +223,6 @@ const openConsole = (namespace: string, name: string, status: any) => {
     window.open(url, `${namespace}/${name}`, `toolbars=0, width=${width}, height=${height}, left=${left}, top=${top}`)
 }
 
-const deleteVirtualMachine = (namespace: string, name: string) => {
-    Modal.confirm({
-        title: "删除虚拟机？",
-        content: `即将删除 "${namespace}/${name}" 虚拟机，请确认。`,
-        okText: '确认删除',
-        okType: 'danger',
-        cancelText: '取消',
-        okButtonProps: {
-            disabled: false,
-        },
-        onOk: async () => { }
-    })
-}
-
 const statusEqual = (status: any, target: string) => {
     return status.printableStatus as string === target
 }
@@ -265,19 +239,19 @@ const actionItemsFunc = (vm: CustomResourceDefinition, notification: Notificatio
             children: [
                 {
                     key: 'start',
-                    onClick: () => virtualMachinePowerState(namespace!, name!, VirtualMachinePowerStateRequest_PowerState.ON, notification),
+                    onClick: () => manageVirtualMachinePowerState(namespace!, name!, VirtualMachinePowerStateRequest_PowerState.ON, notification),
                     label: "启动",
                     disabled: statusEqual(status, "Running")
                 },
                 {
                     key: 'restart',
-                    onClick: () => virtualMachinePowerState(namespace!, name!, VirtualMachinePowerStateRequest_PowerState.REBOOT, notification),
+                    onClick: () => manageVirtualMachinePowerState(namespace!, name!, VirtualMachinePowerStateRequest_PowerState.REBOOT, notification),
                     label: "重启",
                     disabled: !statusEqual(status, "Running")
                 },
                 {
                     key: 'stop',
-                    onClick: () => virtualMachinePowerState(namespace!, name!, VirtualMachinePowerStateRequest_PowerState.OFF, notification),
+                    onClick: () => manageVirtualMachinePowerState(namespace!, name!, VirtualMachinePowerStateRequest_PowerState.OFF, notification),
                     label: "关机",
                     disabled: statusEqual(status, "Stopped")
                 },
@@ -287,13 +261,13 @@ const actionItemsFunc = (vm: CustomResourceDefinition, notification: Notificatio
                 },
                 {
                     key: 'force-restart',
-                    onClick: () => virtualMachinePowerState(namespace!, name!, VirtualMachinePowerStateRequest_PowerState.FORCE_REBOOT, notification),
+                    onClick: () => manageVirtualMachinePowerState(namespace!, name!, VirtualMachinePowerStateRequest_PowerState.FORCE_REBOOT, notification),
                     label: "强制重启",
                     disabled: !statusEqual(status, "Running")
                 },
                 {
                     key: 'force-stop',
-                    onClick: () => virtualMachinePowerState(namespace!, name!, VirtualMachinePowerStateRequest_PowerState.FORCE_OFF, notification),
+                    onClick: () => manageVirtualMachinePowerState(namespace!, name!, VirtualMachinePowerStateRequest_PowerState.FORCE_OFF, notification),
                     label: "强制关机",
                     disabled: statusEqual(status, "Stopped")
                 },
@@ -328,7 +302,21 @@ const actionItemsFunc = (vm: CustomResourceDefinition, notification: Notificatio
         {
             key: 'delete',
             danger: true,
-            onClick: () => deleteVirtualMachine(namespace!, name!),
+            onClick: () => {
+                Modal.confirm({
+                    title: "删除虚拟机？",
+                    content: `即将删除 "${namespace}/${name}" 虚拟机，请确认。`,
+                    okText: '确认删除',
+                    okType: 'danger',
+                    cancelText: '取消',
+                    okButtonProps: {
+                        disabled: false,
+                    },
+                    onOk: async () => {
+                        await deleteVirtualMachine(namespace!, name!, notification)
+                    }
+                })
+            },
             label: "删除"
         }
     ]

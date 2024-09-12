@@ -26,6 +26,7 @@ enum GroupVersionResourceEnum {
 	VIRTUAL_MACHINE_INSTANCE = 2;
 	DATA_VOLUME = 3;
 	NODE = 4;
+	NAMESPACE = 5;
 }
 
 message GroupVersionResourceIdentifier {
