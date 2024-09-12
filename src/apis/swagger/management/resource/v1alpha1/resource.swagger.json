@@ -45,6 +45,70 @@
         }
       }
     },
+    "typesGroupVersionKind": {
+      "type": "object",
+      "properties": {
+        "group": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        }
+      },
+      "title": "GroupVersionKind unambiguously identifies a kind.  It doesn't anonymously include GroupVersion\nto avoid automatic coercion.  It doesn't use a GroupVersion to avoid custom marshalling"
+    },
+    "typesGroupVersionResource": {
+      "type": "object",
+      "properties": {
+        "group": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "resource": {
+          "type": "string"
+        }
+      },
+      "title": "GroupVersionResource unambiguously identifies a resource.  It doesn't anonymously include GroupVersion\nto avoid automatic coercion.  It doesn't use a GroupVersion to avoid custom marshalling"
+    },
+    "typesGroupVersionResourceEnum": {
+      "type": "string",
+      "enum": [
+        "UNSPECIFIED",
+        "VIRTUAL_MACHINE",
+        "VIRTUAL_MACHINE_INSTANCE",
+        "DATA_VOLUME",
+        "NODE",
+        "NAMESPACE"
+      ],
+      "default": "UNSPECIFIED"
+    },
+    "typesGroupVersionResourceIdentifier": {
+      "type": "object",
+      "properties": {
+        "enum": {
+          "$ref": "#/definitions/typesGroupVersionResourceEnum"
+        },
+        "custom": {
+          "$ref": "#/definitions/typesGroupVersionResource"
+        }
+      }
+    },
+    "typesNamespaceName": {
+      "type": "object",
+      "properties": {
+        "namespace": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        }
+      }
+    },
     "typesObjectMeta": {
       "type": "object",
       "properties": {

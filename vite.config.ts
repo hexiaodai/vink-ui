@@ -18,8 +18,14 @@ export default defineConfig({
   server: {
     proxy: {
       '/vink.kubevm.io.apis': {
-        target: 'http://127.0.0.1:8080',
+        target: 'http://192.168.18.240:8080',
+        // target: 'http://127.0.0.1:8080',
         changeOrigin: true,
+      },
+      '/apis': {
+        target: 'http://127.0.0.1:9090',
+        changeOrigin: true,
+        ws: true,
       }
     }
   }

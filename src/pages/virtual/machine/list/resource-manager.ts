@@ -5,7 +5,7 @@ import { GroupVersionResourceEnum } from "@/apis/types/group_version"
 import { NamespaceName } from "@/apis/types/namespace_name"
 import { clients } from "@/clients/clients"
 import { namespaceName } from "@/utils/k8s"
-import { allowedError, jsonParse } from "@/utils/utils"
+import { allowedError, generateMessage, jsonParse } from "@/utils/utils"
 import { NotificationInstance } from "antd/lib/notification/interface"
 
 export class ResourceUpdater {
@@ -50,7 +50,7 @@ export class ResourceUpdater {
         this.abortCtrl = abortCtrl
 
         return new Promise((resolve, reject) => {
-            const call = clients.resource.listWatch(
+            const call = clients.resourceWatch.listWatch(
                 {
                     groupVersionResource: {
                         option: {
@@ -95,6 +95,13 @@ export class ResourceUpdater {
                         break
                     }
                     case EventType.DELETED: {
+                        const key = `${response.deleted?.namespace}/${response.deleted?.name}`
+                        this.virtualMachine.delete(key)
+                        this.virtualMachineInstance.delete(key)
+                        this.rootDisk.delete(key)
+                        this.setVirtualMachine(new Map(this.virtualMachine))
+                        this.setVirtualMachineInstance(new Map(this.virtualMachineInstance))
+                        this.setRootDisk(new Map(this.rootDisk))
                         break
                     }
                 }
@@ -102,6 +109,7 @@ export class ResourceUpdater {
             })
 
             call.responses.onError((err: Error) => {
+                // alert(err)
                 if (!allowedError(err)) {
                     this.notification.error({
                         message: "VirtualMachine",
@@ -119,7 +127,7 @@ export class ResourceUpdater {
             ns.push({ namespace: vm.metadata?.namespace!, name: vm.metadata?.name! })
         })
 
-        const call = clients.resource.listWatch({
+        const call = clients.resourceWatch.listWatch({
             groupVersionResource: {
                 option: {
                     oneofKind: "enum",
@@ -167,8 +175,8 @@ export class ResourceUpdater {
         })
 
         call.responses.onError((err: Error) => {
+            // alert(err)
             if (!allowedError(err)) {
-                // this.abortCtrl.abort()
                 this.notification.error({ message: "VirtualMachineInstance", description: err.message })
             }
         })
@@ -201,7 +209,7 @@ export class ResourceUpdater {
             })
         })
 
-        const call = clients.resource.listWatch({
+        const call = clients.resourceWatch.listWatch({
             groupVersionResource: {
                 option: {
                     oneofKind: "enum",
@@ -253,8 +261,8 @@ export class ResourceUpdater {
             }
         })
         call.responses.onError((err: Error) => {
+            // alert(err)
             if (!allowedError(err)) {
-                // this.abortCtrl.abort()
                 this.notification.error({ message: "DataVolume", description: err.message })
             }
         })
@@ -272,7 +280,7 @@ export class ResourceUpdater {
             return
         }
 
-        const call = clients.resource.listWatch({
+        const call = clients.resourceWatch.listWatch({
             groupVersionResource: {
                 option: {
                     oneofKind: "enum",
@@ -311,8 +319,8 @@ export class ResourceUpdater {
             }
         })
         call.responses.onError((err: Error) => {
+            // alert(err)
             if (!allowedError(err)) {
-                // this.abortCtrl.abort()
                 this.notification.error({ message: "Node", description: err.message })
             }
         })
@@ -325,8 +333,8 @@ export class ResourceUpdater {
 
 
 export const batchManageVirtualMachinePowerState = async (vms: CustomResourceDefinition[], state: VirtualMachinePowerStateRequest_PowerState, notification: NotificationInstance) => {
-    const completed: string[] = []
-    const failed: string[] = []
+    const completed: CustomResourceDefinition[] = []
+    const failed: CustomResourceDefinition[] = []
     const notificationSuccessKey = "batch-manage-virtual-machine-power-state-success"
     const notificationFailedKey = "batch-manage-virtual-machine-power-state-failed"
 
@@ -351,25 +359,81 @@ export const batchManageVirtualMachinePowerState = async (vms: CustomResourceDef
                 namespaceName: { namespace: namespace, name: name },
                 powerState: state
             }).response
-            completed.push(name)
-
-            const displayedNames = completed.slice(0, 3).join("、")
-            const remainingCount = completed.length - 3
-            const description = remainingCount > 0 ? `${displayedNames} 等 ${completed.length} 台虚拟机正在执行操作` : `${displayedNames} 正在执行操作`
-            notification.success({ key: notificationSuccessKey, message: "VirtualMachine", description: description })
+            completed.push(vm)
+            const msg = generateMessage(completed, `"{names}" 虚拟机正在执行操作`, `"{names}" 等 {count} 台虚拟机正在执行操作`)
+            notification.success({ key: notificationSuccessKey, message: "VirtualMachine", description: msg })
         } catch (err: any) {
-            failed.push(name)
-
-            const displayedNames = failed.slice(0, 3).join("、")
-            const remainingCount = failed.length - 3
-            const description = remainingCount > 0 ? `${displayedNames} 等 ${failed.length} 虚拟机操作失败` : `${displayedNames} 虚拟机操作失败`
-            notification.error({ key: notificationFailedKey, message: "VirtualMachine", description: description })
+            failed.push(vm)
+            const msg = generateMessage(failed, `"{names}" 虚拟机操作失败`, `"{names}" 等 {count} 虚拟机操作失败`)
+            notification.error({ key: notificationFailedKey, message: "VirtualMachine", description: msg })
             console.log(err)
         }
         return
     }))
 }
 
-export const batchDeleteVirtualMachines = async (vms: CustomResourceDefinition[]) => {
-    console.log(vms)
+export const manageVirtualMachinePowerState = (namespace: string, name: string, state: VirtualMachinePowerStateRequest_PowerState, notification: NotificationInstance) => {
+    const call = clients.virtualmachine.virtualMachinePowerState({
+        namespaceName: { namespace: namespace, name: name },
+        powerState: state
+    })
+    call.response.catch((err: Error) => {
+        // alert(err)
+        notification.error({ message: "VirtualMachine", description: err.message })
+    })
+}
+
+export const deleteVirtualMachine = (namespace: string, name: string, notification: NotificationInstance): Promise<void> => {
+    return new Promise((resolve, reject) => {
+        const call = clients.resource.delete({
+            namespaceName: { namespace: namespace, name: name },
+            groupVersionResource: {
+                option: {
+                    oneofKind: "enum",
+                    enum: GroupVersionResourceEnum.VIRTUAL_MACHINE
+                }
+            }
+        })
+        call.then(() => {
+            notification.success({ message: "VirtualMachine", description: `删除 "${namespace}/${name}" 虚拟机成功` })
+            resolve()
+        })
+        call.response.catch((err: Error) => {
+            notification.error({ message: "VirtualMachine", description: `删除 "${namespace}/${name}" 虚拟机失败：${err.message}` })
+            reject()
+        })
+    })
+}
+
+export const batchDeleteVirtualMachines = async (vms: CustomResourceDefinition[], notification: NotificationInstance) => {
+    const completed: CustomResourceDefinition[] = []
+    const failed: CustomResourceDefinition[] = []
+    const notificationSuccessKey = "batch-delete-virtual-machines-success"
+    const notificationFailedKey = "batch-delete-virtual-machines-failed"
+
+    await Promise.all(vms.map(async (vm) => {
+        const namespace = vm.metadata?.namespace!
+        const name = vm.metadata?.name!
+
+        try {
+            await clients.resource.delete({
+                namespaceName: { namespace: namespace, name: name },
+                groupVersionResource: {
+                    option: {
+                        oneofKind: "enum",
+                        enum: GroupVersionResourceEnum.VIRTUAL_MACHINE
+                    }
+                }
+            }).response
+            completed.push(vm)
+            const msg = generateMessage(completed, `正在删除 "{names}" 虚拟机`, `正在删除 "{names}" 等 {count} 台虚拟机`)
+            notification.success({ key: notificationSuccessKey, message: "VirtualMachine", description: msg })
+        } catch (err: any) {
+            failed.push(vm)
+            const msg = generateMessage(failed, `删除 "{names}" 虚拟机失败`, `删除 "{names}" 等 {count} 台虚拟机失败`)
+            notification.error({ key: notificationFailedKey, message: "VirtualMachine", description: msg })
+            console.log(err)
+        }
+        return
+    }))
 }

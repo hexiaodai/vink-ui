@@ -1,3 +1,8 @@
+import { CustomResourceDefinition } from "@/apis/apiextensions/v1alpha1/custom_resource_definition"
+import { ColumnsState } from "@ant-design/pro-components"
+import { namespaceName } from "./k8s"
+import { ListOptions } from "@/apis/types/list_options"
+
 /**
  * Combines multiple class names into a single string.
  * @param  {...string} classes - The class names to combine.
@@ -48,4 +53,51 @@ export const allowedError = (err: Error) => {
         return true
     }
     return false
+}
+
+export const calcScroll = (obj: Record<string, ColumnsState>) => {
+    let count = 0
+    Object.keys(obj).forEach((key) => {
+        if (obj[key].show) {
+            count++
+        }
+    })
+    return count * 150
+}
+
+export const dataSource = (data: Map<string, CustomResourceDefinition>): CustomResourceDefinition[] | undefined => {
+    let items = Array.from(data.values())
+    if (items.length > 0) {
+        return items
+    }
+    return undefined
+}
+
+export const generateMessage = (crds: CustomResourceDefinition[], successMessage: string, multipleMessage: string) => {
+    const names: string[] = []
+    crds.forEach(crd => {
+        names.push(namespaceName(crd.metadata))
+    })
+
+    const displayedNames = names.slice(0, 3).join("、")
+    const remainingCount = names.length - 3
+
+    if (remainingCount > 0) {
+        return multipleMessage
+            .replace("{names}", displayedNames)
+            .replace("{count}", names.length.toString())
+    } else {
+        return successMessage.replace("{names}", displayedNames)
+    }
+}
+
+export const emptyOptions = (): ListOptions => {
+    return {
+        fieldSelector: "",
+        labelSelector: "",
+        limit: 0,
+        continue: "",
+        namespaceNames: [],
+        watch: false,
+    }
 }

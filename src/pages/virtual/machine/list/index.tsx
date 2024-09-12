@@ -1,25 +1,16 @@
 import { PlusOutlined, LoadingOutlined } from '@ant-design/icons'
 import { ProTable } from '@ant-design/pro-components'
-import { App, Button, Select, Space } from 'antd'
+import { App, Button, Modal, Select, Space } from 'antd'
 import { useEffect, useRef, useState } from 'react'
 import { namespaceName } from '@/utils/k8s'
 import { NavLink, Params } from 'react-router-dom'
 import { VirtualMachinePowerStateRequest_PowerState } from '@/apis/management/virtualmachine/v1alpha1/virtualmachine'
 import { CustomResourceDefinition } from "@/apis/apiextensions/v1alpha1/custom_resource_definition"
 import { batchDeleteVirtualMachines, batchManageVirtualMachinePowerState, ResourceUpdater } from '@/pages/virtual/machine/list/resource-manager'
-import type { ActionType, ColumnsState } from '@ant-design/pro-components'
+import { calcScroll, dataSource, generateMessage } from '@/utils/utils'
+import type { ActionType } from '@ant-design/pro-components'
 import TableStyles from '@/common/styles/table.module.less'
 import columnsFunc from '@/pages/virtual/machine/list/table-columns.tsx'
-
-const calcScroll = (obj: Record<string, ColumnsState>) => {
-    let count = 0
-    Object.keys(obj).forEach((key) => {
-        if (obj[key].show) {
-            count++
-        }
-    })
-    return count * 150
-}
 
 export default () => {
     const ctrl = useRef<AbortController>()
@@ -27,7 +18,7 @@ export default () => {
     const { notification } = App.useApp()
 
     const [searchFilter, setSearchFilter] = useState<string>("name")
-    const [scroll, setScroll] = useState(0)
+    const [scroll, setScroll] = useState(150 * 11)
     const [selectedRows, setSelectedRows] = useState<CustomResourceDefinition[]>([])
 
     const actionRef = useRef<ActionType>()
@@ -41,13 +32,6 @@ export default () => {
 
     const columns = columnsFunc(virtualMachineInstance, rootDisk, node, notification)
 
-    const dataSource = (): CustomResourceDefinition[] | undefined => {
-        let items = Array.from(virtualMachine.values())
-        if (items.length > 0) {
-            return items
-        }
-        return undefined
-    }
 
     useEffect(() => {
         if (resource.current) return
@@ -83,16 +67,58 @@ export default () => {
                 return (
                     <Space size={16}>
                         <a onClick={async () => await batchManageVirtualMachinePowerState(selectedRows, VirtualMachinePowerStateRequest_PowerState.ON, notification)}>批量开机</a>
-                        <a onClick={async () => await batchManageVirtualMachinePowerState(selectedRows, VirtualMachinePowerStateRequest_PowerState.REBOOT, notification)}>批量重启</a>
-                        <a onClick={async () => await batchManageVirtualMachinePowerState(selectedRows, VirtualMachinePowerStateRequest_PowerState.OFF, notification)}>批量关机</a>
-                        <a className={TableStyles["warning"]} onClick={() => batchDeleteVirtualMachines(selectedRows)}>批量删除</a>
+                        <a onClick={async () =>
+                            Modal.confirm({
+                                title: "批量重启虚拟机？",
+                                content: generateMessage(selectedRows, `即将重启 "{names}" 虚拟机，请确认`, `即将重启 "{names}" 等 {count} 台虚拟机，请确认。`),
+                                okText: '确认重启',
+                                okType: 'danger',
+                                cancelText: '取消',
+                                okButtonProps: {
+                                    disabled: false,
+                                },
+                                onOk: async () => {
+                                    await batchManageVirtualMachinePowerState(selectedRows, VirtualMachinePowerStateRequest_PowerState.REBOOT, notification)
+                                }
+                            })
+                        }>批量重启</a>
+                        <a onClick={async () => {
+                            Modal.confirm({
+                                title: "批量关闭虚拟机？",
+                                content: generateMessage(selectedRows, `即将关闭 "{names}" 虚拟机，请确认`, `即将关闭 "{names}" 等 {count} 台虚拟机，请确认。`),
+                                okText: '确认关闭',
+                                okType: 'danger',
+                                cancelText: '取消',
+                                okButtonProps: {
+                                    disabled: false,
+                                },
+                                onOk: async () => {
+                                    await batchManageVirtualMachinePowerState(selectedRows, VirtualMachinePowerStateRequest_PowerState.OFF, notification)
+                                }
+                            })
+                        }}>批量关机</a>
+                        <a className={TableStyles["warning"]} onClick={async () => {
+                            Modal.confirm({
+                                title: "批量删除虚拟机？",
+                                content: generateMessage(selectedRows, `即将删除 "{names}" 虚拟机，请确认`, `即将删除 "{names}" 等 {count} 台虚拟机，请确认。`),
+                                okText: '确认删除',
+                                okType: 'danger',
+                                cancelText: '取消',
+                                okButtonProps: {
+                                    disabled: false,
+                                },
+                                onOk: async () => {
+                                    await batchDeleteVirtualMachines(selectedRows, notification)
+                                }
+                            })
+                        }}>批量删除</a>
                     </Space>
                 )
             }}
             columns={columns}
             actionRef={actionRef}
             loading={{ indicator: <LoadingOutlined /> }}
-            dataSource={dataSource()}
+            dataSource={dataSource(virtualMachine)}
             request={async (params) => {
                 ctrl.current?.abort()
                 ctrl.current = new AbortController()

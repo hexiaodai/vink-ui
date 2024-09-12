@@ -35,6 +35,163 @@ var (
 	_ = sort.Sort
 )
 
+// Validate checks the field values on GetRequest with the rules defined in the
+// proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *GetRequest) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on GetRequest with the rules defined in
+// the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in GetRequestMultiError, or
+// nil if none found.
+func (m *GetRequest) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *GetRequest) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	if all {
+		switch v := interface{}(m.GetGroupVersionResource()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, GetRequestValidationError{
+					field:  "GroupVersionResource",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, GetRequestValidationError{
+					field:  "GroupVersionResource",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetGroupVersionResource()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return GetRequestValidationError{
+				field:  "GroupVersionResource",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if all {
+		switch v := interface{}(m.GetNamespaceName()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, GetRequestValidationError{
+					field:  "NamespaceName",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, GetRequestValidationError{
+					field:  "NamespaceName",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetNamespaceName()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return GetRequestValidationError{
+				field:  "NamespaceName",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if len(errors) > 0 {
+		return GetRequestMultiError(errors)
+	}
+
+	return nil
+}
+
+// GetRequestMultiError is an error wrapping multiple validation errors
+// returned by GetRequest.ValidateAll() if the designated constraints aren't met.
+type GetRequestMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m GetRequestMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m GetRequestMultiError) AllErrors() []error { return m }
+
+// GetRequestValidationError is the validation error returned by
+// GetRequest.Validate if the designated constraints aren't met.
+type GetRequestValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e GetRequestValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e GetRequestValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e GetRequestValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e GetRequestValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e GetRequestValidationError) ErrorName() string { return "GetRequestValidationError" }
+
+// Error satisfies the builtin error interface
+func (e GetRequestValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sGetRequest.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = GetRequestValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = GetRequestValidationError{}
+
 // Validate checks the field values on CreateRequest with the rules defined in
 // the proto definition for this message. If any rules are violated, the first
 // error encountered is returned, or nil if there are no violations.
@@ -56,6 +213,37 @@ func (m *CreateRequest) validate(all bool) error {
 	}
 
 	var errors []error
+
+	if all {
+		switch v := interface{}(m.GetGroupVersionResource()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, CreateRequestValidationError{
+					field:  "GroupVersionResource",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, CreateRequestValidationError{
+					field:  "GroupVersionResource",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetGroupVersionResource()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return CreateRequestValidationError{
+				field:  "GroupVersionResource",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	// no validation rules for Data
 
 	if len(errors) > 0 {
 		return CreateRequestMultiError(errors)
@@ -256,6 +444,64 @@ func (m *DeleteRequest) validate(all bool) error {
 	}
 
 	var errors []error
+
+	if all {
+		switch v := interface{}(m.GetGroupVersionResource()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, DeleteRequestValidationError{
+					field:  "GroupVersionResource",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, DeleteRequestValidationError{
+					field:  "GroupVersionResource",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetGroupVersionResource()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return DeleteRequestValidationError{
+				field:  "GroupVersionResource",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	if all {
+		switch v := interface{}(m.GetNamespaceName()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, DeleteRequestValidationError{
+					field:  "NamespaceName",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, DeleteRequestValidationError{
+					field:  "NamespaceName",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetNamespaceName()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return DeleteRequestValidationError{
+				field:  "NamespaceName",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
 
 	if len(errors) > 0 {
 		return DeleteRequestMultiError(errors)

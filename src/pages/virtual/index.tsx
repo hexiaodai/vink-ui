@@ -22,14 +22,14 @@ const Virtual = () => {
                         <Route path="" element={lazyComponents(<MachineList />)} />
                         <Route path="create" element={lazyComponents(<MachineCreate />)} />
                     </Route>
-                    {/* <Route path="images">
+                    <Route path="images">
                         <Route path="" element={lazyComponents(<ImageList />)} />
                         <Route path="create" element={lazyComponents(<ImageCreate />)} />
                     </Route>
                     <Route path="disks">
                         <Route path="" element={lazyComponents(<DiskList />)} />
                         <Route path="create" element={lazyComponents(<DiskCreate />)} />
-                    </Route> */}
+                    </Route>
                 </Route>
             </Routes>
         </Suspense>

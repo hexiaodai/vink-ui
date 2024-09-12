@@ -67,7 +67,8 @@
         "VIRTUAL_MACHINE",
         "VIRTUAL_MACHINE_INSTANCE",
         "DATA_VOLUME",
-        "NODE"
+        "NODE",
+        "NAMESPACE"
       ],
       "default": "UNSPECIFIED"
     },
