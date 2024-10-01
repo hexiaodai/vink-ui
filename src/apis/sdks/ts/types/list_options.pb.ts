@@ -11,5 +11,6 @@ export type ListOptions = {
   limit?: number
   continue?: string
   namespaceNames?: VinkKubevmIoApisTypesNamespace_name.NamespaceName[]
+  namespace?: string
   watch?: boolean
 }

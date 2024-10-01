@@ -6,6 +6,13 @@ annotations:
     deprecated: false
     resources:
       - DataVolume
+  - name: vink.kubevm.io/virtualmachine.binding
+    featureStatus: Alpha
+    description: Indicates that this DataVolume is being used by a specific virtual machine.
+    hidden: true
+    deprecated: false
+    resources:
+      - DataVolume
   # - name: vink.io/node-network-interface
   #   featureStatus: Alpha
   #   description: Record information of node network interfaces.

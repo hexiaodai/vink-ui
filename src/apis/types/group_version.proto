@@ -27,6 +27,10 @@ enum GroupVersionResourceEnum {
 	DATA_VOLUME = 3;
 	NODE = 4;
 	NAMESPACE = 5;
+	MULTUS = 6;
+	SUBNET = 7;
+	VPC = 8;
+	IPPOOL = 9;
 }
 
 message GroupVersionResourceIdentifier {

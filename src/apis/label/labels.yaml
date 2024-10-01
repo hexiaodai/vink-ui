@@ -1,6 +1,6 @@
 labels:
   - name: vink.kubevm.io/datavolume.type
-  # - name: datavolume.vink.io/type
+    # - name: datavolume.vink.io/type
     featureStatus: Alpha
     description: Defines the type of datavolume, such as root for the system datavolume, image for the system image, and data for the data datavolume.
     hidden: true
@@ -8,7 +8,7 @@ labels:
     resources:
       - DataVolume
   - name: vink.kubevm.io/virtualmachine.os
-  # - name: virtualmachine.vink.io/os
+    # - name: virtualmachine.vink.io/os
     featureStatus: Alpha
     description: Defines the operating system of the virtual machine, where 'windows' represents the Windows operating system, and 'linux' represents the Linux operating system.
     hidden: true
@@ -16,7 +16,7 @@ labels:
     resources:
       - DataVolume
   - name: vink.kubevm.io/virtualmachine.version
-  # - name: virtualmachine.vink.io/version
+    # - name: virtualmachine.vink.io/version
     featureStatus: Alpha
     description: Defines the operating system version of the virtual machine.
     hidden: true

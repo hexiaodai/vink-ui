@@ -36,7 +36,11 @@ export interface ListOptions {
      */
     namespaceNames: NamespaceName[];
     /**
-     * @generated from protobuf field: bool watch = 6;
+     * @generated from protobuf field: string namespace = 6;
+     */
+    namespace: string;
+    /**
+     * @generated from protobuf field: bool watch = 7;
      */
     watch: boolean;
 }
@@ -49,7 +53,8 @@ class ListOptions$Type extends MessageType<ListOptions> {
             { no: 3, name: "limit", kind: "scalar", T: 5 /*ScalarType.INT32*/, options: { "validate.rules": { int32: { gte: 0 } } } },
             { no: 4, name: "continue", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "namespace_names", kind: "message", repeat: 1 /*RepeatType.PACKED*/, T: () => NamespaceName },
-            { no: 6, name: "watch", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+            { no: 6, name: "namespace", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "watch", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
     create(value?: PartialMessage<ListOptions>): ListOptions {
@@ -59,6 +64,7 @@ class ListOptions$Type extends MessageType<ListOptions> {
         message.limit = 0;
         message.continue = "";
         message.namespaceNames = [];
+        message.namespace = "";
         message.watch = false;
         if (value !== undefined)
             reflectionMergePartial<ListOptions>(this, message, value);
@@ -84,7 +90,10 @@ class ListOptions$Type extends MessageType<ListOptions> {
                 case /* repeated vink.kubevm.io.apis.types.NamespaceName namespace_names */ 5:
                     message.namespaceNames.push(NamespaceName.internalBinaryRead(reader, reader.uint32(), options));
                     break;
-                case /* bool watch */ 6:
+                case /* string namespace */ 6:
+                    message.namespace = reader.string();
+                    break;
+                case /* bool watch */ 7:
                     message.watch = reader.bool();
                     break;
                 default:
@@ -114,9 +123,12 @@ class ListOptions$Type extends MessageType<ListOptions> {
         /* repeated vink.kubevm.io.apis.types.NamespaceName namespace_names = 5; */
         for (let i = 0; i < message.namespaceNames.length; i++)
             NamespaceName.internalBinaryWrite(message.namespaceNames[i], writer.tag(5, WireType.LengthDelimited).fork(), options).join();
-        /* bool watch = 6; */
+        /* string namespace = 6; */
+        if (message.namespace !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.namespace);
+        /* bool watch = 7; */
         if (message.watch !== false)
-            writer.tag(6, WireType.Varint).bool(message.watch);
+            writer.tag(7, WireType.Varint).bool(message.watch);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

@@ -72,11 +72,24 @@ var (
 		},
 	}
 
+	VinkVirtualmachineBinding = Instance {
+		Name:          "vink.kubevm.io/virtualmachine.binding",
+		Description:   "Indicates that this DataVolume is being used by a "+
+                        "specific virtual machine.",
+		FeatureStatus: Alpha,
+		Hidden:        true,
+		Deprecated:    false,
+		Resources: []ResourceTypes{
+			DataVolume,
+		},
+	}
+
 )
 
 func AllResourceAnnotations() []*Instance {
 	return []*Instance {
 		&IoKubevirtCdiStorageBindImmediateRequested,
+		&VinkVirtualmachineBinding,
 	}
 }
 

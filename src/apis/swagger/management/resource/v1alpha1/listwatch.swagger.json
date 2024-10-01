@@ -68,7 +68,11 @@
         "VIRTUAL_MACHINE_INSTANCE",
         "DATA_VOLUME",
         "NODE",
-        "NAMESPACE"
+        "NAMESPACE",
+        "MULTUS",
+        "SUBNET",
+        "VPC",
+        "IPPOOL"
       ],
       "default": "UNSPECIFIED"
     },
@@ -105,6 +109,9 @@
             "type": "object",
             "$ref": "#/definitions/typesNamespaceName"
           }
+        },
+        "namespace": {
+          "type": "string"
         },
         "watch": {
           "type": "boolean"
