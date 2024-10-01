@@ -108,6 +108,8 @@ func (m *ListOptions) validate(all bool) error {
 
 	}
 
+	// no validation rules for Namespace
+
 	// no validation rules for Watch
 
 	if len(errors) > 0 {

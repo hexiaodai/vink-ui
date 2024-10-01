@@ -1,6 +1,6 @@
 import { CustomResourceDefinition } from "@/apis/apiextensions/v1alpha1/custom_resource_definition"
 import { ColumnsState } from "@ant-design/pro-components"
-import { namespaceName } from "./k8s"
+import { formatMemory, namespaceName } from "./k8s"
 import { ListOptions } from "@/apis/types/list_options"
 
 /**
@@ -14,7 +14,16 @@ export function classNames(...classes: (string | undefined | null)[]): string {
 
 export function jsonParse(str?: string) {
     if (!str) return {}
-    return JSON.parse(str || "{}")
+    const result = JSON.parse(str || "{}")
+    return result || {}
+}
+
+export function parseSpec(crd: CustomResourceDefinition) {
+    return jsonParse(crd.spec)
+}
+
+export function parseStatus(crd: CustomResourceDefinition) {
+    return jsonParse(crd.status)
 }
 
 /**
@@ -98,6 +107,13 @@ export const emptyOptions = (): ListOptions => {
         limit: 0,
         continue: "",
         namespaceNames: [],
+        namespace: "",
         watch: false,
     }
+}
+
+export const capacity = (rootDisk: CustomResourceDefinition) => {
+    const spec = jsonParse(rootDisk.spec)
+    const [value, uint] = formatMemory(spec.pvc?.resources?.requests?.storage)
+    return `${value} ${uint}`
 }

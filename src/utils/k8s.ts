@@ -53,6 +53,11 @@ export const formatMemory = (value?: string): [string, string] => {
     return ['', '']
 }
 
+export const formatMemoryString = (str?: string): string => {
+    const [value, uint] = formatMemory(str)
+    return `${value} ${uint}`
+}
+
 export const namespaceName = <T extends ObjectMeta>(obj?: T) => {
     if (!obj) return ""
     return `${obj.namespace}/${obj.name}`

@@ -13,5 +13,6 @@ message ListOptions {
     int32 limit = 3 [(validate.rules).int32.gte = 0];
     string continue = 4;
     repeated NamespaceName namespace_names = 5;
-    bool watch = 6;
+    string namespace = 6;
+    bool watch = 7;
 }

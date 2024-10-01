@@ -69,8 +69,8 @@ const SerialConsole: React.FC = () => {
             terminal.write(text)
         }
 
-        ws.onerror = (_) => {
-            terminal.write("Websocket connection error.")
+        ws.onerror = (err) => {
+            terminal.write(`Websocket connection error: ${err}`)
         }
 
         terminal.onData((b) => {

@@ -56,11 +56,22 @@ export const instances: { [key: string]: Instance } = {
       ResourceTypes.DataVolume,
     ]
   },
+  VinkVirtualmachineBinding: {
+    name: "vink.kubevm.io/virtualmachine.binding",
+    description: "Indicates that this DataVolume is being used by a "+
+                        "specific virtual machine.",
+    featureStatus: FeatureStatus.Alpha,
+    hidden: true,
+    deprecated: false,
+    resources: [
+      ResourceTypes.DataVolume,
+    ]
+  },
 };
 
 export function allResourceAnnotations(): Instance[] {
   return [
-    instances.IoKubevirtCdiStorageBindImmediateRequested,
+    instances.IoKubevirtCdiStorageBindImmediateRequested,instances.VinkVirtualmachineBinding,
   ];
 }
 
