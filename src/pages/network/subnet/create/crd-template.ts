@@ -6,6 +6,7 @@ metadata:
 spec:
   protocol: IPv4
   provider: attachnet.default.ovn
+  vpc: ovn-cluster
   cidrBlock: 10.66.0.0/16
   excludeIps:
     - 10.66.0.1..10.66.0.10

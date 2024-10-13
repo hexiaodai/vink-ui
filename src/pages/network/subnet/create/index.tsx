@@ -1,8 +1,9 @@
 import { App } from 'antd'
 import { subnetYaml } from './crd-template'
 import { useNavigate } from 'react-router-dom'
-import { createSubnet } from '@/resource-manager/subnet'
 import { CreateCRDWithYaml } from '@/components/create-crd-with-yaml'
+import { clients } from '@/clients/clients'
+import { GroupVersionResourceEnum } from '@/apis/types/group_version'
 import * as yaml from 'js-yaml'
 
 export default () => {
@@ -16,7 +17,7 @@ export default () => {
             notification.error({ message: "Subnet", description: "Subnet name cannot be empty" })
             return
         }
-        await createSubnet(subnetObject, notification).then(() => {
+        await clients.createResource(GroupVersionResourceEnum.SUBNET, subnetObject, { notification: notification }).then(() => {
             navigate('/network/subnets')
         })
     }

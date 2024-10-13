@@ -100,17 +100,17 @@ export const generateMessage = (crds: CustomResourceDefinition[], successMessage
     }
 }
 
-export const emptyOptions = (): ListOptions => {
-    return {
-        fieldSelector: "",
-        labelSelector: "",
-        limit: 0,
-        continue: "",
-        namespaceNames: [],
-        namespace: "",
-        watch: false,
-    }
-}
+// export const emptyOptions = (): ListOptions => {
+//     return {
+//         fieldSelector: "",
+//         labelSelector: "",
+//         limit: 0,
+//         continue: "",
+//         namespaceNames: [],
+//         namespace: "",
+//         watch: false,
+//     }
+// }
 
 export const capacity = (rootDisk: CustomResourceDefinition) => {
     const spec = jsonParse(rootDisk.spec)

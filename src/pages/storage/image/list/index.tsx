@@ -5,10 +5,11 @@ import { useEffect, useRef, useState } from 'react'
 import { namespaceName } from '@/utils/k8s'
 import { NavLink, Params } from 'react-router-dom'
 import { CustomResourceDefinition } from "@/apis/apiextensions/v1alpha1/custom_resource_definition"
-import { createWatchImages } from '@/resource-manager/datavolume'
-import { batchDeleteDataVolumes } from '@/resource-manager/datavolume'
+import { instances as labels } from "@/apis/sdks/ts/label/labels.gen"
 import { calcScroll, classNames, dataSource, generateMessage } from '@/utils/utils'
 import { useNamespace } from '@/common/context'
+import { clients } from '@/clients/clients'
+import { GroupVersionResourceEnum } from '@/apis/types/group_version'
 import type { ActionType } from '@ant-design/pro-components'
 import tableStyles from '@/common/styles/table.module.less'
 import commonStyles from '@/common/styles/common.module.less'
@@ -21,17 +22,16 @@ export default () => {
 
     const { namespace } = useNamespace()
 
-    const [searchFilter, setSearchFilter] = useState<string>("name")
     const [scroll, setScroll] = useState(150 * 6)
     const [selectedRows, setSelectedRows] = useState<CustomResourceDefinition[]>([])
 
     const actionRef = useRef<ActionType>()
 
-    const [image, setImage] = useState<Map<string, CustomResourceDefinition>>(new Map<string, CustomResourceDefinition>())
+    const [images, setImages] = useState<Map<string, CustomResourceDefinition>>(new Map<string, CustomResourceDefinition>())
 
     const columns = columnsFunc(notification)
 
-    const watchImages = createWatchImages(image, setImage, notification)
+    const watchImages = clients.createWatchResource(GroupVersionResourceEnum.DATA_VOLUME, setImages)
 
     useEffect(() => {
         actionRef.current?.reload()
@@ -76,7 +76,7 @@ export default () => {
                                     disabled: false,
                                 },
                                 onOk: async () => {
-                                    await batchDeleteDataVolumes(selectedRows, notification)
+                                    await clients.batchDeleteResources(GroupVersionResourceEnum.DATA_VOLUME, selectedRows, { notification: notification })
                                 }
                             })
                         }}>批量删除</a>
@@ -86,13 +86,18 @@ export default () => {
             columns={columns}
             actionRef={actionRef}
             loading={{ indicator: <LoadingOutlined /> }}
-            dataSource={dataSource(image)}
+            dataSource={dataSource(images)}
             request={async (params) => {
                 ctrl.current?.abort()
                 ctrl.current = new AbortController()
 
-                const advancedParams = { namespace: namespace, searchFilter: searchFilter, params: params }
-                await watchImages(advancedParams, ctrl.current)
+                await watchImages({
+                    namespace: namespace,
+                    labelSelector: `${labels.VinkDatavolumeType.name}=image`,
+                    fieldSelector: (params.keyword && params.keyword.length > 0) ? `metadata.name=${params.keyword}` : undefined,
+                    notification: notification,
+                    abortCtrl: ctrl.current
+                })
                 return { success: true }
             }}
             columnsState={{
@@ -107,8 +112,8 @@ export default () => {
                 search: {
                     allowClear: true,
                     style: { width: 280 },
-                    addonBefore: <Select defaultValue="name" onChange={(value) => setSearchFilter(value)} options={[
-                        { value: 'name', label: '名称' }
+                    addonBefore: <Select defaultValue="name" options={[
+                        { value: 'metadata.name', label: '名称' }
                     ]} />
                 }
             }}

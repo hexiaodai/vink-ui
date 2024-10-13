@@ -5,9 +5,10 @@ import { useEffect, useRef, useState } from 'react'
 import { namespaceName } from '@/utils/k8s'
 import { Params } from 'react-router-dom'
 import { CustomResourceDefinition } from "@/apis/apiextensions/v1alpha1/custom_resource_definition"
-import { fetchImages } from '@/resource-manager/datavolume'
 import { instances as labels } from "@/apis/sdks/ts/label/labels.gen"
 import { rootDiskDrawerColumns } from './table-columns'
+import { clients } from '@/clients/clients'
+import { GroupVersionResourceEnum } from '@/apis/types/group_version'
 import type { ActionType } from '@ant-design/pro-components'
 import React from 'react'
 import tableStyles from '@/common/styles/table.module.less'
@@ -23,7 +24,6 @@ interface RootDiskDrawerProps {
 export const RootDiskDrawer: React.FC<RootDiskDrawerProps> = ({ open, current, onCanel, onConfirm }) => {
     const { notification } = App.useApp()
 
-    const [searchFilter, setSearchFilter] = useState<string>("name")
     const [selectedRows, setSelectedRows] = useState<CustomResourceDefinition[]>([])
 
     useEffect(() => {
@@ -70,8 +70,11 @@ export const RootDiskDrawer: React.FC<RootDiskDrawerProps> = ({ open, current, o
                 loading={{ indicator: <LoadingOutlined /> }}
                 dataSource={images}
                 request={async (params) => {
-                    const advancedParams = { searchFilter: searchFilter, params: params }
-                    await fetchImages(setImages, advancedParams, notification)
+                    await clients.listResources(GroupVersionResourceEnum.DATA_VOLUME, setImages, {
+                        labelSelector: `${labels.VinkDatavolumeType.name}=image`,
+                        fieldSelector: (params.keyword && params.keyword.length > 0) ? `metadata.name=${params.keyword}` : undefined,
+                        notification: notification
+                    })
                     return { success: true }
                 }}
                 rowKey={(vm) => namespaceName(vm.metadata)}
@@ -82,10 +85,8 @@ export const RootDiskDrawer: React.FC<RootDiskDrawerProps> = ({ open, current, o
                     search: {
                         allowClear: true,
                         style: { width: 280 },
-                        addonBefore: <Select defaultValue="metadata.name" onChange={(value) => setSearchFilter(value)} options={[
-                            { value: 'metadata.name', label: '名称' },
-                            { value: 'metadata.namespace', label: '命名空间' },
-                            { value: `labels[${labels.VinkVirtualmachineOs.name}]`, label: '操作系统' }
+                        addonBefore: <Select defaultValue="metadata.name" options={[
+                            { value: 'metadata.name', label: '名称' }
                         ]} />
                     }
                 }}

@@ -10,11 +10,13 @@ import { NetworkConfig, NetworkDrawer } from './network-drawer'
 import { virtualmachineYaml, defaultCloudInit } from './crd-template'
 import { NavigateFunction, useNavigate } from 'react-router-dom'
 import { instances as labels } from '@/apis/sdks/ts/label/labels.gen'
+import { instances as annotations } from '@/apis/sdks/ts/annotation/annotations.gen'
 import { useNamespace } from '@/common/context'
-import { createVirtualMachine } from '@/resource-manager/virtualmachine'
 import { yaml as langYaml } from "@codemirror/lang-yaml"
 import { getDataDiskColumns, getNetworkColumns } from './table-columns'
 import { NotificationInstance } from 'antd/es/notification/interface'
+import { GroupVersionResourceEnum } from '@/apis/types/group_version'
+import { clients } from '@/clients/clients'
 import type { ProFormInstance } from '@ant-design/pro-components'
 import * as yaml from 'js-yaml'
 import TableColumnOperatingSystem from '@/components/table-column/operating-system'
@@ -40,7 +42,7 @@ const submit = async (formRef: React.MutableRefObject<ProFormInstance | undefine
             setupRootDisk(formRef, instance)
             setupDataDisks(formRef, instance)
 
-            await createVirtualMachine(instance, notification).then(() => {
+            await clients.createResource(GroupVersionResourceEnum.VIRTUAL_MACHINE, instance, { notification: notification }).then(() => {
                 navigate('/compute/machines')
             })
         }).
@@ -75,9 +77,6 @@ const setupDataDisks = (formRef: React.MutableRefObject<ProFormInstance | undefi
     if (!fields.dataDisks) {
         return
     }
-
-    console.log(fields)
-    console.log(fields.cloudInit, "cloudInit")
 
     const rootDiskName = generateRootDiskName(fields.name)
 
@@ -116,6 +115,7 @@ const setupRootDisk = (formRef: React.MutableRefObject<ProFormInstance | undefin
     vm.spec.dataVolumeTemplates[0].metadata.labels[labels.VinkDatavolumeType.name] = "root"
     vm.spec.dataVolumeTemplates[0].metadata.labels[labels.VinkVirtualmachineOs.name] = fields.rootDisk.metadata.labels[labels.VinkVirtualmachineOs.name]
     vm.spec.dataVolumeTemplates[0].metadata.labels[labels.VinkVirtualmachineVersion.name] = fields.rootDisk.metadata.labels[labels.VinkVirtualmachineVersion.name]
+    vm.spec.dataVolumeTemplates[0].metadata.annotations[annotations.VinkVirtualmachineBinding.name] = fields.name
     vm.spec.dataVolumeTemplates[0].spec.pvc.resources.requests.storage = `${fields.rootDiskCapacity}Gi`
     vm.spec.dataVolumeTemplates[0].spec.source.pvc.name = fields.rootDisk.metadata.name
     vm.spec.dataVolumeTemplates[0].spec.source.pvc.namespace = fields.rootDisk.metadata.namespace
@@ -342,6 +342,26 @@ export default () => {
                     </ProCard>
 
                     <ProCard title="存储" headerBordered>
+                        {/* <ProFormSelect
+                            width="lg"
+                            label="存储类"
+                            name="storageClass"
+                            placeholder="选择存储类"
+                            rules={[{
+                                required: true,
+                                message: "选择存储类。"
+                            }]}
+                        />
+                        <ProFormSelect
+                            width="lg"
+                            label="访问模式"
+                            name="accessMode"
+                            placeholder="选择访问模式"
+                            rules={[{
+                                required: true,
+                                message: "选择访问模式。"
+                            }]}
+                        /> */}
                         <ProFormItem
                             label="系统盘"
                             name="rootDiskCapacity"

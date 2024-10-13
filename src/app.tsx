@@ -1,13 +1,14 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { App, ConfigProvider, Select } from 'antd'
 import { PageContainer, ProLayout } from '@ant-design/pro-components'
 import { NavLink, useLocation } from 'react-router-dom'
 import { LayoutSettings } from '@/layout-config'
 import { NamespaceProvider, useNamespace } from '@/common/context'
-import AppRouter from '@/router'
-import Styles from '@/styles/app.module.less'
-import { fetchNamespaces } from './resource-manager/namespace'
 import { CustomResourceDefinition } from '@/apis/apiextensions/v1alpha1/custom_resource_definition'
+import { clients } from './clients/clients'
+import { GroupVersionResourceEnum } from './apis/types/group_version'
+import AppRouter from '@/router'
+import styles from '@/styles/app.module.less'
 
 export default () => {
   const { notification } = App.useApp()
@@ -19,7 +20,9 @@ export default () => {
   const [collapsed, setCollapsed] = useState(false)
 
   useEffect(() => {
-    fetchNamespaces(setNamespaces, notification)
+    clients.listResources(GroupVersionResourceEnum.NAMESPACE, setNamespaces, {
+      notification: notification
+    })
   }, [])
 
   return (
@@ -32,7 +35,7 @@ export default () => {
         }
       }}
     >
-      <App className={Styles.vink}>
+      <App className={styles.vink}>
         <NamespaceProvider>
           <ProLayout
             {...LayoutSettings}

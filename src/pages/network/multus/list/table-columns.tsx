@@ -4,7 +4,8 @@ import { EllipsisOutlined } from '@ant-design/icons'
 import { formatTimestamp, jsonParse } from '@/utils/utils'
 import { NotificationInstance } from "antd/es/notification/interface"
 import { CustomResourceDefinition } from "@/apis/apiextensions/v1alpha1/custom_resource_definition"
-import { deleteMultusConfig } from "@/resource-manager/multus"
+import { clients } from "@/clients/clients"
+import { GroupVersionResourceEnum } from "@/apis/types/group_version"
 
 const columnsFunc = (actionRef: any, notification: NotificationInstance) => {
     const columns: ProColumns<CustomResourceDefinition>[] = [
@@ -67,8 +68,8 @@ const columnsFunc = (actionRef: any, notification: NotificationInstance) => {
 }
 
 const actionItemsFunc = (m: CustomResourceDefinition, actionRef: any, notification: NotificationInstance) => {
-    const namespace = m.metadata?.namespace
-    const name = m.metadata?.name
+    const namespace = m.metadata?.namespace!
+    const name = m.metadata?.name!
 
     const items: MenuProps['items'] = [
         {
@@ -97,7 +98,7 @@ const actionItemsFunc = (m: CustomResourceDefinition, actionRef: any, notificati
                         disabled: false,
                     },
                     onOk: async () => {
-                        await deleteMultusConfig(namespace!, name!, notification).then(() => {
+                        await clients.deleteResource(GroupVersionResourceEnum.MULTUS, namespace, name, { notification: notification }).then(() => {
                             actionRef.current?.reload()
                         })
                     }

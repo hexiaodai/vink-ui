@@ -116,7 +116,19 @@ export enum GroupVersionResourceEnum {
     /**
      * @generated from protobuf enum value: IPPOOL = 9;
      */
-    IPPOOL = 9
+    IPPOOL = 9,
+    /**
+     * @generated from protobuf enum value: STORAGE_CLASS = 10;
+     */
+    STORAGE_CLASS = 10,
+    /**
+     * @generated from protobuf enum value: IPS = 11;
+     */
+    IPS = 11,
+    /**
+     * @generated from protobuf enum value: VIRTUAL_MACHINE_INSTANCE_SUMMARY = 12;
+     */
+    VIRTUAL_MACHINE_INSTANCE_SUMMARY = 12
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class GroupVersionResource$Type extends MessageType<GroupVersionResource> {

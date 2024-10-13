@@ -1,81 +1,67 @@
 import { ProColumns } from "@ant-design/pro-components"
-import { Dropdown, List, MenuProps, Modal, Popover, Badge, Flex, Tag } from "antd"
-import { formatMemory, namespaceName } from '@/utils/k8s'
+import { Dropdown, MenuProps, Modal, Popover, Badge, Flex, Tag } from "antd"
+import { formatMemory } from '@/utils/k8s'
 import { CodeOutlined, EllipsisOutlined } from '@ant-design/icons'
 import { VirtualMachinePowerStateRequest_PowerState } from '@/apis/management/virtualmachine/v1alpha1/virtualmachine'
-import { jsonParse, formatTimestamp, parseStatus, parseSpec } from '@/utils/utils'
+import { formatTimestamp, parseStatus } from '@/utils/utils'
 import { NotificationInstance } from "antd/es/notification/interface"
 import { CustomResourceDefinition } from "@/apis/apiextensions/v1alpha1/custom_resource_definition"
 import { virtualMachineStatusMap } from "@/utils/resource-status"
-import { deleteVirtualMachine, manageVirtualMachinePowerState } from '@/resource-manager/virtualmachine'
+import { manageVirtualMachinePowerState } from "@/clients/virtualmachine"
+import { GroupVersionResourceEnum } from "@/apis/types/group_version"
+import { clients } from "@/clients/clients"
 import TableColumnOperatingSystem from "@/components/table-column/operating-system"
 import commonStyles from '@/common/styles/common.module.less'
 
-const columnsFunc = (virtualMachineInstance: Map<string, CustomResourceDefinition>, rootDisk: Map<string, CustomResourceDefinition>, node: Map<string, CustomResourceDefinition>, notification: NotificationInstance) => {
+const virtualMachine = (virtualMachineSummarys: CustomResourceDefinition) => {
+    return parseStatus(virtualMachineSummarys).virtualMachine
+}
+
+const virtualMachineHost = (virtualMachineSummarys: CustomResourceDefinition) => {
+    return parseStatus(virtualMachineSummarys).host
+}
+
+const rootDisk = (virtualMachineSummarys: CustomResourceDefinition) => {
+    const dvs = parseStatus(virtualMachineSummarys).dataVolumes
+    return dvs?.find((dv: CustomResourceDefinition) => {
+        return dv.metadata?.labels["vink.kubevm.io/datavolume.type"] == "root"
+    })
+}
+
+const virtualMachineIPs = (virtualMachineSummarys: CustomResourceDefinition): any[] => {
+    return parseStatus(virtualMachineSummarys).networks?.ips
+}
+
+const columnsFunc = (notification: NotificationInstance) => {
     const columns: ProColumns<CustomResourceDefinition>[] = [
         {
             key: 'name',
             title: '名称',
             fixed: 'left',
             ellipsis: true,
-            render: (_, vm) => vm.metadata?.name
+            render: (_, summary) => summary.metadata?.name
         },
         {
             key: 'status',
             title: '状态',
             ellipsis: true,
-            render: (_, vm) => <Badge status={virtualMachineStatusMap[parseStatus(vm).printableStatus].badge} text={virtualMachineStatusMap[parseStatus(vm).printableStatus].text} />
-            // render: (_, vm) => <Badge status={virtualMachineStatusMap[parseStatus(vm).printableStatus].badge} text={parseStatus(vm).printableStatus} />
+            render: (_, summary) => {
+                const vm = virtualMachine(summary)
+                return <Badge status={virtualMachineStatusMap[vm.status.printableStatus].badge} text={virtualMachineStatusMap[vm.status.printableStatus].text} />
+            }
         },
-        // {
-        //     key: 'status',
-        //     title: '状态',
-        //     ellipsis: true,
-        //     render: (_, vm) => {
-        //         const status = jsonParse(vm.status)
-        //         const conditions = statusConditions(status)
-        //         let content: any
-        //         if (conditions.length > 0) {
-        //             content = (
-        //                 <List
-        //                     className={TableStyles["status-tips"]}
-        //                     size="small"
-        //                     dataSource={conditions}
-        //                     renderItem={(item: any, index: number) => {
-        //                         let probeTime: string = ""
-        //                         if (item.lastProbeTime?.length > 0) {
-        //                             probeTime = ` [${item.lastProbeTime}]`
-        //                         }
-        //                         return (
-        //                             <List.Item>
-        //                                 {index + 1}.{probeTime} {removeTrailingDot(item.message)}.
-        //                             </List.Item>
-        //                         )
-        //                     }}
-        //                 />
-        //             )
-        //         }
-        //         return (
-        //             <Popover content={content}>
-        //                 <Badge status={virtualMachineStatusMap[status.printableStatus]} text={status.printableStatus} />
-        //             </Popover>
-        //         )
-        //     }
-        // },
         {
             key: 'console',
             title: '控制台',
             width: 90,
-            render: (_, vm) => {
-                const status = jsonParse(vm.status)
-                const namespace = vm.metadata?.namespace
-                const name = vm.metadata?.name
-                const isRunning = status?.printableStatus as string === "Running"
+            render: (_, summary) => {
+                const vm = virtualMachine(summary)
+                const isRunning = vm.status?.printableStatus as string === "Running"
 
                 return (
                     <a href='#'
                         className={isRunning ? "" : commonStyles["a-disable"]}
-                        onClick={() => { openConsole(namespace!, name!, status) }}
+                        onClick={() => { openConsole(vm) }}
                     >
                         <CodeOutlined />
                     </a>
@@ -86,32 +72,28 @@ const columnsFunc = (virtualMachineInstance: Map<string, CustomResourceDefinitio
             key: 'operatingSystem',
             title: '操作系统',
             ellipsis: true,
-            render: (_, vm) => {
-                const rd = rootDisk.get(namespaceName(vm.metadata))
-                return <TableColumnOperatingSystem rootDataVolume={rd} />
+            render: (_, summary) => {
+                return <TableColumnOperatingSystem rootDataVolume={rootDisk(summary)} />
             }
         },
         {
             key: 'ipv4',
             title: 'IPv4',
             ellipsis: true,
-            render: (_, vm) => {
-                const vmi = virtualMachineInstance.get(namespaceName(vm.metadata))
-                if (!vmi) {
+            render: (_, summary) => {
+                const ipObjs = virtualMachineIPs(summary)
+                if (!ipObjs) {
                     return
                 }
 
-                let vmiStatus = parseStatus(vmi)
-                const interfaces = vmiStatus.interfaces
-                if (!interfaces || interfaces.length === 0) {
-                    return
+                const addrs: string[] = []
+                for (const ipObj of ipObjs) {
+                    addrs.push(ipObj.spec.ipAddress)
                 }
-
-                const ips = interfaces.flatMap((iface: any) => iface.ipAddresses)
 
                 const content = (
                     <Flex wrap gap="4px 0" style={{ maxWidth: 250 }}>
-                        {ips.map((element: any, index: any) => (
+                        {addrs.map((element: any, index: any) => (
                             <Tag key={index} bordered={true}>
                                 {element}
                             </Tag>
@@ -121,38 +103,19 @@ const columnsFunc = (virtualMachineInstance: Map<string, CustomResourceDefinitio
 
                 return (
                     <Popover content={content}>
-                        <Tag bordered={true}>{interfaces[0].ipAddresses}</Tag>
-                        +{interfaces.length}
+                        <Tag bordered={true}>{addrs[0]}</Tag>
+                        +{addrs.length}
                     </Popover>
                 )
-
-                // const vmi = virtualMachineInstance.get(namespaceName(vm.metadata))
-                // const status = jsonParse(vmi?.status)
-                // const interfaces = status.interfaces || []
-                // const ips = interfaces.flatMap((iface: any) => iface.ipAddresses)
-                // const content = (
-                //     <List
-                //         size="small"
-                //         dataSource={ips}
-                //         renderItem={(ip: string) => (
-                //             <List.Item>{ip}</List.Item>
-                //         )}
-                //     />
-                // )
-                // return (
-                //     <Popover content={content}>
-                //         {interfaces[0]?.ipAddress}
-                //     </Popover>
-                // )
             }
         },
         {
             key: 'cpu',
             title: '处理器',
             ellipsis: true,
-            render: (_, vm) => {
-                const spec = jsonParse(vm.spec)
-                let core = spec.template?.spec?.domain?.cpu?.cores
+            render: (_, summary) => {
+                const vm = virtualMachine(summary)
+                let core = vm.spec.template?.spec?.domain?.cpu?.cores
                 return core ? `${core} Core` : ''
             }
         },
@@ -160,9 +123,9 @@ const columnsFunc = (virtualMachineInstance: Map<string, CustomResourceDefinitio
             key: 'memory',
             title: '内存',
             ellipsis: true,
-            render: (_, vm) => {
-                const spec = jsonParse(vm.spec)
-                const [value, unit] = formatMemory(spec.template?.spec?.domain?.resources?.requests?.memory)
+            render: (_, summary) => {
+                const vm = virtualMachine(summary)
+                const [value, unit] = formatMemory(vm.spec.template?.spec?.domain?.resources?.requests?.memory)
                 return `${value} ${unit}`
             }
         },
@@ -170,28 +133,18 @@ const columnsFunc = (virtualMachineInstance: Map<string, CustomResourceDefinitio
             key: 'node',
             title: '节点',
             ellipsis: true,
-            render: (_, vm) => {
-                const vmi = virtualMachineInstance.get(namespaceName(vm.metadata))
-                const status = jsonParse(vmi?.status)
-                return status?.nodeName
+            render: (_, summary) => {
+                const host = virtualMachineHost(summary)
+                return host?.metadata.name
             }
         },
         {
             key: 'nodeIP',
             title: '节点 IP',
             ellipsis: true,
-            render: (_, vm) => {
-                const vmi = virtualMachineInstance.get(namespaceName(vm.metadata))
-                if (!vmi) {
-                    return
-                }
-                let vmiStatus = parseStatus(vmi)
-                const host = node.get(vmiStatus.nodeName)
-                if (!host) {
-                    return
-                }
-                const hostStatus = parseStatus(host)
-                const interfaces = hostStatus.addresses
+            render: (_, summary) => {
+                const host = virtualMachineHost(summary)
+                const interfaces = host?.status.addresses
                 if (!interfaces || interfaces.length === 0) {
                     return
                 }
@@ -213,35 +166,14 @@ const columnsFunc = (virtualMachineInstance: Map<string, CustomResourceDefinitio
                     </Popover>
                 )
             }
-            // render: (_, vm) => {
-            //     const vmi = virtualMachineInstance.get(namespaceName(vm.metadata))
-            //     const vmiStatus = jsonParse(vmi?.status)
-            //     const host = node.get(vmiStatus.nodeName)
-            //     const status = jsonParse(host?.status)
-            //     const interfaces = status.addresses || []
-            //     const content = (
-            //         <List
-            //             size="small"
-            //             dataSource={interfaces}
-            //             renderItem={(iface: any) => (
-            //                 <List.Item>{iface.type}: {iface.address}</List.Item>
-            //             )}
-            //         />
-            //     )
-            //     return (
-            //         <Popover content={content}>
-            //             {interfaces[0]?.address}
-            //         </Popover>
-            //     )
-            // }
         },
         {
             key: 'created',
             title: '创建时间',
             width: 160,
             ellipsis: true,
-            render: (_, vm) => {
-                return formatTimestamp(vm.metadata?.creationTimestamp)
+            render: (_, summary) => {
+                return formatTimestamp(summary.metadata?.creationTimestamp)
             }
         },
         {
@@ -250,8 +182,8 @@ const columnsFunc = (virtualMachineInstance: Map<string, CustomResourceDefinitio
             fixed: 'right',
             width: 90,
             align: 'center',
-            render: (_, vm) => {
-                const items = actionItemsFunc(vm, notification)
+            render: (_, summary) => {
+                const items = actionItemsFunc(virtualMachine(summary), notification)
                 return (
                     <Dropdown menu={{ items }} trigger={['click']}>
                         <EllipsisOutlined />
@@ -263,36 +195,26 @@ const columnsFunc = (virtualMachineInstance: Map<string, CustomResourceDefinitio
     return columns
 }
 
-const statusConditions = (status: any) => {
-    return status.conditions
-        ?.filter((c: any) => c.message?.length > 0)
-        .map((c: any) => ({ message: c.message, status: c.status, lastProbeTime: c.lastProbeTime })) || []
-}
-
-const openConsole = (namespace: string, name: string, status: any) => {
-    const isRunning = status.printableStatus as string === "Running"
+const openConsole = (vm: any) => {
+    const isRunning = vm.status.printableStatus as string === "Running"
     if (!isRunning) {
         return
     }
 
-    const url = `/console?namespace=${namespace}&name=${name}`
+    const url = `/console?namespace=${vm.metadata.namespace}&name=${vm.metadata.name}`
     const width = screen.width - 400
     const height = screen.height - 250
     const left = 0
     const top = 0
 
-    window.open(url, `${namespace}/${name}`, `toolbars=0, width=${width}, height=${height}, left=${left}, top=${top}`)
+    window.open(url, `${vm.metadata.namespace}/${vm.metadata.name}`, `toolbars=0, width=${width}, height=${height}, left=${left}, top=${top}`)
 }
 
 const statusEqual = (status: any, target: string) => {
     return status.printableStatus as string === target
 }
 
-const actionItemsFunc = (vm: CustomResourceDefinition, notification: NotificationInstance) => {
-    const namespace = vm.metadata?.namespace
-    const name = vm.metadata?.name
-    const status = jsonParse(vm?.status)
-
+const actionItemsFunc = (vm: any, notification: NotificationInstance) => {
     const items: MenuProps['items'] = [
         {
             key: 'power',
@@ -300,21 +222,21 @@ const actionItemsFunc = (vm: CustomResourceDefinition, notification: Notificatio
             children: [
                 {
                     key: 'start',
-                    onClick: () => manageVirtualMachinePowerState(namespace!, name!, VirtualMachinePowerStateRequest_PowerState.ON, notification),
+                    onClick: () => manageVirtualMachinePowerState(vm.metadata.namespace, vm.metadata.name, VirtualMachinePowerStateRequest_PowerState.ON, notification),
                     label: "启动",
-                    disabled: statusEqual(status, "Running")
+                    disabled: statusEqual(vm.status, "Running")
                 },
                 {
                     key: 'restart',
-                    onClick: () => manageVirtualMachinePowerState(namespace!, name!, VirtualMachinePowerStateRequest_PowerState.REBOOT, notification),
+                    onClick: () => manageVirtualMachinePowerState(vm.metadata.namespace, vm.metadata.name, VirtualMachinePowerStateRequest_PowerState.REBOOT, notification),
                     label: "重启",
-                    disabled: !statusEqual(status, "Running")
+                    disabled: !statusEqual(vm.status, "Running")
                 },
                 {
                     key: 'stop',
-                    onClick: () => manageVirtualMachinePowerState(namespace!, name!, VirtualMachinePowerStateRequest_PowerState.OFF, notification),
+                    onClick: () => manageVirtualMachinePowerState(vm.metadata.namespace, vm.metadata.name, VirtualMachinePowerStateRequest_PowerState.OFF, notification),
                     label: "关机",
-                    disabled: statusEqual(status, "Stopped")
+                    disabled: statusEqual(vm.status, "Stopped")
                 },
                 {
                     key: 'power-divider-1',
@@ -322,15 +244,15 @@ const actionItemsFunc = (vm: CustomResourceDefinition, notification: Notificatio
                 },
                 {
                     key: 'force-restart',
-                    onClick: () => manageVirtualMachinePowerState(namespace!, name!, VirtualMachinePowerStateRequest_PowerState.FORCE_REBOOT, notification),
+                    onClick: () => manageVirtualMachinePowerState(vm.metadata.namespace, vm.metadata.name, VirtualMachinePowerStateRequest_PowerState.FORCE_REBOOT, notification),
                     label: "强制重启",
-                    disabled: !statusEqual(status, "Running")
+                    disabled: !statusEqual(vm.status, "Running")
                 },
                 {
                     key: 'force-stop',
-                    onClick: () => manageVirtualMachinePowerState(namespace!, name!, VirtualMachinePowerStateRequest_PowerState.FORCE_OFF, notification),
+                    onClick: () => manageVirtualMachinePowerState(vm.metadata.namespace, vm.metadata.name, VirtualMachinePowerStateRequest_PowerState.FORCE_OFF, notification),
                     label: "强制关机",
-                    disabled: statusEqual(status, "Stopped")
+                    disabled: statusEqual(vm.status, "Stopped")
                 },
             ]
         },
@@ -341,8 +263,8 @@ const actionItemsFunc = (vm: CustomResourceDefinition, notification: Notificatio
         {
             key: 'console',
             label: '控制台',
-            onClick: () => openConsole(namespace!, name!, status),
-            disabled: !statusEqual(status, "Running")
+            onClick: () => openConsole(vm),
+            disabled: !statusEqual(vm.status, "Running")
         },
         {
             key: 'divider-2',
@@ -366,7 +288,7 @@ const actionItemsFunc = (vm: CustomResourceDefinition, notification: Notificatio
             onClick: () => {
                 Modal.confirm({
                     title: "删除虚拟机？",
-                    content: `即将删除 "${namespace}/${name}" 虚拟机，请确认。`,
+                    content: `即将删除 "${vm.metadata.namespace}/${vm.metadata.name}" 虚拟机，请确认。`,
                     okText: '确认删除',
                     okType: 'danger',
                     cancelText: '取消',
@@ -374,7 +296,7 @@ const actionItemsFunc = (vm: CustomResourceDefinition, notification: Notificatio
                         disabled: false,
                     },
                     onOk: async () => {
-                        await deleteVirtualMachine(namespace!, name!, notification)
+                        await clients.deleteResource(GroupVersionResourceEnum.VIRTUAL_MACHINE, vm.metadata.namespace, vm.metadata.name, { notification: notification })
                     }
                 })
             },

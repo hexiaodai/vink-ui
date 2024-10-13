@@ -19,6 +19,3 @@ spec:
     registry:
       url: ""
 `
-
-// url: docker://quay.io/kubevirt/cirros-container-disk-demo
-// url: docker://release.daocloud.io/virtnest/system-images/centos-7.9-x86_64:v1

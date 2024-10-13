@@ -1,13 +1,14 @@
 import { FooterToolbar, ProCard, ProForm, ProFormCascader, ProFormItem, ProFormText, ProFormTextArea } from '@ant-design/pro-components'
 import { App, InputNumber, Space } from 'antd'
 import { useEffect, useRef } from 'react'
-import { createDataVolume } from '@/resource-manager/datavolume'
 import { imageYaml } from './crd-template'
 import { useNavigate } from 'react-router-dom'
 import { IconFont } from '@/components/icon'
 import { instances as labels } from "@/apis/sdks/ts/label/labels.gen"
 import { useNamespace } from '@/common/context'
 import { classNames } from '@/utils/utils'
+import { clients } from '@/clients/clients'
+import { GroupVersionResourceEnum } from '@/apis/types/group_version'
 import type { ProFormInstance } from '@ant-design/pro-components'
 import * as yaml from 'js-yaml'
 import formStyles from "@/common/styles/form.module.less"
@@ -127,7 +128,7 @@ export default () => {
                 instance.metadata.labels[labels.VinkVirtualmachineOs.name] = fields.operatingSystem[0]
                 instance.metadata.labels[labels.VinkVirtualmachineVersion.name] = fields.operatingSystem[1]
 
-                await createDataVolume(instance, notification).then(() => {
+                await clients.createResource(GroupVersionResourceEnum.DATA_VOLUME, instance, { notification: notification }).then(() => {
                     navigate('/storage/images')
                 })
             }).

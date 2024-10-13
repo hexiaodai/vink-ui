@@ -1,14 +1,12 @@
 import { ProForm, ProFormItem, ProFormSelect, ProFormText } from '@ant-design/pro-components'
 import { App, Button, Drawer, Flex, Space } from 'antd'
 import { useEffect, useRef, useState } from 'react'
-import { fetchMultus } from '@/resource-manager/multus'
 import { CustomResourceDefinition } from '@/apis/apiextensions/v1alpha1/custom_resource_definition'
-import { fetchSubnets } from '@/resource-manager/subnet'
 import { jsonParse, parseSpec } from '@/utils/utils'
-import { fetchIPPools } from '@/resource-manager/ippool'
+import { clients } from '@/clients/clients'
+import { GroupVersionResourceEnum } from '@/apis/types/group_version'
 import type { ProFormInstance } from '@ant-design/pro-components'
 import React from 'react'
-import styles from './styles/network-drawer.module.less'
 import formStyles from "@/common/styles/form.module.less"
 
 interface NetworkProps {
@@ -36,7 +34,7 @@ const filterSubnets = (multus: CustomResourceDefinition[], subnets: CustomResour
     if (!provider || provider.length == 0) {
         return
     }
-    return subnets.filter(item => jsonParse(item.spec).provider === provider)
+    return subnets.filter(item => parseSpec(item).provider === provider)
 }
 
 const filterIPPools = (ippools: CustomResourceDefinition[], subnetName: string) => {
@@ -66,7 +64,7 @@ const generateNetworkConfig = (formRef: React.MutableRefObject<ProFormInstance |
 
 const getProvider = (multusCR: CustomResourceDefinition) => {
     const kubeovn = "kube-ovn"
-    const config = jsonParse(jsonParse(multusCR.spec).config)
+    const config = jsonParse(parseSpec(multusCR).config)
     if (config.type == kubeovn) {
         return config.provider
     }
@@ -102,9 +100,9 @@ export const NetworkDrawer: React.FC<NetworkProps> = ({ open, onCanel, onConfirm
 
         reset()
 
-        fetchMultus(setMultus, {}, notification)
-        fetchSubnets(setSubnets, {}, notification)
-        fetchIPPools(setIPPools, {}, notification)
+        clients.listResources(GroupVersionResourceEnum.MULTUS, setMultus, { notification: notification })
+        clients.listResources(GroupVersionResourceEnum.SUBNET, setSubnets, { notification: notification })
+        clients.listResources(GroupVersionResourceEnum.IPPOOL, setIPPools, { notification: notification })
     }, [open])
 
     const reset = () => {
@@ -115,7 +113,6 @@ export const NetworkDrawer: React.FC<NetworkProps> = ({ open, onCanel, onConfirm
 
     return (
         <Drawer
-            className={styles["network-drawer"]}
             title="添加网络"
             open={open}
             onClose={onCanel}
@@ -202,73 +199,67 @@ export const NetworkDrawer: React.FC<NetworkProps> = ({ open, onCanel, onConfirm
                 />
 
                 <ProFormItem label="IP 地址池">
-                    <Space direction='vertical' style={{ width: "100%" }}>
-                        {
-                            enableCustomIPPool &&
-                            <ProFormSelect
-                                name="ippool"
-                                placeholder="选择 IP 地址池"
-                                options={filteredIPPools.map((pool: CustomResourceDefinition) => ({
-                                    value: pool.metadata?.name,
-                                    label: pool.metadata?.name,
-                                }))}
-                            />
-                        }
-                        <Button
-                            type="dashed"
-                            disabled={filteredIPPools.length == 0}
-                            onClick={() => {
-                                formRef.current?.resetFields(["ippool"])
-                                setEnableCustomIPPool(!enableCustomIPPool)
-                            }}
-                        >
-                            {enableCustomIPPool ? "自动分配 IP 地址池" : "自定义 IP 地址池"}
-                        </Button>
-                    </Space>
+                    {
+                        enableCustomIPPool &&
+                        <ProFormSelect
+                            name="ippool"
+                            placeholder="选择 IP 地址池"
+                            options={filteredIPPools.map((pool: CustomResourceDefinition) => ({
+                                value: pool.metadata?.name,
+                                label: pool.metadata?.name,
+                            }))}
+                        />
+                    }
+                    <Button
+                        type="dashed"
+                        disabled={filteredIPPools.length == 0}
+                        onClick={() => {
+                            formRef.current?.resetFields(["ippool"])
+                            setEnableCustomIPPool(!enableCustomIPPool)
+                        }}
+                    >
+                        {enableCustomIPPool ? "自动分配 IP 地址池" : "自定义 IP 地址池"}
+                    </Button>
                 </ProFormItem>
 
                 <ProFormItem label="IP 地址">
-                    <Space direction='vertical' style={{ width: "100%" }}>
-                        {
-                            enableCustomIP &&
-                            <ProFormText
-                                name="ipAddress"
-                                placeholder={enableCustomIPPool ? "从 IP 地址池中选择一个 IP 地址" : "从子网中选择一个 IP 地址"}
-                            />
-                        }
-                        <Button
-                            type="dashed"
-                            disabled={filteredSubnets.length == 0}
-                            onClick={() => {
-                                formRef.current?.resetFields(["ipAddress"])
-                                setEnableCustomIP(!enableCustomIP)
-                            }}
-                        >
-                            {enableCustomIPPool ? "自动分配 IP 地址" : "自定义 IP 地址"}
-                        </Button>
-                    </Space>
+                    {
+                        enableCustomIP &&
+                        <ProFormText
+                            name="ipAddress"
+                            placeholder={enableCustomIPPool ? "从 IP 地址池中选择一个 IP 地址" : "从子网中选择一个 IP 地址"}
+                        />
+                    }
+                    <Button
+                        type="dashed"
+                        disabled={filteredSubnets.length == 0}
+                        onClick={() => {
+                            formRef.current?.resetFields(["ipAddress"])
+                            setEnableCustomIP(!enableCustomIP)
+                        }}
+                    >
+                        {enableCustomIP ? "自动分配 IP 地址" : "自定义 IP 地址"}
+                    </Button>
                 </ProFormItem>
 
                 <ProFormItem label="MAC 地址">
-                    <Space direction='vertical' style={{ width: "100%" }}>
-                        {
-                            enableCustomMAC &&
-                            <ProFormText
-                                name="macAddress"
-                                placeholder="输入 MAC 地址"
-                            />
-                        }
-                        <Button
-                            type="dashed"
-                            disabled={filteredSubnets.length == 0}
-                            onClick={() => {
-                                formRef.current?.resetFields(["macAddress"])
-                                setEnableCustomMAC(!enableCustomMAC)
-                            }}
-                        >
-                            {enableCustomMAC ? "自动分配 MAC 地址" : "自定义 MAC 地址"}
-                        </Button>
-                    </Space>
+                    {
+                        enableCustomMAC &&
+                        <ProFormText
+                            name="macAddress"
+                            placeholder="输入 MAC 地址"
+                        />
+                    }
+                    <Button
+                        type="dashed"
+                        disabled={filteredSubnets.length == 0}
+                        onClick={() => {
+                            formRef.current?.resetFields(["macAddress"])
+                            setEnableCustomMAC(!enableCustomMAC)
+                        }}
+                    >
+                        {enableCustomMAC ? "自动分配 MAC 地址" : "自定义 MAC 地址"}
+                    </Button>
                 </ProFormItem>
             </ProForm>
         </Drawer>

@@ -1,11 +1,12 @@
 import { ProColumns } from "@ant-design/pro-components"
-import { Badge, Dropdown, MenuProps, Modal } from "antd"
+import { Badge, Dropdown, Flex, MenuProps, Modal, Popover, Tag } from "antd"
 import { EllipsisOutlined } from '@ant-design/icons'
-import { formatTimestamp, jsonParse } from '@/utils/utils'
+import { formatTimestamp, jsonParse, parseSpec } from '@/utils/utils'
 import { NotificationInstance } from "antd/es/notification/interface"
 import { CustomResourceDefinition } from "@/apis/apiextensions/v1alpha1/custom_resource_definition"
-import { deleteSubnet } from "@/resource-manager/subnet"
 import { subnetStatus } from "@/utils/resource-status"
+import { GroupVersionResourceEnum } from "@/apis/types/group_version"
+import { clients } from "@/clients/clients"
 
 const columnsFunc = (actionRef: any, notification: NotificationInstance) => {
     const columns: ProColumns<CustomResourceDefinition>[] = [
@@ -38,6 +39,35 @@ const columnsFunc = (actionRef: any, notification: NotificationInstance) => {
             render: (_, subnet) => {
                 const spec = jsonParse(subnet.spec)
                 return spec.vpc
+            }
+        },
+        {
+            key: 'namespace',
+            title: '命名空间',
+            ellipsis: true,
+            render: (_, subnet) => {
+                const spec = parseSpec(subnet)
+                let ns = spec.namespaces
+                if (!ns || ns.length === 0) {
+                    return
+                }
+
+                const content = (
+                    <Flex wrap gap="4px 0" style={{ maxWidth: 250 }}>
+                        {ns.map((element: any, index: any) => (
+                            <Tag key={index} bordered={true}>
+                                {element}
+                            </Tag>
+                        ))}
+                    </Flex>
+                )
+
+                return (
+                    <Popover content={content}>
+                        <Tag bordered={true}>{ns[0]}</Tag>
+                        +{ns.length}
+                    </Popover>
+                )
             }
         },
         {
@@ -118,7 +148,7 @@ const columnsFunc = (actionRef: any, notification: NotificationInstance) => {
 }
 
 const actionItemsFunc = (m: CustomResourceDefinition, actionRef: any, notification: NotificationInstance) => {
-    const name = m.metadata?.name
+    const name = m.metadata?.name!
 
     const items: MenuProps['items'] = [
         {
@@ -147,7 +177,7 @@ const actionItemsFunc = (m: CustomResourceDefinition, actionRef: any, notificati
                         disabled: false,
                     },
                     onOk: async () => {
-                        await deleteSubnet(name!, notification).then(() => {
+                        await clients.deleteResource(GroupVersionResourceEnum.SUBNET, "", name, { notification: notification }).then(() => {
                             actionRef.current?.reload()
                         })
                     }

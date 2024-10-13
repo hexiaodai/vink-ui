@@ -1,9 +1,10 @@
 import { App } from 'antd'
 import { useNavigate } from 'react-router-dom'
 import { useNamespace } from '@/common/context'
-import { createMultusConfig } from '@/resource-manager/multus'
 import { multusYaml } from './crd-template'
 import { CreateCRDWithYaml } from '@/components/create-crd-with-yaml'
+import { clients } from '@/clients/clients'
+import { GroupVersionResourceEnum } from '@/apis/types/group_version'
 import * as yaml from 'js-yaml'
 
 export default () => {
@@ -20,7 +21,7 @@ export default () => {
             notification.error({ message: "Multus", description: errmsg })
             return
         }
-        await createMultusConfig(multusObject, notification).then(() => {
+        await clients.createResource(GroupVersionResourceEnum.MULTUS, multusObject, { notification: notification }).then(() => {
             navigate('/network/multus')
         })
     }

@@ -5,8 +5,9 @@ import { useEffect, useRef, useState } from 'react'
 import { namespaceName } from '@/utils/k8s'
 import { NavLink, Params } from 'react-router-dom'
 import { CustomResourceDefinition } from "@/apis/apiextensions/v1alpha1/custom_resource_definition"
-import { calcScroll, classNames, generateMessage } from '@/utils/utils'
-import { batchDeleteSubnets, fetchSubnets } from '@/resource-manager/subnet'
+import { calcScroll, classNames, dataSource, generateMessage } from '@/utils/utils'
+import { GroupVersionResourceEnum } from '@/apis/types/group_version'
+import { clients } from '@/clients/clients'
 import type { ActionType } from '@ant-design/pro-components'
 import tableStyles from '@/common/styles/table.module.less'
 import commonStyles from '@/common/styles/common.module.less'
@@ -18,12 +19,13 @@ export default () => {
     const { notification } = App.useApp()
 
     const [scroll, setScroll] = useState(150 * 11)
-    const [searchFilter, setSearchFilter] = useState<string>("name")
     const [selectedRows, setSelectedRows] = useState<CustomResourceDefinition[]>([])
 
     const actionRef = useRef<ActionType>()
 
-    const [multus, setMultus] = useState<CustomResourceDefinition[]>([])
+    const [subnets, setSubnets] = useState<Map<string, CustomResourceDefinition>>(new Map<string, CustomResourceDefinition>())
+
+    const watchSubnets = clients.createWatchResource(GroupVersionResourceEnum.SUBNET, setSubnets)
 
     const columns = columnsFunc(actionRef, notification)
 
@@ -66,7 +68,7 @@ export default () => {
                                     disabled: false,
                                 },
                                 onOk: async () => {
-                                    await batchDeleteSubnets(selectedRows, notification).then(() => {
+                                    await clients.batchDeleteResources(GroupVersionResourceEnum.SUBNET, selectedRows, { notification: notification }).then(() => {
                                         actionRef.current?.reload()
                                     })
                                 }
@@ -78,13 +80,16 @@ export default () => {
             columns={columns}
             actionRef={actionRef}
             loading={{ indicator: <LoadingOutlined /> }}
-            dataSource={multus}
+            dataSource={dataSource(subnets)}
             request={async (params) => {
                 ctrl.current?.abort()
                 ctrl.current = new AbortController()
 
-                const advancedParams = { searchFilter: searchFilter, params: params }
-                await fetchSubnets(setMultus, advancedParams, notification)
+                await watchSubnets({
+                    fieldSelector: (params.keyword && params.keyword.length > 0) ? `metadata.name=${params.keyword}` : undefined,
+                    notification: notification,
+                    abortCtrl: ctrl.current
+                })
                 return { success: true }
             }}
             columnsState={{
@@ -99,8 +104,8 @@ export default () => {
                 search: {
                     allowClear: true,
                     style: { width: 280 },
-                    addonBefore: <Select defaultValue="name" onChange={(value) => setSearchFilter(value)} options={[
-                        { value: 'name', label: '名称' },
+                    addonBefore: <Select defaultValue="metadata.name" options={[
+                        { value: 'metadata.name', label: '名称' }
                     ]} />
                 }
             }}

@@ -6,6 +6,17 @@ import (
 	jsonpb "github.com/golang/protobuf/jsonpb"
 )
 
+// MarshalJSON is a custom marshaler for CustomSelector
+func (this *CustomSelector) MarshalJSON() ([]byte, error) {
+	str, err := ListOptionsMarshaler.MarshalToString(this)
+	return []byte(str), err
+}
+
+// UnmarshalJSON is a custom unmarshaler for CustomSelector
+func (this *CustomSelector) UnmarshalJSON(b []byte) error {
+	return ListOptionsUnmarshaler.Unmarshal(bytes.NewReader(b), this)
+}
+
 // MarshalJSON is a custom marshaler for ListOptions
 func (this *ListOptions) MarshalJSON() ([]byte, error) {
 	str, err := ListOptionsMarshaler.MarshalToString(this)

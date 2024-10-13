@@ -1,4 +1,7 @@
-import React, { createContext, useContext, useState } from 'react'
+import React, { createContext, useContext, useEffect, useState } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
+
+const key = "namespace"
 
 const NamespaceContext = createContext<{
     namespace: string
@@ -14,7 +17,30 @@ export const useNamespace = () => {
 }
 
 export const NamespaceProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [namespace, setNamespace] = useState("")
+    const location = useLocation()
+    const navigate = useNavigate()
+
+    const params = new URLSearchParams(location.search)
+
+    const [namespace, setNamespace] = useState<string>(params.get(key) || "")
+
+    useEffect(() => {
+        if (namespace) {
+            params.set(key, namespace)
+        } else {
+            params.delete(key)
+        }
+        navigate({ search: params.toString() }, { replace: true })
+    }, [namespace, history, location.search])
+
+    // const [namespace, setNamespace] = useState(localStorage.getItem(key) || "")
+
+    // useEffect(() => {
+    //     if (!namespace) {
+    //         return
+    //     }
+    //     localStorage.setItem(key, namespace)
+    // }, [namespace])
 
     return (
         <NamespaceContext.Provider value={{ namespace, setNamespace }}>
