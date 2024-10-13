@@ -7,7 +7,8 @@ import { NavLink, Params } from 'react-router-dom'
 import { CustomResourceDefinition } from "@/apis/apiextensions/v1alpha1/custom_resource_definition"
 import { classNames, generateMessage } from '@/utils/utils'
 import { useNamespace } from '@/common/context'
-import { batchDeleteMultusConfig, fetchMultus } from '@/resource-manager/multus'
+import { clients } from '@/clients/clients'
+import { GroupVersionResourceEnum } from '@/apis/types/group_version'
 import type { ActionType } from '@ant-design/pro-components'
 import tableStyles from '@/common/styles/table.module.less'
 import commonStyles from '@/common/styles/common.module.less'
@@ -20,7 +21,6 @@ export default () => {
 
     const { namespace } = useNamespace()
 
-    const [searchFilter, setSearchFilter] = useState<string>("name")
     const [selectedRows, setSelectedRows] = useState<CustomResourceDefinition[]>([])
 
     const actionRef = useRef<ActionType>()
@@ -71,7 +71,7 @@ export default () => {
                                     disabled: false,
                                 },
                                 onOk: async () => {
-                                    await batchDeleteMultusConfig(selectedRows, notification).then(() => {
+                                    await clients.batchDeleteResources(GroupVersionResourceEnum.MULTUS, selectedRows, { notification: notification }).then(() => {
                                         actionRef.current?.reload()
                                     })
                                 }
@@ -88,8 +88,10 @@ export default () => {
                 ctrl.current?.abort()
                 ctrl.current = new AbortController()
 
-                const advancedParams = { namespace: namespace, searchFilter: searchFilter, params: params }
-                await fetchMultus(setMultus, advancedParams, notification)
+                await clients.listResources(GroupVersionResourceEnum.MULTUS, setMultus, {
+                    fieldSelector: (params.keyword && params.keyword.length > 0) ? `metadata.name=${params.keyword}` : undefined,
+                    notification: notification
+                })
                 return { success: true }
             }}
             columnsState={{
@@ -103,8 +105,8 @@ export default () => {
                 search: {
                     allowClear: true,
                     style: { width: 280 },
-                    addonBefore: <Select defaultValue="name" onChange={(value) => setSearchFilter(value)} options={[
-                        { value: 'name', label: '名称' },
+                    addonBefore: <Select defaultValue="metadata.name" options={[
+                        { value: 'metadata.name', label: '名称' },
                     ]} />
                 }
             }}

@@ -1,15 +1,16 @@
 import { PlusOutlined, LoadingOutlined } from '@ant-design/icons'
 import { ProTable } from '@ant-design/pro-components'
 import { App, Button, Modal, Select, Space } from 'antd'
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { namespaceName } from '@/utils/k8s'
 import { NavLink, Params } from 'react-router-dom'
 import { VirtualMachinePowerStateRequest_PowerState } from '@/apis/management/virtualmachine/v1alpha1/virtualmachine'
 import { CustomResourceDefinition } from "@/apis/apiextensions/v1alpha1/custom_resource_definition"
-import { ResourceUpdater } from '@/pages/compute/machine/list/resource-manager'
-import { batchDeleteVirtualMachines, batchManageVirtualMachinePowerState } from '@/resource-manager/virtualmachine'
+import { batchManageVirtualMachinePowerState } from "@/clients/virtualmachine"
 import { calcScroll, classNames, dataSource, generateMessage } from '@/utils/utils'
 import { useNamespace } from '@/common/context'
+import { GroupVersionResourceEnum } from '@/apis/types/group_version'
+import { clients } from '@/clients/clients'
 import type { ActionType } from '@ant-design/pro-components'
 import tableStyles from '@/common/styles/table.module.less'
 import commonStyles from '@/common/styles/common.module.less'
@@ -22,36 +23,16 @@ export default () => {
 
     const { namespace } = useNamespace()
 
-    const [searchFilter, setSearchFilter] = useState<string>("name")
     const [scroll, setScroll] = useState(150 * 11)
     const [selectedRows, setSelectedRows] = useState<CustomResourceDefinition[]>([])
 
     const actionRef = useRef<ActionType>()
 
-    const [virtualMachine, setVirtualMachine] = useState<Map<string, CustomResourceDefinition>>(new Map<string, CustomResourceDefinition>())
-    const [virtualMachineInstance, setVirtualMachineInstance] = useState<Map<string, CustomResourceDefinition>>(new Map<string, CustomResourceDefinition>())
-    const [rootDisk, setRootDisk] = useState<Map<string, CustomResourceDefinition>>(new Map<string, CustomResourceDefinition>())
-    const [node, setNode] = useState<Map<string, CustomResourceDefinition>>(new Map<string, CustomResourceDefinition>())
+    const [virtualMachineSummarys, setVirtualMachineSummarys] = useState<Map<string, CustomResourceDefinition>>(new Map<string, CustomResourceDefinition>())
 
-    const resource = useRef<ResourceUpdater>()
+    const watchVirtualMachineSummarys = clients.createWatchResource(GroupVersionResourceEnum.VIRTUAL_MACHINE_INSTANCE_SUMMARY, setVirtualMachineSummarys)
 
-    const columns = columnsFunc(virtualMachineInstance, rootDisk, node, notification)
-
-    useEffect(() => {
-        if (resource.current) return
-        resource.current = new ResourceUpdater(virtualMachine, setVirtualMachine, virtualMachineInstance, setVirtualMachineInstance, rootDisk, setRootDisk, node, setNode, notification)
-    }, [])
-
-    useEffect(() => {
-        actionRef.current?.reload()
-    }, [namespace])
-
-    useEffect(() => {
-        return () => {
-            console.log('Component is unmounting and aborting operation')
-            ctrl.current?.abort()
-        }
-    }, [])
+    const columns = columnsFunc(notification)
 
     return (
         <ProTable<CustomResourceDefinition, Params>
@@ -116,7 +97,7 @@ export default () => {
                                     disabled: false,
                                 },
                                 onOk: async () => {
-                                    await batchDeleteVirtualMachines(selectedRows, notification)
+                                    await clients.batchDeleteResources(GroupVersionResourceEnum.VIRTUAL_MACHINE, selectedRows, { notification: notification })
                                 }
                             })
                         }}>批量删除</a>
@@ -126,13 +107,17 @@ export default () => {
             columns={columns}
             actionRef={actionRef}
             loading={{ indicator: <LoadingOutlined /> }}
-            dataSource={dataSource(virtualMachine)}
+            dataSource={dataSource(virtualMachineSummarys)}
             request={async (params) => {
                 ctrl.current?.abort()
                 ctrl.current = new AbortController()
 
-                const advancedParams = { namespace: namespace, searchFilter: searchFilter, params: params }
-                await resource.current?.updateResource(advancedParams, ctrl.current)
+                await watchVirtualMachineSummarys({
+                    namespace: namespace,
+                    fieldSelector: (params.keyword && params.keyword.length > 0) ? `metadata.name=${params.keyword}` : undefined,
+                    notification: notification,
+                    abortCtrl: ctrl.current
+                })
                 return { success: true }
             }}
             columnsState={{
@@ -147,8 +132,8 @@ export default () => {
                 search: {
                     allowClear: true,
                     style: { width: 280 },
-                    addonBefore: <Select defaultValue="name" onChange={(value) => setSearchFilter(value)} options={[
-                        { value: 'name', label: '名称' },
+                    addonBefore: <Select defaultValue="metadata.name" options={[
+                        { value: 'metadata.name', label: '名称' },
                     ]} />
                 }
             }}

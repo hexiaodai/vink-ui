@@ -6,9 +6,10 @@ import { jsonParse, formatTimestamp, parseStatus, parseSpec } from '@/utils/util
 import { NotificationInstance } from "antd/es/notification/interface"
 import { CustomResourceDefinition } from "@/apis/apiextensions/v1alpha1/custom_resource_definition"
 import { dataVolumeStatusMap } from "@/utils/resource-status"
-import { deleteDataVolume } from '@/resource-manager/datavolume'
 import { instances as labels } from '@/apis/sdks/ts/label/labels.gen'
 import { instances as annotations } from "@/apis/sdks/ts/annotation/annotations.gen"
+import { clients } from "@/clients/clients"
+import { GroupVersionResourceEnum } from "@/apis/types/group_version"
 
 const columnsFunc = (notification: NotificationInstance) => {
     const columns: ProColumns<CustomResourceDefinition>[] = [
@@ -24,23 +25,8 @@ const columnsFunc = (notification: NotificationInstance) => {
             title: '状态',
             ellipsis: true,
             render: (_, dv) => {
-                // const binding = dv.metadata?.annotations[annotations.VinkVirtualmachineBinding.name]
                 const status = parseStatus(dv)
-                // let displayStatus = status.progress
-                // let badge = dataVolumeStatusMap[status.phase].badge
-
-                // if (status.phase === "Succeeded") {
-                //     displayStatus = binding && binding.length > 0 ? "使用中" : "空闲"
-                //     // displayStatus = "空闲"
-                //     // if (binding && binding.length > 0) {
-                //     //     displayStatus = "使用中"
-                //     //     badge = "warning"
-                //     // }
-                // } else if (parseFloat(status.progress) === 100) {
-                //     displayStatus = dataVolumeStatusMap[status.phase].text
-                // }
                 const displayStatus = parseFloat(status.progress) === 100 ? dataVolumeStatusMap[status.phase].text : status.progress
-                // return <Badge status={badge} text={displayStatus} />
                 return <Badge status={dataVolumeStatusMap[status.phase].badge} text={displayStatus} />
             }
         },
@@ -50,45 +36,13 @@ const columnsFunc = (notification: NotificationInstance) => {
             ellipsis: true,
             render: (_, dv) => {
                 const binding = dv.metadata?.annotations[annotations.VinkVirtualmachineBinding.name]
-                return binding && binding.length > 0 ? "使用中" : "空闲"
+                if (!binding) {
+                    return "空闲"
+                }
+                const parse = JSON.parse(binding)
+                return parse && parse.length > 0 ? "使用中" : "空闲"
             }
         },
-        // {
-        //     key: 'status',
-        //     title: '状态',
-        //     ellipsis: true,
-        //     render: (_, vm) => {
-        //         const status = jsonParse(vm.status)
-        //         const conditions = statusConditions(status)
-        //         const displayStatus = parseFloat(status.progress) === 100 ? status.phase : status.progress
-        //         let content: any
-        //         if (conditions.length > 0) {
-        //             content = (
-        //                 <List
-        //                     className={TableStyles["status-tips"]}
-        //                     size="small"
-        //                     dataSource={conditions}
-        //                     renderItem={(item: any, index: number) => {
-        //                         let probeTime: string = ""
-        //                         if (item.lastProbeTime?.length > 0) {
-        //                             probeTime = ` [${item.lastProbeTime}]`
-        //                         }
-        //                         return (
-        //                             <List.Item>
-        //                                 {index + 1}.{probeTime} {removeTrailingDot(item.message)}.
-        //                             </List.Item>
-        //                         )
-        //                     }}
-        //                 />
-        //             )
-        //         }
-        //         return (
-        //             <Popover content={content}>
-        //                 <Badge status={dataVolumeStatusMap[status.phase]} text={displayStatus} />
-        //             </Popover>
-        //         )
-        //     }
-        // },
         {
             key: 'type',
             title: '类型',
@@ -149,8 +103,8 @@ const columnsFunc = (notification: NotificationInstance) => {
 }
 
 const actionItemsFunc = (vm: CustomResourceDefinition, notification: NotificationInstance) => {
-    const namespace = vm.metadata?.namespace
-    const name = vm.metadata?.name
+    const namespace = vm.metadata?.namespace!
+    const name = vm.metadata?.name!
 
     const items: MenuProps['items'] = [
         {
@@ -179,7 +133,7 @@ const actionItemsFunc = (vm: CustomResourceDefinition, notification: Notificatio
                         disabled: false,
                     },
                     onOk: async () => {
-                        await deleteDataVolume(namespace!, name!, notification)
+                        await clients.deleteResource(GroupVersionResourceEnum.DATA_VOLUME, namespace, name, { notification: notification })
                     }
                 })
             },

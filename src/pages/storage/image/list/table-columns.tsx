@@ -2,11 +2,12 @@ import { ProColumns } from "@ant-design/pro-components"
 import { Dropdown, MenuProps, Modal, Badge } from "antd"
 import { formatMemory } from '@/utils/k8s'
 import { EllipsisOutlined } from '@ant-design/icons'
-import { jsonParse, formatTimestamp, parseStatus } from '@/utils/utils'
+import { formatTimestamp, parseStatus, parseSpec } from '@/utils/utils'
 import { NotificationInstance } from "antd/es/notification/interface"
 import { CustomResourceDefinition } from "@/apis/apiextensions/v1alpha1/custom_resource_definition"
 import { dataVolumeStatusMap } from "@/utils/resource-status"
-import { deleteDataVolume } from "@/resource-manager/datavolume"
+import { clients } from "@/clients/clients"
+import { GroupVersionResourceEnum } from "@/apis/types/group_version"
 import TableColumnOperatingSystem from "@/components/table-column/operating-system"
 
 const columnsFunc = (notification: NotificationInstance) => {
@@ -16,7 +17,7 @@ const columnsFunc = (notification: NotificationInstance) => {
             title: '名称',
             fixed: 'left',
             ellipsis: true,
-            render: (_, dv) => <>{dv.metadata?.name}</>
+            render: (_, dv) => dv.metadata?.name
         },
         {
             key: 'status',
@@ -28,42 +29,6 @@ const columnsFunc = (notification: NotificationInstance) => {
                 return <Badge status={dataVolumeStatusMap[status.phase].badge} text={displayStatus} />
             }
         },
-        // {
-        //     key: 'status',
-        //     title: '状态',
-        //     ellipsis: true,
-        //     render: (_, vm) => {
-        //         const status = jsonParse(vm.status)
-        //         const conditions = statusConditions(status)
-        //         const displayStatus = parseFloat(status.progress) === 100 ? status.phase : status.progress
-        //         let content: any
-        //         if (conditions.length > 0) {
-        //             content = (
-        //                 <List
-        //                     className={TableStyles["status-tips"]}
-        //                     size="small"
-        //                     dataSource={conditions}
-        //                     renderItem={(item: any, index: number) => {
-        //                         let probeTime: string = ""
-        //                         if (item.lastProbeTime?.length > 0) {
-        //                             probeTime = ` [${item.lastProbeTime}]`
-        //                         }
-        //                         return (
-        //                             <List.Item>
-        //                                 {index + 1}.{probeTime} {removeTrailingDot(item.message)}.
-        //                             </List.Item>
-        //                         )
-        //                     }}
-        //                 />
-        //             )
-        //         }
-        //         return (
-        //             <Popover content={content}>
-        //                 <Badge status={dataVolumeStatusMap[status.phase]} text={displayStatus} />
-        //             </Popover>
-        //         )
-        //     }
-        // },
         {
             key: 'operatingSystem',
             title: '操作系统',
@@ -77,7 +42,7 @@ const columnsFunc = (notification: NotificationInstance) => {
             key: 'capacity',
             ellipsis: true,
             render: (_, dv) => {
-                const spec = jsonParse(dv.spec)
+                const spec = parseSpec(dv)
                 const [value, uint] = formatMemory(spec.pvc?.resources?.requests?.storage)
                 return `${value} ${uint}`
             }
@@ -111,8 +76,8 @@ const columnsFunc = (notification: NotificationInstance) => {
 }
 
 const actionItemsFunc = (vm: CustomResourceDefinition, notification: NotificationInstance) => {
-    const namespace = vm.metadata?.namespace
-    const name = vm.metadata?.name
+    const namespace = vm.metadata?.namespace!
+    const name = vm.metadata?.name!
 
     const items: MenuProps['items'] = [
         {
@@ -141,7 +106,7 @@ const actionItemsFunc = (vm: CustomResourceDefinition, notification: Notificatio
                         disabled: false,
                     },
                     onOk: async () => {
-                        await deleteDataVolume(namespace!, name!, notification)
+                        await clients.deleteResource(GroupVersionResourceEnum.DATA_VOLUME, namespace, name, { notification: notification })
                     }
                 })
             },
@@ -149,12 +114,6 @@ const actionItemsFunc = (vm: CustomResourceDefinition, notification: Notificatio
         }
     ]
     return items
-}
-
-const statusConditions = (status: any) => {
-    return status.conditions
-        ?.filter((c: any) => c.message?.length > 0)
-        .map((c: any) => ({ message: c.message, status: c.status, lastProbeTime: c.lastProbeTime })) || []
 }
 
 export default columnsFunc

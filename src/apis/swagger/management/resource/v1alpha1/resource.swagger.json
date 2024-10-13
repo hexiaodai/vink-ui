@@ -87,7 +87,10 @@
         "MULTUS",
         "SUBNET",
         "VPC",
-        "IPPOOL"
+        "IPPOOL",
+        "STORAGE_CLASS",
+        "IPS",
+        "VIRTUAL_MACHINE_INSTANCE_SUMMARY"
       ],
       "default": "UNSPECIFIED"
     },

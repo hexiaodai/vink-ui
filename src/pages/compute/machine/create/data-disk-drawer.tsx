@@ -5,9 +5,11 @@ import { useEffect, useRef, useState } from 'react'
 import { namespaceName } from '@/utils/k8s'
 import { Params } from 'react-router-dom'
 import { CustomResourceDefinition } from "@/apis/apiextensions/v1alpha1/custom_resource_definition"
-import { fetchDataDisks } from '@/resource-manager/datavolume'
 import { dataDiskDrawerColumns } from './table-columns'
 import { instances as annotations } from "@/apis/sdks/ts/annotation/annotations.gen"
+import { instances as labels } from "@/apis/sdks/ts/label/labels.gen"
+import { clients } from '@/clients/clients'
+import { GroupVersionResourceEnum } from '@/apis/types/group_version'
 import type { ActionType } from '@ant-design/pro-components'
 import React from 'react'
 import tableStyles from '@/common/styles/table.module.less'
@@ -23,7 +25,6 @@ interface DataDiskDrawerProps {
 export const DataDiskDrawer: React.FC<DataDiskDrawerProps> = ({ open, current, onCanel, onConfirm }) => {
     const { notification } = App.useApp()
 
-    const [searchFilter, setSearchFilter] = useState<string>("name")
     const [selectedRows, setSelectedRows] = useState<CustomResourceDefinition[]>([])
 
     useEffect(() => {
@@ -62,19 +63,25 @@ export const DataDiskDrawer: React.FC<DataDiskDrawerProps> = ({ open, current, o
                     onChange: (_, selectedRows) => {
                         setSelectedRows(selectedRows)
                     },
-                    getCheckboxProps: (record) => ({
-                        disabled: record.metadata?.annotations[annotations.VinkVirtualmachineBinding.name]
-                            ? record.metadata.annotations[annotations.VinkVirtualmachineBinding.name].length > 0
-                            : undefined
-                    })
+                    getCheckboxProps: (dv) => {
+                        const binding = dv.metadata?.annotations[annotations.VinkVirtualmachineBinding.name]
+                        if (!binding) {
+                            return { disabled: false }
+                        }
+                        const parse = JSON.parse(binding)
+                        return { disabled: parse && parse.length > 0 }
+                    }
                 }}
                 columns={dataDiskDrawerColumns}
                 actionRef={actionRef}
                 loading={{ indicator: <LoadingOutlined /> }}
                 dataSource={dataDisks}
                 request={async (params) => {
-                    const advancedParams = { searchFilter: searchFilter, params: params }
-                    await fetchDataDisks(setDataDisks, advancedParams, notification)
+                    await clients.listResources(GroupVersionResourceEnum.DATA_VOLUME, setDataDisks, {
+                        labelSelector: `${labels.VinkDatavolumeType.name}=data`,
+                        fieldSelector: (params.keyword && params.keyword.length > 0) ? `metadata.name=${params.keyword}` : undefined,
+                        notification: notification
+                    })
                     return { success: true }
                 }}
                 rowKey={(vm) => namespaceName(vm.metadata)}
@@ -85,7 +92,7 @@ export const DataDiskDrawer: React.FC<DataDiskDrawerProps> = ({ open, current, o
                     search: {
                         allowClear: true,
                         style: { width: 280 },
-                        addonBefore: <Select defaultValue="metadata.name" onChange={(value) => setSearchFilter(value)} options={[
+                        addonBefore: <Select defaultValue="metadata.name" options={[
                             { value: 'metadata.name', label: '名称' }
                         ]} />
                     }

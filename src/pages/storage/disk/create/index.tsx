@@ -1,15 +1,20 @@
-import { FooterToolbar, ProCard, ProForm, ProFormItem, ProFormText, ProFormTextArea } from '@ant-design/pro-components'
-import { App, InputNumber, Space } from 'antd'
-import { useEffect, useRef } from 'react'
-import { createDataVolume } from '@/resource-manager/datavolume'
+import { FooterToolbar, ProCard, ProForm, ProFormItem, ProFormSelect, ProFormText, ProFormTextArea } from '@ant-design/pro-components'
+import { App, Button, InputNumber, Space } from 'antd'
+import { useEffect, useRef, useState } from 'react'
 import { diskYaml } from './crd-template'
 import { useNavigate } from 'react-router-dom'
 import { instances as labels } from "@/apis/sdks/ts/label/labels.gen"
 import { useNamespace } from '@/common/context'
 import { classNames } from '@/utils/utils'
+import { CustomResourceDefinition } from '@/apis/apiextensions/v1alpha1/custom_resource_definition'
+import { GroupVersionResourceEnum } from '@/apis/types/group_version'
+import { clients } from '@/clients/clients'
 import type { ProFormInstance } from '@ant-design/pro-components'
-import * as yaml from 'js-yaml'
 import formStyles from "@/common/styles/form.module.less"
+import * as yaml from 'js-yaml'
+
+const defaultAccessMode = "ReadWriteOnce"
+const defaultStorageClass = "local-path"
 
 export default () => {
     const { notification } = App.useApp()
@@ -20,11 +25,24 @@ export default () => {
 
     const navigate = useNavigate()
 
+    const [storageClass, setStorageClass] = useState<CustomResourceDefinition[]>([])
+    const [enableCustomStorageClass, setEnableCustomStorageClass] = useState(false)
+    const [enableCustomAccessMode, setEnableCustomAccessMode] = useState(false)
+
     useEffect(() => {
         formRef.current?.setFieldsValue({
             namespace: namespace
         })
     }, [namespace])
+
+    useEffect(() => {
+        if (!enableCustomStorageClass) {
+            return
+        }
+        clients.listResources(GroupVersionResourceEnum.STORAGE_CLASS, setStorageClass, {
+            notification: notification
+        })
+    }, [enableCustomStorageClass])
 
     const submit = async () => {
         formRef.current?.
@@ -37,9 +55,11 @@ export default () => {
                 instance.metadata.namespace = fields.namespace
                 instance.spec.pvc.resources.requests.storage = `${fields.dataDiskCapacity}Gi`
 
+                instance.spec.pvc.accessModes = [(fields.accessMode && fields.accessMode.length > 0) ? fields.accessMode : defaultAccessMode]
+                instance.spec.pvc.storageClassName = (fields.storageClass && fields.storageClass.length > 0) ? fields.storageClass : defaultStorageClass
                 instance.metadata.labels[labels.VinkDatavolumeType.name] = "data"
 
-                await createDataVolume(instance, notification).then(() => {
+                await clients.createResource(GroupVersionResourceEnum.DATA_VOLUME, instance, { notification: notification }).then(() => {
                     navigate('/storage/disks')
                 })
             }).
@@ -97,6 +117,7 @@ export default () => {
                             message: "名称只能包含小写字母、数字和连字符（-），且必须以字母开头和结尾，最大长度为 64 个字符。"
                         }]}
                     />
+
                     <ProFormItem
                         name="dataDiskCapacity"
                         label="数据盘容量"
@@ -115,6 +136,71 @@ export default () => {
                             parser={(value) => value?.replace(' Gi', '') as unknown as number}
                         />
                     </ProFormItem>
+
+                    <ProFormItem label="存储类">
+                        {
+                            enableCustomStorageClass &&
+                            <ProFormSelect
+                                width="lg"
+                                name="storageClass"
+                                placeholder="选择存储类"
+                                options={[
+                                    ...storageClass.map((ns: CustomResourceDefinition) => ({
+                                        value: ns.metadata?.name,
+                                        label: ns.metadata?.name
+                                    }))
+                                ]}
+                            />
+                        }
+                        <Button
+                            type="dashed"
+                            onClick={() => {
+                                formRef.current?.resetFields(["storageClass"])
+                                setEnableCustomStorageClass(!enableCustomStorageClass)
+                            }}
+                        >
+                            {enableCustomStorageClass ? "使用默认存储类" : "自定义存储类"}
+                        </Button>
+                    </ProFormItem>
+
+                    <ProFormItem label="访问模式">
+                        {
+                            enableCustomAccessMode &&
+                            <ProFormSelect
+                                width="lg"
+                                name="accessMode"
+                                placeholder="选择访问模式"
+                                options={[
+                                    {
+                                        value: "ReadWriteOnce",
+                                        label: "ReadWriteOnce"
+                                    },
+                                    {
+                                        value: "ReadOnlyMany",
+                                        label: "ReadOnlyMany"
+                                    },
+                                    {
+                                        value: "ReadWriteMany",
+                                        label: "ReadWriteMany"
+                                    },
+                                    {
+                                        value: "ReadWriteOncePod",
+                                        label: "ReadWriteOncePod"
+                                    }
+                                ]}
+                            />
+                        }
+                        <Button
+                            type="dashed"
+                            onClick={() => {
+                                formRef.current?.resetFields(["accessMode"])
+                                setEnableCustomAccessMode(!enableCustomAccessMode)
+                            }}
+                        >
+                            {enableCustomAccessMode ? "使用默认访问模式" : "自定义访问模式"}
+                        </Button>
+                    </ProFormItem>
+
                     <ProFormTextArea
                         width="lg"
                         name="description"

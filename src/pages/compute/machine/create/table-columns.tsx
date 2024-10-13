@@ -140,7 +140,11 @@ export const dataDiskDrawerColumns: ProColumns<CustomResourceDefinition>[] = [
         ellipsis: true,
         render: (_, dv) => {
             const binding = dv.metadata?.annotations[annotations.VinkVirtualmachineBinding.name]
-            return binding && binding.length > 0 ? "使用中" : "空闲"
+            if (!binding) {
+                return "空闲"
+            }
+            const parse = JSON.parse(binding)
+            return parse && parse.length > 0 ? "使用中" : "空闲"
         }
     },
     {

@@ -1,10 +1,11 @@
 import { ProColumns } from "@ant-design/pro-components"
-import { Dropdown, Flex, List, MenuProps, Modal, Popover, Tag } from "antd"
+import { Dropdown, Flex, MenuProps, Modal, Popover, Tag } from "antd"
 import { EllipsisOutlined } from '@ant-design/icons'
-import { formatTimestamp, jsonParse, parseStatus } from '@/utils/utils'
+import { formatTimestamp, parseSpec, parseStatus } from '@/utils/utils'
 import { NotificationInstance } from "antd/es/notification/interface"
 import { CustomResourceDefinition } from "@/apis/apiextensions/v1alpha1/custom_resource_definition"
-import { deleteVpc } from "@/resource-manager/vpc"
+import { clients } from "@/clients/clients"
+import { GroupVersionResourceEnum } from "@/apis/types/group_version"
 
 const columnsFunc = (actionRef: any, notification: NotificationInstance) => {
     const columns: ProColumns<CustomResourceDefinition>[] = [
@@ -20,8 +21,8 @@ const columnsFunc = (actionRef: any, notification: NotificationInstance) => {
             title: '命名空间',
             ellipsis: true,
             render: (_, vpc) => {
-                const status = parseStatus(vpc)
-                let ns = status.namespaces
+                const spec = parseSpec(vpc)
+                let ns = spec.namespaces
                 if (!ns || ns.length === 0) {
                     return
                 }
@@ -102,7 +103,7 @@ const columnsFunc = (actionRef: any, notification: NotificationInstance) => {
 }
 
 const actionItemsFunc = (m: CustomResourceDefinition, actionRef: any, notification: NotificationInstance) => {
-    const name = m.metadata?.name
+    const name = m.metadata?.name!
 
     const items: MenuProps['items'] = [
         {
@@ -131,7 +132,7 @@ const actionItemsFunc = (m: CustomResourceDefinition, actionRef: any, notificati
                         disabled: false,
                     },
                     onOk: async () => {
-                        await deleteVpc(name!, notification).then(() => {
+                        await clients.deleteResource(GroupVersionResourceEnum.VPC, "", name, { notification: notification }).then(() => {
                             actionRef.current?.reload()
                         })
                     }

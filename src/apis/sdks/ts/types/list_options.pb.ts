@@ -5,12 +5,17 @@
 */
 
 import * as VinkKubevmIoApisTypesNamespace_name from "./namespace_name.pb"
+export type CustomSelector = {
+  namespaceNames?: VinkKubevmIoApisTypesNamespace_name.NamespaceName[]
+  fieldSelector?: string[]
+}
+
 export type ListOptions = {
   labelSelector?: string
   fieldSelector?: string
   limit?: number
   continue?: string
-  namespaceNames?: VinkKubevmIoApisTypesNamespace_name.NamespaceName[]
   namespace?: string
   watch?: boolean
+  customSelector?: CustomSelector
 }

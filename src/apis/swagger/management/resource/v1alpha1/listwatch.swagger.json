@@ -45,6 +45,24 @@
         }
       }
     },
+    "typesCustomSelector": {
+      "type": "object",
+      "properties": {
+        "namespaceNames": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/typesNamespaceName"
+          }
+        },
+        "fieldSelector": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
     "typesGroupVersionResource": {
       "type": "object",
       "properties": {
@@ -72,7 +90,10 @@
         "MULTUS",
         "SUBNET",
         "VPC",
-        "IPPOOL"
+        "IPPOOL",
+        "STORAGE_CLASS",
+        "IPS",
+        "VIRTUAL_MACHINE_INSTANCE_SUMMARY"
       ],
       "default": "UNSPECIFIED"
     },
@@ -103,18 +124,15 @@
         "continue": {
           "type": "string"
         },
-        "namespaceNames": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "$ref": "#/definitions/typesNamespaceName"
-          }
-        },
         "namespace": {
-          "type": "string"
+          "type": "string",
+          "title": "repeated NamespaceName namespace_names = 5;\nrepeated string custom_field_selector = 6;"
         },
         "watch": {
           "type": "boolean"
+        },
+        "customSelector": {
+          "$ref": "#/definitions/typesCustomSelector"
         }
       }
     },

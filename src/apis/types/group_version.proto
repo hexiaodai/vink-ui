@@ -31,6 +31,9 @@ enum GroupVersionResourceEnum {
 	SUBNET = 7;
 	VPC = 8;
 	IPPOOL = 9;
+	STORAGE_CLASS = 10;
+	IPS = 11;
+	VIRTUAL_MACHINE_INSTANCE_SUMMARY = 12;
 }
 
 message GroupVersionResourceIdentifier {

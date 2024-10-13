@@ -9,6 +9,7 @@ spec:
     - metadata:
         name: ""
         labels: {}
+        annotations: {}
       spec:
         pvc:
           accessModes:

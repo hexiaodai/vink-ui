@@ -5,9 +5,11 @@ import { useEffect, useRef, useState } from 'react'
 import { namespaceName } from '@/utils/k8s'
 import { NavLink, Params } from 'react-router-dom'
 import { CustomResourceDefinition } from "@/apis/apiextensions/v1alpha1/custom_resource_definition"
-import { batchDeleteDataVolumes, createWatchDataDisks } from '@/resource-manager/datavolume'
 import { calcScroll, classNames, dataSource, generateMessage } from '@/utils/utils'
 import { useNamespace } from '@/common/context'
+import { clients } from '@/clients/clients'
+import { GroupVersionResourceEnum } from '@/apis/types/group_version'
+import { instances as labels } from "@/apis/sdks/ts/label/labels.gen"
 import type { ActionType } from '@ant-design/pro-components'
 import tableStyles from '@/common/styles/table.module.less'
 import commonStyles from '@/common/styles/common.module.less'
@@ -20,7 +22,6 @@ export default () => {
 
     const { namespace } = useNamespace()
 
-    const [searchFilter, setSearchFilter] = useState<string>("name")
     const [scroll, setScroll] = useState(150 * 9)
     const [selectedRows, setSelectedRows] = useState<CustomResourceDefinition[]>([])
 
@@ -28,7 +29,7 @@ export default () => {
 
     const [disk, setDisk] = useState<Map<string, CustomResourceDefinition>>(new Map<string, CustomResourceDefinition>())
 
-    const watchDataDisks = createWatchDataDisks(disk, setDisk, notification)
+    const watchDataDisks = clients.createWatchResource(GroupVersionResourceEnum.DATA_VOLUME, setDisk)
 
     const columns = columnsFunc(notification)
 
@@ -75,7 +76,7 @@ export default () => {
                                     disabled: false,
                                 },
                                 onOk: async () => {
-                                    await batchDeleteDataVolumes(selectedRows, notification)
+                                    await clients.batchDeleteResources(GroupVersionResourceEnum.DATA_VOLUME, selectedRows, { notification: notification })
                                 }
                             })
                         }}>批量删除</a>
@@ -90,8 +91,13 @@ export default () => {
                 ctrl.current?.abort()
                 ctrl.current = new AbortController()
 
-                const advancedParams = { namespace: namespace, searchFilter: searchFilter, params: params }
-                await watchDataDisks(advancedParams, ctrl.current)
+                await watchDataDisks({
+                    namespace: namespace,
+                    labelSelector: `${labels.VinkDatavolumeType.name}!=image`,
+                    fieldSelector: (params.keyword && params.keyword.length > 0) ? `metadata.name=${params.keyword}` : undefined,
+                    notification: notification,
+                    abortCtrl: ctrl.current
+                })
                 return { success: true }
             }}
             columnsState={{
@@ -106,9 +112,8 @@ export default () => {
                 search: {
                     allowClear: true,
                     style: { width: 280 },
-                    addonBefore: <Select defaultValue="name" onChange={(value) => setSearchFilter(value)} options={[
-                        { value: 'name', label: '名称' },
-                        { value: 'labels["vink.kubevm.io/datavolume.type"]', label: '类型' }
+                    addonBefore: <Select defaultValue="metadata.name" options={[
+                        { value: 'metadata.name', label: '名称' }
                     ]} />
                 }
             }}

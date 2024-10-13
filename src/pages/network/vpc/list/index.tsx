@@ -6,18 +6,19 @@ import { namespaceName } from '@/utils/k8s'
 import { NavLink, Params } from 'react-router-dom'
 import { CustomResourceDefinition } from "@/apis/apiextensions/v1alpha1/custom_resource_definition"
 import { classNames, generateMessage } from '@/utils/utils'
-import { batchDeleteVpcs, fetchVpcs } from '@/resource-manager/vpc'
+import { clients } from '@/clients/clients'
+import { GroupVersionResourceEnum } from '@/apis/types/group_version'
 import type { ActionType } from '@ant-design/pro-components'
 import tableStyles from '@/common/styles/table.module.less'
 import commonStyles from '@/common/styles/common.module.less'
 import columnsFunc from '@/pages/network/vpc/list/table-columns.tsx'
+
 
 export default () => {
     const ctrl = useRef<AbortController>()
 
     const { notification } = App.useApp()
 
-    const [searchFilter, setSearchFilter] = useState<string>("name")
     const [selectedRows, setSelectedRows] = useState<CustomResourceDefinition[]>([])
 
     const actionRef = useRef<ActionType>()
@@ -64,7 +65,7 @@ export default () => {
                                     disabled: false,
                                 },
                                 onOk: async () => {
-                                    await batchDeleteVpcs(selectedRows, notification).then(() => {
+                                    await clients.batchDeleteResources(GroupVersionResourceEnum.VPC, selectedRows, { notification: notification }).then(() => {
                                         actionRef.current?.reload()
                                     })
                                 }
@@ -81,8 +82,10 @@ export default () => {
                 ctrl.current?.abort()
                 ctrl.current = new AbortController()
 
-                const advancedParams = { searchFilter: searchFilter, params: params }
-                await fetchVpcs(setVpcs, advancedParams, notification)
+                await clients.listResources(GroupVersionResourceEnum.VPC, setVpcs, {
+                    fieldSelector: (params.keyword && params.keyword.length > 0) ? `metadata.name=${params.keyword}` : undefined,
+                    notification: notification
+                })
                 return { success: true }
             }}
             columnsState={{
@@ -96,8 +99,8 @@ export default () => {
                 search: {
                     allowClear: true,
                     style: { width: 280 },
-                    addonBefore: <Select defaultValue="name" onChange={(value) => setSearchFilter(value)} options={[
-                        { value: 'name', label: '名称' },
+                    addonBefore: <Select defaultValue="metadata.name" options={[
+                        { value: 'metadata.name', label: '名称' },
                     ]} />
                 }
             }}
