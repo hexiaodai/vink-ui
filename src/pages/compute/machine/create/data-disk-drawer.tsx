@@ -1,15 +1,14 @@
 import { LoadingOutlined } from '@ant-design/icons'
 import { ProTable } from '@ant-design/pro-components'
-import { App, Button, Drawer, Flex, Select, Space } from 'antd'
+import { Button, Drawer, Flex, Select, Space } from 'antd'
 import { useEffect, useRef, useState } from 'react'
 import { namespaceName } from '@/utils/k8s'
 import { Params } from 'react-router-dom'
-import { CustomResourceDefinition } from "@/apis/apiextensions/v1alpha1/custom_resource_definition"
 import { dataDiskDrawerColumns } from './table-columns'
 import { instances as annotations } from "@/apis/sdks/ts/annotation/annotations.gen"
 import { instances as labels } from "@/apis/sdks/ts/label/labels.gen"
-import { clients } from '@/clients/clients'
 import { GroupVersionResourceEnum } from '@/apis/types/group_version'
+import { ListWatchOptions, useListResources } from '@/hooks/use-resource'
 import type { ActionType } from '@ant-design/pro-components'
 import React from 'react'
 import tableStyles from '@/common/styles/table.module.less'
@@ -17,15 +16,13 @@ import tableStyles from '@/common/styles/table.module.less'
 interface DataDiskDrawerProps {
     open?: boolean
     namespace?: string
-    current?: CustomResourceDefinition[]
+    current?: any[]
     onCanel?: () => void
-    onConfirm?: (dataDisks: CustomResourceDefinition[]) => void
+    onConfirm?: (dataDisks: any[]) => void
 }
 
 export const DataDiskDrawer: React.FC<DataDiskDrawerProps> = ({ open, current, onCanel, onConfirm }) => {
-    const { notification } = App.useApp()
-
-    const [selectedRows, setSelectedRows] = useState<CustomResourceDefinition[]>([])
+    const [selectedRows, setSelectedRows] = useState<any[]>([])
 
     useEffect(() => {
         setSelectedRows(current || [])
@@ -33,7 +30,10 @@ export const DataDiskDrawer: React.FC<DataDiskDrawerProps> = ({ open, current, o
 
     const actionRef = useRef<ActionType>()
 
-    const [dataDisks, setDataDisks] = useState<CustomResourceDefinition[]>([])
+    const [opts, setOpts] = useState<ListWatchOptions>({ labelSelector: `${labels.VinkDatavolumeType.name}=data` })
+
+    const { resources: dataDisks } = useListResources(GroupVersionResourceEnum.DATA_VOLUME, opts)
+
 
     return (
         <Drawer
@@ -56,7 +56,7 @@ export const DataDiskDrawer: React.FC<DataDiskDrawerProps> = ({ open, current, o
                 </Flex>
             }
         >
-            <ProTable<CustomResourceDefinition, Params>
+            <ProTable<any, Params>
                 className={tableStyles["table-padding"]}
                 rowSelection={{
                     selectedRowKeys: selectedRows.map(dv => namespaceName(dv.metadata)),
@@ -77,10 +77,9 @@ export const DataDiskDrawer: React.FC<DataDiskDrawerProps> = ({ open, current, o
                 loading={{ indicator: <LoadingOutlined /> }}
                 dataSource={dataDisks}
                 request={async (params) => {
-                    await clients.listResources(GroupVersionResourceEnum.DATA_VOLUME, setDataDisks, {
+                    setOpts({
                         labelSelector: `${labels.VinkDatavolumeType.name}=data`,
-                        fieldSelector: (params.keyword && params.keyword.length > 0) ? `metadata.name=${params.keyword}` : undefined,
-                        notification: notification
+                        fieldSelector: (params.keyword && params.keyword.length > 0) ? `metadata.name=${params.keyword}` : undefined
                     })
                     return { success: true }
                 }}

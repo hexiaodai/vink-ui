@@ -110,6 +110,9 @@ export default () => {
 
     useEffect(() => {
         formRef.current?.setFieldValue("namespace", namespace)
+        if (namespace) {
+            formRef.current?.validateFields(["namespace"])
+        }
     }, [namespace])
 
     const submit = async () => {
@@ -133,7 +136,7 @@ export default () => {
                 })
             }).
             catch((err: any) => {
-                const errorMessage = err.errorFields?.map((field: any, idx: number) => `${idx + 1}. ${field.errors}`).join('<br />') || `表单校验失败: ${err}`
+                const errorMessage = err.errorFields?.map((field: any, idx: number) => `${idx + 1}. ${field.errors}`).join('<br />') || err
                 notification.error({
                     message: "表单错误",
                     description: (
@@ -166,13 +169,13 @@ export default () => {
                         width="lg"
                         name="namespace"
                         label="命名空间"
-                        placeholder="请选择命名空间"
+                        placeholder="选择命名空间"
                         initialValue={namespace}
                         disabled
                         rules={[{
                             required: true,
                             pattern: /^[a-z]([-a-z0-9]{0,61}[a-z0-9])?$/,
-                            message: "名称只能包含小写字母、数字和连字符（-），且必须以字母开头和结尾，最大长度为 64 个字符。"
+                            message: "命名空间仅含小写字母、数字、连字符（-），且以字母开头和结尾，最长 64 字符"
                         }]}
                     />
                     <ProFormText
@@ -183,14 +186,14 @@ export default () => {
                         rules={[{
                             required: true,
                             pattern: /^[a-z]([-a-z0-9]{0,61}[a-z0-9])?$/,
-                            message: "名称只能包含小写字母、数字和连字符（-），且必须以字母开头和结尾，最大长度为 64 个字符。"
+                            message: "名称仅含小写字母、数字、连字符（-），且以字母开头和结尾，最长 64 字符"
                         }]}
                     />
                     <ProFormTextArea
                         width="lg"
                         name="description"
                         label="简介"
-                        placeholder="输入虚拟机的简介，用于描述系统镜像的用途。"
+                        placeholder="输入虚拟机的简介"
                         fieldProps={{ rows: 2 }}
                     />
                 </ProCard>
@@ -200,10 +203,11 @@ export default () => {
                         name="operatingSystem"
                         label="操作系统"
                         width="lg"
+                        placeholder="选择操作系统"
                         fieldProps={{ options: options }}
                         rules={[{
                             required: true,
-                            message: "选择操作系统。"
+                            message: "选择操作系统"
                         }]}
                     />
                     <ProFormItem
@@ -241,7 +245,7 @@ export default () => {
                         rules={[{
                             required: true,
                             pattern: /^(https?:\/\/|s3:\/\/|docker:\/\/)/,
-                            message: "仅支持 http(s)、s3、docker。"
+                            message: "仅支持 http(s)、s3、docker"
                         }]}
                     />
                 </ProCard>

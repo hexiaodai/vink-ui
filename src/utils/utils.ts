@@ -1,6 +1,6 @@
-import { CustomResourceDefinition } from "@/apis/apiextensions/v1alpha1/custom_resource_definition"
+// import { CustomResourceDefinition } from "@/apis/apiextensions/v1alpha1/custom_resource_definition"
 import { ColumnsState } from "@ant-design/pro-components"
-import { formatMemory, namespaceName } from "./k8s"
+import { formatMemory, namespaceName, namespaceNameKey } from "./k8s"
 import { ListOptions } from "@/apis/types/list_options"
 
 /**
@@ -18,22 +18,27 @@ export function jsonParse(str?: string) {
     return result || {}
 }
 
-export function parseSpec(crd: CustomResourceDefinition) {
-    return jsonParse(crd.spec)
-}
+// export function parseSpec(crd: CustomResourceDefinition) {
+//     return jsonParse(crd.spec)
+// }
 
-export function parseStatus(crd: CustomResourceDefinition) {
-    return jsonParse(crd.status)
-}
+// export function parseStatus(crd: CustomResourceDefinition) {
+//     return jsonParse(crd.status)
+// }
 
 /**
- * Converts a bigint timestamp to a string representation in "YYYY-MM-DD HH:mm:ss" format.
- * @param timestamp - The bigint timestamp (assumed to be in milliseconds).
+ * Converts a timestamp (bigint or ISO string) to a string representation in "YYYY-MM-DD HH:mm:ss" format.
+ * @param timestamp - The bigint timestamp (assumed to be in milliseconds) or an ISO string.
  * @returns The string representation of the date and time in "YYYY-MM-DD HH:mm:ss" format.
  */
-export function formatTimestamp(timestamp?: bigint): string {
-    // Convert bigint to number
-    const date = new Date(Number(timestamp) * 1e3)
+export function formatTimestamp(timestamp?: bigint | string): string {
+    let date: Date;
+
+    if (typeof timestamp === 'string') {
+        date = new Date(timestamp) // 处理 ISO 字符串
+    } else {
+        date = new Date(Number(timestamp) * 1e3) // 处理 bigint
+    }
 
     // Extract date components
     const year = date.getFullYear()
@@ -74,7 +79,7 @@ export const calcScroll = (obj: Record<string, ColumnsState>) => {
     return count * 150
 }
 
-export const dataSource = (data: Map<string, CustomResourceDefinition>): CustomResourceDefinition[] | undefined => {
+export const dataSource = (data: Map<string, any>): any[] | undefined => {
     let items = Array.from(data.values())
     if (items.length > 0) {
         return items
@@ -82,10 +87,10 @@ export const dataSource = (data: Map<string, CustomResourceDefinition>): CustomR
     return undefined
 }
 
-export const generateMessage = (crds: CustomResourceDefinition[], successMessage: string, multipleMessage: string) => {
+export const generateMessage = (crds: any[], successMessage: string, multipleMessage: string) => {
     const names: string[] = []
     crds.forEach(crd => {
-        names.push(namespaceName(crd.metadata))
+        names.push(namespaceNameKey(crd))
     })
 
     const displayedNames = names.slice(0, 3).join("、")
@@ -112,8 +117,81 @@ export const generateMessage = (crds: CustomResourceDefinition[], successMessage
 //     }
 // }
 
-export const capacity = (rootDisk: CustomResourceDefinition) => {
-    const spec = jsonParse(rootDisk.spec)
-    const [value, uint] = formatMemory(spec.pvc?.resources?.requests?.storage)
+// export const capacity = (rootDisk: CustomResourceDefinition) => {
+//     const spec = jsonParse(rootDisk.spec)
+//     const [value, uint] = formatMemory(spec.pvc?.resources?.requests?.storage)
+//     return `${value} ${uint}`
+// }
+
+// export const capacity = (rootDisk: any) => {
+//     const spec = jsonParse(rootDisk.spec)
+//     const [value, uint] = formatMemory(spec.pvc.resources.requests.storage)
+//     return `${value} ${uint}`
+// }
+
+export const capacity = (rootDisk: any) => {
+    const [value, uint] = formatMemory(rootDisk.spec.pvc.resources.requests.storage)
     return `${value} ${uint}`
+}
+
+export const openConsole = (vm: any) => {
+    const isRunning = vm.status.printableStatus as string === "Running"
+    if (!isRunning) {
+        return
+    }
+
+    const url = `/console?namespace=${vm.metadata.namespace}&name=${vm.metadata.name}`
+    const width = screen.width - 400
+    const height = screen.height - 250
+    const left = 0
+    const top = 0
+
+    window.open(url, `${vm.metadata.namespace}/${vm.metadata.name}`, `toolbars=0, width=${width}, height=${height}, left=${left}, top=${top}`)
+}
+
+export const getNamespaceName = (params: URLSearchParams) => {
+    return { namespace: params.get("namespace") || "", name: params.get("name") || "" }
+}
+
+export const updateNestedValue = (keypath: string[], newInfo: any, oriInfo: any, removeEmptyString: boolean = false) => {
+    const value = keypath.reduce((acc, key) => acc && acc[key], newInfo)
+    keypath.reduce((acc, key, index) => {
+        if (index === keypath.length - 1) {
+            if (removeEmptyString && (value === "" || value === null || value === undefined)) {
+                delete acc[key]
+            } else {
+                acc[key] = value
+            }
+        } else {
+            if (acc[key] === undefined || acc[key] === null) {
+                acc[key] = {}
+            }
+        }
+        return acc[key]
+    }, oriInfo)
+}
+
+export const generateKubeovnNetworkAnnon = (multusCR: any, name: string) => {
+    const md = multusCR.metadata
+    const prefix = `${md.name}.${md.namespace}.ovn.kubernetes.io`
+    return `${prefix}/${name}`
+}
+
+
+export const getProvider = (multusCR: any) => {
+    const kubeovn = "kube-ovn"
+    const config = JSON.parse(multusCR.spec.config)
+    if (config.type == kubeovn) {
+        return config.provider
+    }
+    if (!config.plugins) {
+        return
+    }
+    for (let i = 0; i < config.plugins.length; i++) {
+        const plugin = config.plugins[i]
+        if (plugin.type == kubeovn) {
+            return plugin.provider
+        }
+    }
+    return
 }

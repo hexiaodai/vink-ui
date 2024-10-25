@@ -1,13 +1,14 @@
 import { ProForm, ProFormItem, ProFormSelect, ProFormText } from '@ant-design/pro-components'
 import { App, Button, Drawer, Flex, Space } from 'antd'
 import { useEffect, useRef, useState } from 'react'
-import { CustomResourceDefinition } from '@/apis/apiextensions/v1alpha1/custom_resource_definition'
-import { jsonParse, parseSpec } from '@/utils/utils'
 import { clients } from '@/clients/clients'
 import { GroupVersionResourceEnum } from '@/apis/types/group_version'
+import { PlusOutlined } from '@ant-design/icons'
+import { namespaceNameKey } from '@/utils/k8s'
 import type { ProFormInstance } from '@ant-design/pro-components'
 import React from 'react'
 import formStyles from "@/common/styles/form.module.less"
+import { getProvider } from '@/utils/utils'
 
 interface NetworkProps {
     open: boolean
@@ -17,67 +18,12 @@ interface NetworkProps {
 }
 
 export interface NetworkConfig {
-    networkMode: string
-    multusCR: CustomResourceDefinition
-    subnet: CustomResourceDefinition
-    ippool?: CustomResourceDefinition
+    interface: string
+    multusCR: any
+    subnet: any
+    ippool?: any
     ipAddress?: string
     macAddress?: string
-}
-
-const filterSubnets = (multus: CustomResourceDefinition[], subnets: CustomResourceDefinition[], multusCRName: string) => {
-    const multusCR = multus.find(item => item.metadata?.name === multusCRName)
-    if (!multusCR) {
-        return
-    }
-    const provider = getProvider(multusCR)
-    if (!provider || provider.length == 0) {
-        return
-    }
-    return subnets.filter(item => parseSpec(item).provider === provider)
-}
-
-const filterIPPools = (ippools: CustomResourceDefinition[], subnetName: string) => {
-    return ippools.filter(item => {
-        return parseSpec(item).subnet == subnetName
-    })
-}
-
-const generateNetworkConfig = (formRef: React.MutableRefObject<ProFormInstance | undefined>, multus: CustomResourceDefinition[], subnets: CustomResourceDefinition[], ippools: CustomResourceDefinition[]) => {
-    const multusCR = multus.find(item => item.metadata?.name === formRef.current?.getFieldValue("multusCR"))
-    if (!multusCR) {
-        return
-    }
-    const subnet = subnets.find(item => item.metadata?.name === formRef.current?.getFieldValue("subnet"))
-    if (!subnet) {
-        return
-    }
-    return {
-        networkMode: formRef.current?.getFieldValue("networkMode"),
-        multusCR: multusCR,
-        subnet: subnet,
-        ippool: ippools.find(item => item.metadata?.name === formRef.current?.getFieldValue("ippool")),
-        ipAddress: formRef.current?.getFieldValue("ipAddress"),
-        macAddress: formRef.current?.getFieldValue("macAddress")
-    }
-}
-
-const getProvider = (multusCR: CustomResourceDefinition) => {
-    const kubeovn = "kube-ovn"
-    const config = jsonParse(parseSpec(multusCR).config)
-    if (config.type == kubeovn) {
-        return config.provider
-    }
-    if (!config.plugins) {
-        return
-    }
-    for (let i = 0; i < config.plugins.length; i++) {
-        const plugin = config.plugins[i]
-        if (plugin.type == kubeovn) {
-            return plugin.provider
-        }
-    }
-    return
 }
 
 export const NetworkDrawer: React.FC<NetworkProps> = ({ open, onCanel, onConfirm }) => {
@@ -85,30 +31,45 @@ export const NetworkDrawer: React.FC<NetworkProps> = ({ open, onCanel, onConfirm
 
     const formRef = useRef<ProFormInstance>()
 
-    const [enableCustomIP, setEnableCustomIP] = useState(false)
-    const [enableCustomMAC, setEnableCustomMAC] = useState(false)
-    const [enableCustomIPPool, setEnableCustomIPPool] = useState(false)
+    const [enabled, setEnabled] = useState<{ ip: boolean, mac: boolean, ippool: boolean }>({ ip: false, mac: false, ippool: false })
 
-    const [multus, setMultus] = useState<CustomResourceDefinition[]>([])
-    const [subnets, setSubnets] = useState<CustomResourceDefinition[]>([])
-    const [ippools, setIPPools] = useState<CustomResourceDefinition[]>([])
-    const [filteredSubnets, setFilteredSubnets] = useState<CustomResourceDefinition[]>([])
-    const [filteredIPPools, setFilteredIPPools] = useState<CustomResourceDefinition[]>([])
+    const [multus, setMultus] = useState<any[]>([])
+    const [subnets, setSubnets] = useState<any[]>([])
+    const [ippools, setIPPools] = useState<any[]>([])
+
+    const [selected, setSelected] = useState<{ multus: any, subnet: any, ippool: any }>({ multus: null, subnet: null, ippool: null })
 
     useEffect(() => {
         if (!open) return
-
         reset()
-
-        clients.listResources(GroupVersionResourceEnum.MULTUS, setMultus, { notification: notification })
-        clients.listResources(GroupVersionResourceEnum.SUBNET, setSubnets, { notification: notification })
-        clients.listResources(GroupVersionResourceEnum.IPPOOL, setIPPools, { notification: notification })
     }, [open])
 
     const reset = () => {
         formRef.current?.resetFields()
-        setFilteredSubnets([])
-        setFilteredIPPools([])
+        setSelected({ multus: null, subnet: null, ippool: null })
+        setEnabled({ ip: false, mac: false, ippool: false })
+
+        resetMultus()
+        resetSubnet()
+        resetIPPool()
+    }
+
+    const resetMultus = () => {
+        setMultus([])
+        formRef.current?.resetFields(["multusCR"])
+        setSelected((prevState) => ({ ...prevState, multus: null }))
+    }
+
+    const resetSubnet = () => {
+        setSubnets([])
+        formRef.current?.resetFields(["subnet"])
+        setSelected((prevState) => ({ ...prevState, subnet: null }))
+    }
+
+    const resetIPPool = () => {
+        setIPPools([])
+        formRef.current?.resetFields(["ippool"])
+        setSelected((prevState) => ({ ...prevState, ippool: null }))
     }
 
     return (
@@ -122,11 +83,17 @@ export const NetworkDrawer: React.FC<NetworkProps> = ({ open, onCanel, onConfirm
                 <Flex justify="space-between" align="flex-start">
                     <Space>
                         <Button onClick={() => {
-                            const cfg = generateNetworkConfig(formRef, multus, subnets, ippools)
-                            if (!cfg) {
+                            if (!selected.multus || !selected.subnet) {
                                 return
                             }
-                            onConfirm(cfg)
+                            onConfirm({
+                                interface: formRef.current?.getFieldValue("interface"),
+                                ipAddress: formRef.current?.getFieldValue("ipAddress"),
+                                macAddress: formRef.current?.getFieldValue("macAddress"),
+                                multusCR: selected.multus,
+                                subnet: selected.subnet,
+                                ippool: selected.ippool
+                            })
                         }
                         } type="primary">确定</Button>
                         <Button onClick={onCanel}>取消</Button>
@@ -146,9 +113,9 @@ export const NetworkDrawer: React.FC<NetworkProps> = ({ open, onCanel, onConfirm
                 submitter={false}
             >
                 <ProFormSelect
-                    label="网络模式"
-                    name="networkMode"
-                    placeholder="选择网络模式"
+                    label="Interface"
+                    name="interface"
+                    placeholder="选择网络接口"
                     initialValue={"bridge"}
                     fieldProps={{ allowClear: false, showSearch: true }}
                     options={[
@@ -159,21 +126,37 @@ export const NetworkDrawer: React.FC<NetworkProps> = ({ open, onCanel, onConfirm
                     ]}
                     rules={[{
                         required: true,
-                        message: "选择网络模式。"
+                        message: "选择网络接口。"
                     }]}
                 />
                 <ProFormSelect
                     label="Multus CR"
                     name="multusCR"
                     placeholder="选择 Multus CR"
-                    fieldProps={{ allowClear: false, showSearch: true }}
+                    fieldProps={{
+                        allowClear: false,
+                        showSearch: true,
+                        onDropdownVisibleChange: async (open) => {
+                            if (!open) {
+                                return
+                            }
+                            try {
+                                const items = await clients.fetchResources(GroupVersionResourceEnum.MULTUS)
+                                setMultus(items)
+                            } catch (err: any) {
+                                notification.error({ message: err })
+                            }
+                        }
+                    }}
                     onChange={(value: string) => {
-                        formRef.current?.resetFields(["subnet", "ippool"])
-                        setFilteredIPPools([])
-                        setFilteredSubnets(filterSubnets(multus, subnets, value) || [])
+                        const multusCR = multus.find(item => namespaceNameKey(item) === value)
+                        setSelected((prevState) => ({ ...prevState, multus: multusCR }))
+
+                        resetSubnet()
+                        resetIPPool()
                     }}
                     options={
-                        multus.map((m: CustomResourceDefinition) => ({ value: m.metadata?.name, label: m.metadata?.name }))
+                        multus.map((m: any) => ({ value: namespaceNameKey(m), label: namespaceNameKey(m) }))
                     }
                     rules={[{
                         required: true,
@@ -184,13 +167,36 @@ export const NetworkDrawer: React.FC<NetworkProps> = ({ open, onCanel, onConfirm
                     label="子网"
                     name="subnet"
                     placeholder="选择子网"
-                    fieldProps={{ allowClear: false, showSearch: true }}
+                    fieldProps={{
+                        allowClear: false,
+                        showSearch: true,
+                        onDropdownVisibleChange: async (open) => {
+                            const multusCR = selected.multus
+                            if (!open || !multusCR) {
+                                return
+                            }
+                            const provider = getProvider(multusCR)
+                            if (!provider) {
+                                return
+                            }
+                            try {
+                                const items = await clients.fetchResources(GroupVersionResourceEnum.SUBNET, {
+                                    customFieldSelector: [`spec.provider=${provider}`]
+                                })
+                                setSubnets(items)
+                            } catch (err: any) {
+                                notification.error({ message: err })
+                            }
+                        }
+                    }}
                     onChange={(value: string) => {
-                        formRef.current?.resetFields(["ippool"])
-                        setFilteredIPPools(filterIPPools(ippools, value))
+                        const subnet = subnets.find(item => item.metadata.name === value)
+                        setSelected((prevState) => ({ ...prevState, subnet: subnet }))
+
+                        resetIPPool()
                     }}
                     options={
-                        filteredSubnets.map((s: CustomResourceDefinition) => ({ value: s.metadata?.name, label: s.metadata?.name }))
+                        subnets.map((s: any) => ({ value: s.metadata.name, label: s.metadata.name }))
                     }
                     rules={[{
                         required: true,
@@ -200,65 +206,90 @@ export const NetworkDrawer: React.FC<NetworkProps> = ({ open, onCanel, onConfirm
 
                 <ProFormItem label="IP 地址池">
                     {
-                        enableCustomIPPool &&
+                        enabled.ippool &&
                         <ProFormSelect
                             name="ippool"
                             placeholder="选择 IP 地址池"
-                            options={filteredIPPools.map((pool: CustomResourceDefinition) => ({
-                                value: pool.metadata?.name,
-                                label: pool.metadata?.name,
-                            }))}
+                            fieldProps={{
+                                allowClear: false,
+                                showSearch: true,
+                                onDropdownVisibleChange: async (open) => {
+                                    const subnet = selected.subnet
+                                    if (!open || !subnet) {
+                                        return
+                                    }
+                                    try {
+                                        const items = await clients.fetchResources(GroupVersionResourceEnum.IPPOOL, {
+                                            customFieldSelector: [`spec.subnet=${subnet.metadata.name}`]
+                                        })
+                                        setIPPools(items)
+                                    } catch (err: any) {
+                                        notification.error({ message: err })
+                                    }
+                                }
+                            }}
+                            onChange={(value: string) => {
+                                const ippool = ippools.find(item => namespaceNameKey(item) === value)
+                                setSelected((prevState) => ({ ...prevState, ippool: ippool }))
+                            }}
+                            options={
+                                ippools.map((p: any) => ({ value: p.metadata?.name, label: p.metadata?.name }))
+                            }
                         />
                     }
                     <Button
-                        type="dashed"
-                        disabled={filteredIPPools.length == 0}
+                        color="default"
+                        disabled={ippools.length == 0 && !enabled.ippool}
+                        icon={<PlusOutlined />}
+                        variant="text"
                         onClick={() => {
-                            formRef.current?.resetFields(["ippool"])
-                            setEnableCustomIPPool(!enableCustomIPPool)
+                            setEnabled((prevState) => ({ ...prevState, ippool: !prevState.ippool }))
                         }}
                     >
-                        {enableCustomIPPool ? "自动分配 IP 地址池" : "自定义 IP 地址池"}
+                        {enabled.ippool ? "自动分配 IP 地址池" : "自定义 IP 地址池"}
                     </Button>
                 </ProFormItem>
 
                 <ProFormItem label="IP 地址">
                     {
-                        enableCustomIP &&
+                        enabled.ip &&
                         <ProFormText
                             name="ipAddress"
-                            placeholder={enableCustomIPPool ? "从 IP 地址池中选择一个 IP 地址" : "从子网中选择一个 IP 地址"}
+                            placeholder={enabled.ip ? "从 IP 地址池中选择一个 IP 地址" : "从子网中选择一个 IP 地址"}
                         />
                     }
                     <Button
-                        type="dashed"
-                        disabled={filteredSubnets.length == 0}
+                        color="default"
+                        disabled={subnets.length == 0 && !enabled.ip}
+                        icon={<PlusOutlined />}
+                        variant="text"
                         onClick={() => {
                             formRef.current?.resetFields(["ipAddress"])
-                            setEnableCustomIP(!enableCustomIP)
+                            setEnabled((prevState) => ({ ...prevState, ip: !prevState.ip }))
                         }}
                     >
-                        {enableCustomIP ? "自动分配 IP 地址" : "自定义 IP 地址"}
+                        {enabled.ip ? "自动分配 IP 地址" : "自定义 IP 地址"}
                     </Button>
                 </ProFormItem>
 
                 <ProFormItem label="MAC 地址">
                     {
-                        enableCustomMAC &&
+                        enabled.mac &&
                         <ProFormText
                             name="macAddress"
                             placeholder="输入 MAC 地址"
                         />
                     }
                     <Button
-                        type="dashed"
-                        disabled={filteredSubnets.length == 0}
+                        color="default"
+                        icon={<PlusOutlined />}
+                        variant="text"
                         onClick={() => {
                             formRef.current?.resetFields(["macAddress"])
-                            setEnableCustomMAC(!enableCustomMAC)
+                            setEnabled((prevState) => ({ ...prevState, mac: !prevState.mac }))
                         }}
                     >
-                        {enableCustomMAC ? "自动分配 MAC 地址" : "自定义 MAC 地址"}
+                        {enabled.mac ? "自动分配 MAC 地址" : "自定义 MAC 地址"}
                     </Button>
                 </ProFormItem>
             </ProForm>

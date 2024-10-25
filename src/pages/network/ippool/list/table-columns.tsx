@@ -1,36 +1,32 @@
 import { ProColumns } from "@ant-design/pro-components"
 import { Dropdown, Flex, MenuProps, Modal, Popover, Tag } from "antd"
 import { EllipsisOutlined } from '@ant-design/icons'
-import { formatTimestamp, jsonParse, parseSpec } from '@/utils/utils'
+import { formatTimestamp } from '@/utils/utils'
 import { NotificationInstance } from "antd/es/notification/interface"
-import { CustomResourceDefinition } from "@/apis/apiextensions/v1alpha1/custom_resource_definition"
 import { clients } from "@/clients/clients"
 import { GroupVersionResourceEnum } from "@/apis/types/group_version"
 
 const columnsFunc = (actionRef: any, notification: NotificationInstance) => {
-    const columns: ProColumns<CustomResourceDefinition>[] = [
+    const columns: ProColumns<any>[] = [
         {
             key: 'name',
             title: '名称',
             fixed: 'left',
             ellipsis: true,
-            render: (_, ippool) => ippool.metadata?.name
+            render: (_, ippool) => ippool.metadata.name
         },
         {
             key: 'subnet',
             title: '子网',
             ellipsis: true,
-            render: (_, ippool) => {
-                const spec = jsonParse(ippool.spec)
-                return spec?.subnet
-            }
+            render: (_, ippool) => ippool.spec.subnet
         },
         {
             key: 'ips',
             title: 'IPs',
             ellipsis: true,
             render: (_, ippool) => {
-                let ips = parseSpec(ippool).ips
+                let ips = ippool.spec.ips
                 if (!ips || ips.length === 0) {
                     return
                 }
@@ -61,14 +57,14 @@ const columnsFunc = (actionRef: any, notification: NotificationInstance) => {
             title: '命名空间',
             ellipsis: true,
             render: (_, ippool) => {
-                let ns = parseSpec(ippool).namespaces
-                if (!ns || ns.length === 0) {
+                let nss = ippool.spec.namespaces
+                if (!nss || nss.length === 0) {
                     return
                 }
 
                 const content = (
                     <Flex wrap gap="4px 0" style={{ maxWidth: 250 }}>
-                        {ns.map((element: any, index: any) => (
+                        {nss.map((element: any, index: any) => (
                             <Tag key={index} bordered={true}>
                                 {element}
                             </Tag>
@@ -78,8 +74,8 @@ const columnsFunc = (actionRef: any, notification: NotificationInstance) => {
 
                 return (
                     <Popover content={content}>
-                        <Tag bordered={true}>{ns[0]}</Tag>
-                        +{ns.length}
+                        <Tag bordered={true}>{nss[0]}</Tag>
+                        +{nss.length}
                     </Popover>
                 )
             }
@@ -90,7 +86,7 @@ const columnsFunc = (actionRef: any, notification: NotificationInstance) => {
             width: 160,
             ellipsis: true,
             render: (_, ippool) => {
-                return formatTimestamp(ippool.metadata?.creationTimestamp)
+                return formatTimestamp(ippool.metadata.creationTimestamp)
             }
         },
         {
@@ -112,8 +108,8 @@ const columnsFunc = (actionRef: any, notification: NotificationInstance) => {
     return columns
 }
 
-const actionItemsFunc = (m: CustomResourceDefinition, actionRef: any, notification: NotificationInstance) => {
-    const name = m.metadata?.name!
+const actionItemsFunc = (ippool: any, actionRef: any, notification: NotificationInstance) => {
+    const name = ippool.metadata.name
 
     const items: MenuProps['items'] = [
         {

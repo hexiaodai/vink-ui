@@ -1,20 +1,18 @@
-import { CustomResourceDefinition } from "@/apis/apiextensions/v1alpha1/custom_resource_definition"
 import { clients } from "./clients"
 import { NotificationInstance } from "antd/lib/notification/interface"
-import { generateMessage, jsonParse } from "@/utils/utils"
+import { generateMessage } from "@/utils/utils"
 import { VirtualMachinePowerStateRequest_PowerState } from "@/apis/management/virtualmachine/v1alpha1/virtualmachine"
 
-export const batchManageVirtualMachinePowerState = async (vms: CustomResourceDefinition[], state: VirtualMachinePowerStateRequest_PowerState, notification: NotificationInstance) => {
-    const completed: CustomResourceDefinition[] = []
-    const failed: CustomResourceDefinition[] = []
+export const batchManageVirtualMachinePowerState = async (vms: any[], state: VirtualMachinePowerStateRequest_PowerState, notification: NotificationInstance) => {
+    const completed: any[] = []
+    const failed: any[] = []
     const notificationSuccessKey = "batch-manage-virtual-machine-power-state-success"
     const notificationFailedKey = "batch-manage-virtual-machine-power-state-failed"
 
     await Promise.all(vms.map(async (vm) => {
-        const namespace = vm.metadata?.namespace!
-        const name = vm.metadata?.name!
-        const status = jsonParse(vm.status)
-        const isRunning = status.printableStatus as string === "Running"
+        const namespace = vm.metadata.namespace
+        const name = vm.metadata.name
+        const isRunning = vm.status.printableStatus as string === "Running"
 
         if (state === VirtualMachinePowerStateRequest_PowerState.OFF && !isRunning) {
             return

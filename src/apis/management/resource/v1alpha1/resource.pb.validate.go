@@ -35,6 +35,113 @@ var (
 	_ = sort.Sort
 )
 
+// Validate checks the field values on CustomResourceDefinitionResponse with
+// the rules defined in the proto definition for this message. If any rules
+// are violated, the first error encountered is returned, or nil if there are
+// no violations.
+func (m *CustomResourceDefinitionResponse) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on CustomResourceDefinitionResponse with
+// the rules defined in the proto definition for this message. If any rules
+// are violated, the result is a list of violation errors wrapped in
+// CustomResourceDefinitionResponseMultiError, or nil if none found.
+func (m *CustomResourceDefinitionResponse) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *CustomResourceDefinitionResponse) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for Data
+
+	if len(errors) > 0 {
+		return CustomResourceDefinitionResponseMultiError(errors)
+	}
+
+	return nil
+}
+
+// CustomResourceDefinitionResponseMultiError is an error wrapping multiple
+// validation errors returned by
+// CustomResourceDefinitionResponse.ValidateAll() if the designated
+// constraints aren't met.
+type CustomResourceDefinitionResponseMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m CustomResourceDefinitionResponseMultiError) Error() string {
+	var msgs []string
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m CustomResourceDefinitionResponseMultiError) AllErrors() []error { return m }
+
+// CustomResourceDefinitionResponseValidationError is the validation error
+// returned by CustomResourceDefinitionResponse.Validate if the designated
+// constraints aren't met.
+type CustomResourceDefinitionResponseValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e CustomResourceDefinitionResponseValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e CustomResourceDefinitionResponseValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e CustomResourceDefinitionResponseValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e CustomResourceDefinitionResponseValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e CustomResourceDefinitionResponseValidationError) ErrorName() string {
+	return "CustomResourceDefinitionResponseValidationError"
+}
+
+// Error satisfies the builtin error interface
+func (e CustomResourceDefinitionResponseValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sCustomResourceDefinitionResponse.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = CustomResourceDefinitionResponseValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = CustomResourceDefinitionResponseValidationError{}
+
 // Validate checks the field values on GetRequest with the rules defined in the
 // proto definition for this message. If any rules are violated, the first
 // error encountered is returned, or nil if there are no violations.
@@ -344,6 +451,37 @@ func (m *UpdateRequest) validate(all bool) error {
 	}
 
 	var errors []error
+
+	if all {
+		switch v := interface{}(m.GetGroupVersionResource()).(type) {
+		case interface{ ValidateAll() error }:
+			if err := v.ValidateAll(); err != nil {
+				errors = append(errors, UpdateRequestValidationError{
+					field:  "GroupVersionResource",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		case interface{ Validate() error }:
+			if err := v.Validate(); err != nil {
+				errors = append(errors, UpdateRequestValidationError{
+					field:  "GroupVersionResource",
+					reason: "embedded message failed validation",
+					cause:  err,
+				})
+			}
+		}
+	} else if v, ok := interface{}(m.GetGroupVersionResource()).(interface{ Validate() error }); ok {
+		if err := v.Validate(); err != nil {
+			return UpdateRequestValidationError{
+				field:  "GroupVersionResource",
+				reason: "embedded message failed validation",
+				cause:  err,
+			}
+		}
+	}
+
+	// no validation rules for Data
 
 	if len(errors) > 0 {
 		return UpdateRequestMultiError(errors)

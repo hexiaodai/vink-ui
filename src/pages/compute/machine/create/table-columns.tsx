@@ -1,14 +1,13 @@
 import { TableProps } from "antd"
-import { CustomResourceDefinition } from "@/apis/apiextensions/v1alpha1/custom_resource_definition"
-import { capacity, parseSpec } from "@/utils/utils"
+import { capacity } from "@/utils/utils"
 import { formatMemoryString, namespaceName } from "@/utils/k8s"
 import { NetworkConfig } from "./network-drawer"
 import { ProColumns } from "@ant-design/pro-components"
 import { instances as annotations } from "@/apis/sdks/ts/annotation/annotations.gen"
 import TableColumnOperatingSystem from "@/components/table-column/operating-system"
 
-export const getDataDiskColumns = (dataDisks: CustomResourceDefinition[], setDataDisks: any) => {
-    const dataDiskColumns: TableProps<CustomResourceDefinition>['columns'] = [
+export const getDataDiskColumns = (dataDisks: any[], setDataDisks: any) => {
+    const dataDiskColumns: TableProps<any>['columns'] = [
         {
             title: '名称',
             key: 'name',
@@ -19,13 +18,13 @@ export const getDataDiskColumns = (dataDisks: CustomResourceDefinition[], setDat
             title: '存储类',
             key: 'storageClassName',
             ellipsis: true,
-            render: (_, dv) => parseSpec(dv).pvc?.storageClassName
+            render: (_, dv) => dv.spec.pvc?.storageClassName
         },
         {
             title: '访问模式',
             key: 'capacity',
             ellipsis: true,
-            render: (_, dv) => parseSpec(dv).pvc?.accessModes[0]
+            render: (_, dv) => dv.spec.pvc?.accessModes[0]
         },
         {
             title: '容量',
@@ -50,10 +49,10 @@ export const getDataDiskColumns = (dataDisks: CustomResourceDefinition[], setDat
 export const getNetworkColumns = (networks: NetworkConfig[], setNetworks: any) => {
     const networkColumns: TableProps<NetworkConfig>['columns'] = [
         {
-            title: '网络模式',
-            key: 'networkMode',
+            title: 'Interface',
+            key: 'interface',
             ellipsis: true,
-            render: (_, cfg) => cfg.networkMode
+            render: (_, cfg) => cfg.interface
         },
         {
             title: 'Multus CR',
@@ -65,7 +64,7 @@ export const getNetworkColumns = (networks: NetworkConfig[], setNetworks: any) =
             title: 'VPC',
             key: 'vpc',
             ellipsis: true,
-            render: (_, cfg) => parseSpec(cfg.subnet).vpc
+            render: (_, cfg) => cfg.subnet.spec.vpc
         },
         {
             title: '子网',
@@ -106,7 +105,7 @@ export const getNetworkColumns = (networks: NetworkConfig[], setNetworks: any) =
     return networkColumns
 }
 
-export const rootDiskDrawerColumns: ProColumns<CustomResourceDefinition>[] = [
+export const rootDiskDrawerColumns: ProColumns<any>[] = [
     {
         title: '名称',
         key: 'name',
@@ -123,11 +122,11 @@ export const rootDiskDrawerColumns: ProColumns<CustomResourceDefinition>[] = [
         title: '容量',
         key: 'capacity',
         ellipsis: true,
-        render: (_, dv) => formatMemoryString(parseSpec(dv).pvc?.resources?.requests?.storage)
+        render: (_, dv) => formatMemoryString(dv.spec.pvc?.resources?.requests?.storage)
     }
 ]
 
-export const dataDiskDrawerColumns: ProColumns<CustomResourceDefinition>[] = [
+export const dataDiskDrawerColumns: ProColumns<any>[] = [
     {
         title: '名称',
         key: 'name',
@@ -151,18 +150,18 @@ export const dataDiskDrawerColumns: ProColumns<CustomResourceDefinition>[] = [
         title: '容量',
         key: 'capacity',
         ellipsis: true,
-        render: (_, dv) => formatMemoryString(parseSpec(dv).pvc?.resources?.requests?.storage)
+        render: (_, dv) => formatMemoryString(dv.spec.pvc?.resources?.requests?.storage)
     },
     {
         title: '存储类',
         key: 'storageClassName',
         ellipsis: true,
-        render: (_, dv) => parseSpec(dv).pvc?.storageClassName
+        render: (_, dv) => dv.spec.pvc?.storageClassName
     },
     {
         title: '访问模式',
         key: 'accessModes',
         ellipsis: true,
-        render: (_, dv) => parseSpec(dv).pvc?.accessModes[0]
+        render: (_, dv) => dv.spec.pvc?.accessModes[0]
     }
 ]

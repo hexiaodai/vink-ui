@@ -35,22 +35,22 @@ var (
 	_ = sort.Sort
 )
 
-// Validate checks the field values on CustomResourceDefinition with the rules
-// defined in the proto definition for this message. If any rules are
+// Validate checks the field values on CustomResourceDefinitionBak with the
+// rules defined in the proto definition for this message. If any rules are
 // violated, the first error encountered is returned, or nil if there are no violations.
-func (m *CustomResourceDefinition) Validate() error {
+func (m *CustomResourceDefinitionBak) Validate() error {
 	return m.validate(false)
 }
 
-// ValidateAll checks the field values on CustomResourceDefinition with the
+// ValidateAll checks the field values on CustomResourceDefinitionBak with the
 // rules defined in the proto definition for this message. If any rules are
 // violated, the result is a list of violation errors wrapped in
-// CustomResourceDefinitionMultiError, or nil if none found.
-func (m *CustomResourceDefinition) ValidateAll() error {
+// CustomResourceDefinitionBakMultiError, or nil if none found.
+func (m *CustomResourceDefinitionBak) ValidateAll() error {
 	return m.validate(true)
 }
 
-func (m *CustomResourceDefinition) validate(all bool) error {
+func (m *CustomResourceDefinitionBak) validate(all bool) error {
 	if m == nil {
 		return nil
 	}
@@ -61,7 +61,7 @@ func (m *CustomResourceDefinition) validate(all bool) error {
 		switch v := interface{}(m.GetMetadata()).(type) {
 		case interface{ ValidateAll() error }:
 			if err := v.ValidateAll(); err != nil {
-				errors = append(errors, CustomResourceDefinitionValidationError{
+				errors = append(errors, CustomResourceDefinitionBakValidationError{
 					field:  "Metadata",
 					reason: "embedded message failed validation",
 					cause:  err,
@@ -69,7 +69,7 @@ func (m *CustomResourceDefinition) validate(all bool) error {
 			}
 		case interface{ Validate() error }:
 			if err := v.Validate(); err != nil {
-				errors = append(errors, CustomResourceDefinitionValidationError{
+				errors = append(errors, CustomResourceDefinitionBakValidationError{
 					field:  "Metadata",
 					reason: "embedded message failed validation",
 					cause:  err,
@@ -78,7 +78,7 @@ func (m *CustomResourceDefinition) validate(all bool) error {
 		}
 	} else if v, ok := interface{}(m.GetMetadata()).(interface{ Validate() error }); ok {
 		if err := v.Validate(); err != nil {
-			return CustomResourceDefinitionValidationError{
+			return CustomResourceDefinitionBakValidationError{
 				field:  "Metadata",
 				reason: "embedded message failed validation",
 				cause:  err,
@@ -91,19 +91,19 @@ func (m *CustomResourceDefinition) validate(all bool) error {
 	// no validation rules for Status
 
 	if len(errors) > 0 {
-		return CustomResourceDefinitionMultiError(errors)
+		return CustomResourceDefinitionBakMultiError(errors)
 	}
 
 	return nil
 }
 
-// CustomResourceDefinitionMultiError is an error wrapping multiple validation
-// errors returned by CustomResourceDefinition.ValidateAll() if the designated
-// constraints aren't met.
-type CustomResourceDefinitionMultiError []error
+// CustomResourceDefinitionBakMultiError is an error wrapping multiple
+// validation errors returned by CustomResourceDefinitionBak.ValidateAll() if
+// the designated constraints aren't met.
+type CustomResourceDefinitionBakMultiError []error
 
 // Error returns a concatenation of all the error messages it wraps.
-func (m CustomResourceDefinitionMultiError) Error() string {
+func (m CustomResourceDefinitionBakMultiError) Error() string {
 	var msgs []string
 	for _, err := range m {
 		msgs = append(msgs, err.Error())
@@ -112,11 +112,12 @@ func (m CustomResourceDefinitionMultiError) Error() string {
 }
 
 // AllErrors returns a list of validation violation errors.
-func (m CustomResourceDefinitionMultiError) AllErrors() []error { return m }
+func (m CustomResourceDefinitionBakMultiError) AllErrors() []error { return m }
 
-// CustomResourceDefinitionValidationError is the validation error returned by
-// CustomResourceDefinition.Validate if the designated constraints aren't met.
-type CustomResourceDefinitionValidationError struct {
+// CustomResourceDefinitionBakValidationError is the validation error returned
+// by CustomResourceDefinitionBak.Validate if the designated constraints
+// aren't met.
+type CustomResourceDefinitionBakValidationError struct {
 	field  string
 	reason string
 	cause  error
@@ -124,24 +125,24 @@ type CustomResourceDefinitionValidationError struct {
 }
 
 // Field function returns field value.
-func (e CustomResourceDefinitionValidationError) Field() string { return e.field }
+func (e CustomResourceDefinitionBakValidationError) Field() string { return e.field }
 
 // Reason function returns reason value.
-func (e CustomResourceDefinitionValidationError) Reason() string { return e.reason }
+func (e CustomResourceDefinitionBakValidationError) Reason() string { return e.reason }
 
 // Cause function returns cause value.
-func (e CustomResourceDefinitionValidationError) Cause() error { return e.cause }
+func (e CustomResourceDefinitionBakValidationError) Cause() error { return e.cause }
 
 // Key function returns key value.
-func (e CustomResourceDefinitionValidationError) Key() bool { return e.key }
+func (e CustomResourceDefinitionBakValidationError) Key() bool { return e.key }
 
 // ErrorName returns error name.
-func (e CustomResourceDefinitionValidationError) ErrorName() string {
-	return "CustomResourceDefinitionValidationError"
+func (e CustomResourceDefinitionBakValidationError) ErrorName() string {
+	return "CustomResourceDefinitionBakValidationError"
 }
 
 // Error satisfies the builtin error interface
-func (e CustomResourceDefinitionValidationError) Error() string {
+func (e CustomResourceDefinitionBakValidationError) Error() string {
 	cause := ""
 	if e.cause != nil {
 		cause = fmt.Sprintf(" | caused by: %v", e.cause)
@@ -153,14 +154,14 @@ func (e CustomResourceDefinitionValidationError) Error() string {
 	}
 
 	return fmt.Sprintf(
-		"invalid %sCustomResourceDefinition.%s: %s%s",
+		"invalid %sCustomResourceDefinitionBak.%s: %s%s",
 		key,
 		e.field,
 		e.reason,
 		cause)
 }
 
-var _ error = CustomResourceDefinitionValidationError{}
+var _ error = CustomResourceDefinitionBakValidationError{}
 
 var _ interface {
 	Field() string
@@ -168,4 +169,4 @@ var _ interface {
 	Key() bool
 	Cause() error
 	ErrorName() string
-} = CustomResourceDefinitionValidationError{}
+} = CustomResourceDefinitionBakValidationError{}

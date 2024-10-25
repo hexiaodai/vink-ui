@@ -4,7 +4,6 @@ import { App, Button, Modal, Select, Space } from 'antd'
 import { useEffect, useRef, useState } from 'react'
 import { namespaceName } from '@/utils/k8s'
 import { NavLink, Params } from 'react-router-dom'
-import { CustomResourceDefinition } from "@/apis/apiextensions/v1alpha1/custom_resource_definition"
 import { classNames, generateMessage } from '@/utils/utils'
 import { useNamespace } from '@/common/context'
 import { clients } from '@/clients/clients'
@@ -15,17 +14,15 @@ import commonStyles from '@/common/styles/common.module.less'
 import columnsFunc from '@/pages/network/multus/list/table-columns.tsx'
 
 export default () => {
-    const ctrl = useRef<AbortController>()
-
     const { notification } = App.useApp()
 
     const { namespace } = useNamespace()
 
-    const [selectedRows, setSelectedRows] = useState<CustomResourceDefinition[]>([])
+    const [selectedRows, setSelectedRows] = useState<any[]>([])
 
     const actionRef = useRef<ActionType>()
 
-    const [multus, setMultus] = useState<CustomResourceDefinition[]>([])
+    const [multus, setMultus] = useState<any[]>([])
 
     const columns = columnsFunc(actionRef, notification)
 
@@ -33,15 +30,8 @@ export default () => {
         actionRef.current?.reload()
     }, [namespace])
 
-    useEffect(() => {
-        return () => {
-            console.log('Component is unmounting and aborting operation')
-            ctrl.current?.abort()
-        }
-    }, [])
-
     return (
-        <ProTable<CustomResourceDefinition, Params>
+        <ProTable<any, Params>
             className={classNames(tableStyles["table-padding"], commonStyles["small-scrollbar"])}
             rowSelection={{
                 defaultSelectedRowKeys: [],
@@ -85,13 +75,15 @@ export default () => {
             loading={{ indicator: <LoadingOutlined /> }}
             dataSource={multus}
             request={async (params) => {
-                ctrl.current?.abort()
-                ctrl.current = new AbortController()
-
-                await clients.listResources(GroupVersionResourceEnum.MULTUS, setMultus, {
-                    fieldSelector: (params.keyword && params.keyword.length > 0) ? `metadata.name=${params.keyword}` : undefined,
-                    notification: notification
-                })
+                try {
+                    const multus = await clients.fetchResources(GroupVersionResourceEnum.MULTUS, {
+                        namespace: namespace,
+                        fieldSelector: (params.keyword && params.keyword.length > 0) ? `metadata.name=${params.keyword}` : undefined,
+                    })
+                    setMultus(multus)
+                } catch (err: any) {
+                    notification.error({ message: err })
+                }
                 return { success: true }
             }}
             columnsState={{

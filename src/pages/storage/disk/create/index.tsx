@@ -6,9 +6,9 @@ import { useNavigate } from 'react-router-dom'
 import { instances as labels } from "@/apis/sdks/ts/label/labels.gen"
 import { useNamespace } from '@/common/context'
 import { classNames } from '@/utils/utils'
-import { CustomResourceDefinition } from '@/apis/apiextensions/v1alpha1/custom_resource_definition'
 import { GroupVersionResourceEnum } from '@/apis/types/group_version'
 import { clients } from '@/clients/clients'
+import { PlusOutlined } from '@ant-design/icons'
 import type { ProFormInstance } from '@ant-design/pro-components'
 import formStyles from "@/common/styles/form.module.less"
 import * as yaml from 'js-yaml'
@@ -25,7 +25,7 @@ export default () => {
 
     const navigate = useNavigate()
 
-    const [storageClass, setStorageClass] = useState<CustomResourceDefinition[]>([])
+    const [storageClass, setStorageClass] = useState<any[]>([])
     const [enableCustomStorageClass, setEnableCustomStorageClass] = useState(false)
     const [enableCustomAccessMode, setEnableCustomAccessMode] = useState(false)
 
@@ -39,8 +39,10 @@ export default () => {
         if (!enableCustomStorageClass) {
             return
         }
-        clients.listResources(GroupVersionResourceEnum.STORAGE_CLASS, setStorageClass, {
-            notification: notification
+        clients.fetchResources(GroupVersionResourceEnum.STORAGE_CLASS).then((items) => {
+            setStorageClass(items)
+        }).catch(err => {
+            notification.error({ message: err })
         })
     }, [enableCustomStorageClass])
 
@@ -64,7 +66,7 @@ export default () => {
                 })
             }).
             catch((err: any) => {
-                const errorMessage = err.errorFields?.map((field: any, idx: number) => `${idx + 1}. ${field.errors}`).join('<br />') || `表单校验失败: ${err}`
+                const errorMessage = err.errorFields?.map((field: any, idx: number) => `${idx + 1}. ${field.errors}`).join('<br />') || err
                 notification.error({
                     message: "表单错误",
                     description: (
@@ -103,7 +105,7 @@ export default () => {
                         rules={[{
                             required: true,
                             pattern: /^[a-z]([-a-z0-9]{0,61}[a-z0-9])?$/,
-                            message: "名称只能包含小写字母、数字和连字符（-），且必须以字母开头和结尾，最大长度为 64 个字符。"
+                            message: "命名空间仅含小写字母、数字、连字符（-），且以字母开头和结尾，最长 64 字符"
                         }]}
                     />
                     <ProFormText
@@ -114,7 +116,7 @@ export default () => {
                         rules={[{
                             required: true,
                             pattern: /^[a-z]([-a-z0-9]{0,61}[a-z0-9])?$/,
-                            message: "名称只能包含小写字母、数字和连字符（-），且必须以字母开头和结尾，最大长度为 64 个字符。"
+                            message: "名称仅含小写字母、数字、连字符（-），且以字母开头和结尾，最长 64 字符"
                         }]}
                     />
 
@@ -124,7 +126,7 @@ export default () => {
                         initialValue={50}
                         rules={[{
                             required: true,
-                            message: "请输入数据盘容量。"
+                            message: "输入数据盘容量"
                         }]}
                     >
                         <InputNumber<number>
@@ -145,15 +147,17 @@ export default () => {
                                 name="storageClass"
                                 placeholder="选择存储类"
                                 options={[
-                                    ...storageClass.map((ns: CustomResourceDefinition) => ({
-                                        value: ns.metadata?.name,
-                                        label: ns.metadata?.name
+                                    ...storageClass.map((ns: any) => ({
+                                        value: ns.metadata.name,
+                                        label: ns.metadata.name
                                     }))
                                 ]}
                             />
                         }
                         <Button
-                            type="dashed"
+                            color="default"
+                            icon={<PlusOutlined />}
+                            variant="text"
                             onClick={() => {
                                 formRef.current?.resetFields(["storageClass"])
                                 setEnableCustomStorageClass(!enableCustomStorageClass)
@@ -191,7 +195,9 @@ export default () => {
                             />
                         }
                         <Button
-                            type="dashed"
+                            color="default"
+                            icon={<PlusOutlined />}
+                            variant="text"
                             onClick={() => {
                                 formRef.current?.resetFields(["accessMode"])
                                 setEnableCustomAccessMode(!enableCustomAccessMode)
@@ -205,7 +211,7 @@ export default () => {
                         width="lg"
                         name="description"
                         label="简介"
-                        placeholder="输入数据盘的简介，用于描述数据盘的用途"
+                        placeholder="输入数据盘的简介"
                         fieldProps={{ rows: 2 }}
                     />
                 </ProCard>

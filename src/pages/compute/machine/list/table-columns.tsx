@@ -3,43 +3,25 @@ import { Dropdown, MenuProps, Modal, Popover, Badge, Flex, Tag } from "antd"
 import { formatMemory } from '@/utils/k8s'
 import { CodeOutlined, EllipsisOutlined } from '@ant-design/icons'
 import { VirtualMachinePowerStateRequest_PowerState } from '@/apis/management/virtualmachine/v1alpha1/virtualmachine'
-import { formatTimestamp, parseStatus } from '@/utils/utils'
+import { formatTimestamp, openConsole } from '@/utils/utils'
 import { NotificationInstance } from "antd/es/notification/interface"
-import { CustomResourceDefinition } from "@/apis/apiextensions/v1alpha1/custom_resource_definition"
 import { virtualMachineStatusMap } from "@/utils/resource-status"
 import { manageVirtualMachinePowerState } from "@/clients/virtualmachine"
 import { GroupVersionResourceEnum } from "@/apis/types/group_version"
 import { clients } from "@/clients/clients"
+import { Link } from "react-router-dom"
+import { rootDisk, virtualMachine, virtualMachineHost, virtualMachineIPs } from "@/utils/parse-summary"
 import TableColumnOperatingSystem from "@/components/table-column/operating-system"
 import commonStyles from '@/common/styles/common.module.less'
 
-const virtualMachine = (virtualMachineSummarys: CustomResourceDefinition) => {
-    return parseStatus(virtualMachineSummarys).virtualMachine
-}
-
-const virtualMachineHost = (virtualMachineSummarys: CustomResourceDefinition) => {
-    return parseStatus(virtualMachineSummarys).host
-}
-
-const rootDisk = (virtualMachineSummarys: CustomResourceDefinition) => {
-    const dvs = parseStatus(virtualMachineSummarys).dataVolumes
-    return dvs?.find((dv: CustomResourceDefinition) => {
-        return dv.metadata?.labels["vink.kubevm.io/datavolume.type"] == "root"
-    })
-}
-
-const virtualMachineIPs = (virtualMachineSummarys: CustomResourceDefinition): any[] => {
-    return parseStatus(virtualMachineSummarys).networks?.ips
-}
-
 const columnsFunc = (notification: NotificationInstance) => {
-    const columns: ProColumns<CustomResourceDefinition>[] = [
+    const columns: ProColumns<any>[] = [
         {
             key: 'name',
             title: '名称',
             fixed: 'left',
             ellipsis: true,
-            render: (_, summary) => summary.metadata?.name
+            render: (_, summary) => <Link to={{ pathname: "/compute/machines/detail", search: `namespace=${summary.metadata?.namespace}&name=${summary.metadata?.name}` }}>{summary.metadata?.name}</Link>,
         },
         {
             key: 'status',
@@ -115,7 +97,7 @@ const columnsFunc = (notification: NotificationInstance) => {
             ellipsis: true,
             render: (_, summary) => {
                 const vm = virtualMachine(summary)
-                let core = vm.spec.template?.spec?.domain?.cpu?.cores
+                let core = vm.spec.template?.spec?.domain?.cpu?.cores || vm.spec.template?.spec?.resources?.requests?.cpu
                 return core ? `${core} Core` : ''
             }
         },
@@ -125,7 +107,8 @@ const columnsFunc = (notification: NotificationInstance) => {
             ellipsis: true,
             render: (_, summary) => {
                 const vm = virtualMachine(summary)
-                const [value, unit] = formatMemory(vm.spec.template?.spec?.domain?.resources?.requests?.memory)
+                const mem = vm.spec.template?.spec?.domain?.memory?.guest || vm.spec.template?.spec?.domain?.resources?.requests?.memory
+                const [value, unit] = formatMemory(mem)
                 return `${value} ${unit}`
             }
         },
@@ -172,9 +155,7 @@ const columnsFunc = (notification: NotificationInstance) => {
             title: '创建时间',
             width: 160,
             ellipsis: true,
-            render: (_, summary) => {
-                return formatTimestamp(summary.metadata?.creationTimestamp)
-            }
+            render: (_, summary) => formatTimestamp(summary.metadata?.creationTimestamp)
         },
         {
             key: 'action',
@@ -193,21 +174,6 @@ const columnsFunc = (notification: NotificationInstance) => {
         }
     ]
     return columns
-}
-
-const openConsole = (vm: any) => {
-    const isRunning = vm.status.printableStatus as string === "Running"
-    if (!isRunning) {
-        return
-    }
-
-    const url = `/console?namespace=${vm.metadata.namespace}&name=${vm.metadata.name}`
-    const width = screen.width - 400
-    const height = screen.height - 250
-    const left = 0
-    const top = 0
-
-    window.open(url, `${vm.metadata.namespace}/${vm.metadata.name}`, `toolbars=0, width=${width}, height=${height}, left=${left}, top=${top}`)
 }
 
 const statusEqual = (status: any, target: string) => {

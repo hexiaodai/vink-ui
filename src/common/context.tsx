@@ -25,6 +25,11 @@ export const NamespaceProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const [namespace, setNamespace] = useState<string>(params.get(key) || "")
 
     useEffect(() => {
+        const detailPathRegex = /\/[^\/]+\/[^\/]+\/detail$/
+        if (detailPathRegex.test(location.pathname)) {
+            return
+        }
+
         if (namespace) {
             params.set(key, namespace)
         } else {

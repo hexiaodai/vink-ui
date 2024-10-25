@@ -14,9 +14,9 @@ import { ObjectMeta } from "../../types/object_meta";
 /**
  * CustomResourceDefinition message of CustomResource definition
  *
- * @generated from protobuf message vink.kubevm.io.apis.apiextensions.v1alpha1.CustomResourceDefinition
+ * @generated from protobuf message vink.kubevm.io.apis.apiextensions.v1alpha1.CustomResourceDefinitionBak
  */
-export interface CustomResourceDefinition {
+export interface CustomResourceDefinitionBak {
     /**
      * Metadata is that all persisted resources must have, which includes all
      * objects
@@ -38,23 +38,23 @@ export interface CustomResourceDefinition {
     status: string;
 }
 // @generated message type with reflection information, may provide speed optimized methods
-class CustomResourceDefinition$Type extends MessageType<CustomResourceDefinition> {
+class CustomResourceDefinitionBak$Type extends MessageType<CustomResourceDefinitionBak> {
     constructor() {
-        super("vink.kubevm.io.apis.apiextensions.v1alpha1.CustomResourceDefinition", [
+        super("vink.kubevm.io.apis.apiextensions.v1alpha1.CustomResourceDefinitionBak", [
             { no: 1, name: "metadata", kind: "message", T: () => ObjectMeta },
             { no: 2, name: "spec", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "status", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
-    create(value?: PartialMessage<CustomResourceDefinition>): CustomResourceDefinition {
+    create(value?: PartialMessage<CustomResourceDefinitionBak>): CustomResourceDefinitionBak {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.spec = "";
         message.status = "";
         if (value !== undefined)
-            reflectionMergePartial<CustomResourceDefinition>(this, message, value);
+            reflectionMergePartial<CustomResourceDefinitionBak>(this, message, value);
         return message;
     }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CustomResourceDefinition): CustomResourceDefinition {
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: CustomResourceDefinitionBak): CustomResourceDefinitionBak {
         let message = target ?? this.create(), end = reader.pos + length;
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
@@ -79,7 +79,7 @@ class CustomResourceDefinition$Type extends MessageType<CustomResourceDefinition
         }
         return message;
     }
-    internalBinaryWrite(message: CustomResourceDefinition, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+    internalBinaryWrite(message: CustomResourceDefinitionBak, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
         /* vink.kubevm.io.apis.types.ObjectMeta metadata = 1; */
         if (message.metadata)
             ObjectMeta.internalBinaryWrite(message.metadata, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
@@ -96,6 +96,6 @@ class CustomResourceDefinition$Type extends MessageType<CustomResourceDefinition
     }
 }
 /**
- * @generated MessageType for protobuf message vink.kubevm.io.apis.apiextensions.v1alpha1.CustomResourceDefinition
+ * @generated MessageType for protobuf message vink.kubevm.io.apis.apiextensions.v1alpha1.CustomResourceDefinitionBak
  */
-export const CustomResourceDefinition = new CustomResourceDefinition$Type();
+export const CustomResourceDefinitionBak = new CustomResourceDefinitionBak$Type();

@@ -12,14 +12,21 @@ import "google/protobuf/struct.proto";
 option go_package = "github.com/kubevm.io/vink/apis/management/resource/v1alpha1";
 
 service ResourceManagement {
-    rpc Get(GetRequest) returns (vink.kubevm.io.apis.apiextensions.v1alpha1.CustomResourceDefinition);
-    rpc Create(CreateRequest) returns (vink.kubevm.io.apis.apiextensions.v1alpha1.CustomResourceDefinition);
-    rpc Update(UpdateRequest) returns (vink.kubevm.io.apis.apiextensions.v1alpha1.CustomResourceDefinition);
+    // rpc Get(GetRequest) returns (vink.kubevm.io.apis.apiextensions.v1alpha1.CustomResourceDefinition);
+    // rpc Create(CreateRequest) returns (vink.kubevm.io.apis.apiextensions.v1alpha1.CustomResourceDefinition);
+    // rpc Update(UpdateRequest) returns (vink.kubevm.io.apis.apiextensions.v1alpha1.CustomResourceDefinition);
+    rpc Get(GetRequest) returns (CustomResourceDefinitionResponse);
+    rpc Create(CreateRequest) returns (CustomResourceDefinitionResponse);
+    rpc Update(UpdateRequest) returns (CustomResourceDefinitionResponse);
     rpc Delete(DeleteRequest) returns (google.protobuf.Empty);
 }
 
+message CustomResourceDefinitionResponse {
+    string data = 1;
+}
+
 message GetRequest {
-    vink.kubevm.io.apis.types.GroupVersionKind group_version_resource = 1;
+    vink.kubevm.io.apis.types.GroupVersionResourceIdentifier group_version_resource = 1;
     vink.kubevm.io.apis.types.NamespaceName namespace_name = 2;
 }
 
@@ -30,7 +37,10 @@ message CreateRequest {
     // vink.kubevm.io.apis.apiextensions.v1alpha1.CustomResourceDefinition crd = 2;
 }
 
-message UpdateRequest {}
+message UpdateRequest {
+    vink.kubevm.io.apis.types.GroupVersionResourceIdentifier group_version_resource = 1;
+    string data = 2;
+}
 
 message DeleteRequest {
     vink.kubevm.io.apis.types.GroupVersionResourceIdentifier group_version_resource = 1;

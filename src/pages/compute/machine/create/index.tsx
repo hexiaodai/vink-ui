@@ -3,8 +3,7 @@ import { App, Button, Divider, Flex, InputNumber, Space, Table } from 'antd'
 import { useEffect, useRef, useState } from 'react'
 import { formatMemory, namespaceName } from '@/utils/k8s'
 import { RootDiskDrawer } from './root-disk-drawer'
-import { CustomResourceDefinition } from '@/apis/apiextensions/v1alpha1/custom_resource_definition'
-import { capacity, classNames, jsonParse } from '@/utils/utils'
+import { capacity, classNames, generateKubeovnNetworkAnnon } from '@/utils/utils'
 import { DataDiskDrawer } from './data-disk-drawer'
 import { NetworkConfig, NetworkDrawer } from './network-drawer'
 import { virtualmachineYaml, defaultCloudInit } from './crd-template'
@@ -17,6 +16,7 @@ import { getDataDiskColumns, getNetworkColumns } from './table-columns'
 import { NotificationInstance } from 'antd/es/notification/interface'
 import { GroupVersionResourceEnum } from '@/apis/types/group_version'
 import { clients } from '@/clients/clients'
+import { PlusOutlined } from '@ant-design/icons'
 import type { ProFormInstance } from '@ant-design/pro-components'
 import * as yaml from 'js-yaml'
 import TableColumnOperatingSystem from '@/components/table-column/operating-system'
@@ -37,17 +37,19 @@ const submit = async (formRef: React.MutableRefObject<ProFormInstance | undefine
             instance.metadata.name = fields.name
             instance.metadata.namespace = fields.namespace
 
-            setupCpuMem(formRef, instance)
-            setupNetwork(formRef, instance)
-            setupRootDisk(formRef, instance)
-            setupDataDisks(formRef, instance)
+            setupCpuMem(fields, instance)
+            setupNetwork(fields, instance)
+            setupRootDisk(fields, instance)
+            setupDataDisks(fields, instance)
+
+            console.log(instance)
 
             await clients.createResource(GroupVersionResourceEnum.VIRTUAL_MACHINE, instance, { notification: notification }).then(() => {
                 navigate('/compute/machines')
             })
         }).
         catch((err: any) => {
-            const errorMessage = err.errorFields?.map((field: any, idx: number) => `${idx + 1}. ${field.errors}`).join('<br />') || "表单校验失败"
+            const errorMessage = err.errorFields?.map((field: any, idx: number) => `${idx + 1}. ${field.errors}`).join('<br />') || err
             notification.error({
                 message: "表单错误",
                 description: (
@@ -57,27 +59,18 @@ const submit = async (formRef: React.MutableRefObject<ProFormInstance | undefine
         })
 }
 
-const setupCpuMem = (formRef: React.MutableRefObject<ProFormInstance | undefined>, vm: any) => {
-    if (!formRef.current) {
-        return
-    }
-
-    const fields = formRef.current.getFieldsValue()
-
+const setupCpuMem = (fields: any, vm: any) => {
     vm.spec.template.spec.domain.cpu.cores = fields.cpu
-    vm.spec.template.spec.domain.resources.requests.memory = `${fields.memory}Gi`
+    vm.spec.template.spec.domain.memory.guest = `${fields.memory}Gi`
+
+    vm.spec.template.spec.domain.resources.requests.memory = `${fields.memory / 2}Gi`
+    vm.spec.template.spec.domain.resources.requests.cpu = `${250 * fields.cpu}m`
+
+    vm.spec.template.spec.domain.resources.limits.memory = `${fields.memory}Gi`
+    vm.spec.template.spec.domain.resources.limits.cpu = fields.cpu
 }
 
-const setupDataDisks = (formRef: React.MutableRefObject<ProFormInstance | undefined>, vm: any) => {
-    if (!formRef.current) {
-        return
-    }
-
-    const fields = formRef.current.getFieldsValue()
-    if (!fields.dataDisks) {
-        return
-    }
-
+const setupDataDisks = (fields: any, vm: any) => {
     const rootDiskName = generateRootDiskName(fields.name)
 
     const additionalDataDisks = fields.dataDisks?.map((disk: any) => ({
@@ -99,16 +92,7 @@ const setupDataDisks = (formRef: React.MutableRefObject<ProFormInstance | undefi
     })
 }
 
-const setupRootDisk = (formRef: React.MutableRefObject<ProFormInstance | undefined>, vm: any) => {
-    if (!formRef.current) {
-        return
-    }
-
-    const fields = formRef.current.getFieldsValue()
-    if (!fields.rootDisk) {
-        return
-    }
-
+const setupRootDisk = (fields: any, vm: any) => {
     const rootDiskName = generateRootDiskName(fields.name)
 
     vm.spec.dataVolumeTemplates[0].metadata.name = rootDiskName
@@ -134,24 +118,15 @@ const setupRootDisk = (formRef: React.MutableRefObject<ProFormInstance | undefin
     })
 }
 
-const setupNetwork = (formRef: React.MutableRefObject<ProFormInstance | undefined>, vm: any) => {
-    if (!formRef.current) {
-        return
-    }
-
-    const fields = formRef.current.getFieldsValue()
-    if (!fields.networks) {
-        return
-    }
-
+const setupNetwork = (fields: any, vm: any) => {
     vm.spec.template.spec.domain.devices.interfaces = fields.networks.map((network: NetworkConfig, idx: number) => {
-        return { [network.networkMode]: {}, name: `net-${idx}` }
+        return { [network.interface]: {}, name: `net-${idx}` }
     })
 
     vm.spec.template.spec.networks = fields.networks.map((network: NetworkConfig, idx: number) => {
         const config: any = { name: `net-${idx}` }
         const networkName = `${network.multusCR.metadata?.namespace}/${network.multusCR.metadata?.name}`
-        if (network.networkMode == "masquerade") {
+        if (network.interface == "masquerade") {
             config.pod = {}
             vm.spec.template.metadata.annotations["v1.multus-cni.io/default-network"] = networkName
         } else {
@@ -173,12 +148,6 @@ const setupNetwork = (formRef: React.MutableRefObject<ProFormInstance | undefine
     })
 }
 
-const generateKubeovnNetworkAnnon = (multusCR: CustomResourceDefinition, name: string) => {
-    const md = multusCR.metadata
-    const prefix = `${md?.name}.${md?.namespace}.ovn.kubernetes.io`
-    return `${prefix}/${name}`
-}
-
 const generateRootDiskName = (name: string) => {
     return `${name}-root`
 }
@@ -192,32 +161,66 @@ export default () => {
 
     const navigate = useNavigate()
 
-    const [openRootDisk, setOpenRootDisk] = useState(false)
-    const [openDataDisk, setOpenDataDisk] = useState(false)
-    const [openNetwork, setOpenNetwork] = useState(false)
-    const [rootDisk, setRootDisk] = useState<CustomResourceDefinition>()
-    const [dataDisks, setDataDisks] = useState<CustomResourceDefinition[]>([])
+    const [openDrawer, setOpenDrawer] = useState({ rootDisk: false, network: false, dataDisk: false })
+
+    const [rootDisk, setRootDisk] = useState<any>()
+    const [dataDisks, setDataDisks] = useState<any[]>([])
     const [networks, setNetworks] = useState<NetworkConfig[]>([])
-    const [cloudInit, setCloudInit] = useState<string>(defaultCloudInit)
-
-    useEffect(() => {
-        formRef.current?.setFieldValue("rootDisk", rootDisk)
-    }, [rootDisk])
-
-    useEffect(() => {
-        formRef.current?.setFieldValue("dataDisks", dataDisks)
-    }, [dataDisks])
 
     useEffect(() => {
         formRef.current?.setFieldValue("namespace", namespace)
+        if (namespace) {
+            formRef.current?.validateFields(["namespace"])
+        }
     }, [namespace])
 
     useEffect(() => {
-        formRef.current?.setFieldValue("cloudInit", cloudInit)
-    }, [cloudInit])
+        formRef.current?.setFieldValue("cloudInit", defaultCloudInit)
+    })
 
     const dataDiskcolumns = getDataDiskColumns(dataDisks, setDataDisks)
     const networkColumns = getNetworkColumns(networks, setNetworks)
+
+    const [cpuOptions, setCpuOptions] = useState(
+        Array.from({ length: 32 }, (_, i) => ({
+            label: `${(i + 1) * 2} 核`,
+            value: (i + 1) * 2
+        }))
+    )
+
+    const [memOptions, setMemOptions] = useState(
+        Array.from({ length: 32 }, (_, i) => ({
+            label: `${(i + 1) * 2} Gi`,
+            value: (i + 1) * 2
+        }))
+    )
+
+    const [inputCpuValue, setInputCpuValue] = useState<number>()
+    const [inputMemValue, setInputMemValue] = useState<number>()
+
+    const addNewCpuOption = () => {
+        if (!inputCpuValue) {
+            return
+        }
+        if (!cpuOptions.some(opt => opt.value === inputCpuValue)) {
+            const newOption = { label: `${inputCpuValue} 核`, value: inputCpuValue }
+            setCpuOptions([...cpuOptions, newOption])
+            setInputCpuValue(undefined)
+            formRef.current?.setFieldsValue({ cpu: inputCpuValue })
+        }
+    }
+
+    const addNewMemOption = () => {
+        if (!inputMemValue) {
+            return
+        }
+        if (!memOptions.some(opt => opt.value === inputMemValue)) {
+            const newOption = { label: `${inputMemValue} Gi`, value: inputMemValue }
+            setMemOptions([...memOptions, newOption])
+            setInputMemValue(undefined)
+            formRef.current?.setFieldsValue({ memory: inputMemValue })
+        }
+    }
 
     return (
         <>
@@ -241,18 +244,18 @@ export default () => {
                     direction="vertical"
                     size="middle"
                 >
-                    <ProCard title="基本信息" headerBordered>
+                    <ProCard title="基本信息">
                         <ProFormText
                             width="lg"
                             name="namespace"
                             label="命名空间"
-                            placeholder="请选择命名空间"
+                            placeholder="选择命名空间"
                             initialValue={namespace}
                             disabled
                             rules={[{
                                 required: true,
                                 pattern: /^[a-z]([-a-z0-9]{0,61}[a-z0-9])?$/,
-                                message: "名称只能包含小写字母、数字和连字符（-），且必须以字母开头和结尾，最大长度为 64 个字符。"
+                                message: "命名空间仅含小写字母、数字、连字符（-），且以字母开头和结尾，最长 64 字符"
                             }]}
                         />
                         <ProFormText
@@ -263,7 +266,7 @@ export default () => {
                             rules={[{
                                 required: true,
                                 pattern: /^[a-z]([-a-z0-9]{0,61}[a-z0-9])?$/,
-                                message: "名称只能包含小写字母、数字和连字符（-），且必须以字母开头和结尾，最大长度为 64 个字符。"
+                                message: "名称仅含小写字母、数字、连字符（-），且以字母开头和结尾，最长 64 字符"
                             }]}
                         />
                         <ProFormItem
@@ -273,14 +276,9 @@ export default () => {
                             rules={[{
                                 required: true,
                                 validator() {
-                                    const rootDisk = formRef.current?.getFieldValue("rootDisk")
-                                    const status = jsonParse(rootDisk?.status)
-                                    if (status.phase === "Succeeded") {
-                                        return Promise.resolve()
-                                    }
-                                    return Promise.reject()
+                                    return formRef.current?.getFieldValue("rootDisk") ? Promise.resolve() : Promise.reject()
                                 },
-                                message: "系统镜像未就绪。"
+                                message: "添加操作系统"
                             }]}
                         >
                             <Space size="large" direction='vertical'>
@@ -295,29 +293,59 @@ export default () => {
                                         </Flex>
                                     ) : ("")
                                 }
-                                <Button type="dashed" onClick={() => setOpenRootDisk(true)}>选择系统镜像</Button>
+                                <Button
+                                    color="default"
+                                    icon={<PlusOutlined />}
+                                    variant="text"
+                                    onClick={() => setOpenDrawer((prevState) => ({ ...prevState, rootDisk: true }))}
+                                >
+                                    添加系统镜像
+                                </Button>
                             </Space>
                         </ProFormItem>
                     </ProCard>
 
-                    <ProCard title="计算资源" headerBordered>
+                    <ProCard title="计算资源">
                         <ProFormSelect
                             width="lg"
                             label="处理器"
                             name="cpu"
                             placeholder="选择处理器核心数"
                             initialValue={2}
-                            options={
-                                Array.from({ length: 32 }, (_, i) => ({
-                                    label: `${i + 1} 核`,
-                                    value: i + 1
-                                }))
-                            }
-                            fieldProps={{ allowClear: false, showSearch: true }}
+                            options={cpuOptions}
+                            fieldProps={{
+                                allowClear: false,
+                                showSearch: true,
+                                dropdownRender: (menu) => (
+                                    <>
+                                        {menu}
+                                        <Divider style={{ margin: '8px 0' }} />
+                                        <div style={{ display: 'flex', alignItems: 'center', padding: '0 8px 4px' }}>
+                                            <InputNumber
+                                                style={{ flex: 'auto' }}
+                                                min={1}
+                                                max={1024}
+                                                value={inputCpuValue}
+                                                onChange={(value) => setInputCpuValue(value || undefined)}
+                                                placeholder="新增处理器核心数"
+                                            />
+                                            <Button
+                                                color="default"
+                                                icon={<PlusOutlined />}
+                                                variant="text"
+                                                style={{ marginLeft: 10 }}
+                                                onClick={addNewCpuOption}
+                                            >
+                                                新增
+                                            </Button>
+                                        </div>
+                                    </>
+                                ),
+                            }}
                             rules={[{
                                 required: true,
                                 pattern: /^[1-9]\d*$/,
-                                message: "请选择处理器核心数。"
+                                message: "选择处理器核心数"
                             }]}
                         />
                         <ProFormSelect
@@ -326,22 +354,45 @@ export default () => {
                             name="memory"
                             placeholder="选择内存大小"
                             initialValue={4}
-                            options={
-                                Array.from({ length: 32 }, (_, i) => ({
-                                    label: `${i + 1} Gi`,
-                                    value: i + 1
-                                }))
-                            }
-                            fieldProps={{ allowClear: false, showSearch: true }}
+                            options={memOptions}
+                            fieldProps={{
+                                allowClear: false,
+                                showSearch: true,
+                                dropdownRender: (menu) => (
+                                    <>
+                                        {menu}
+                                        <Divider style={{ margin: '8px 0' }} />
+                                        <div style={{ display: 'flex', alignItems: 'center', padding: '0 8px 4px' }}>
+                                            <InputNumber
+                                                style={{ flex: 'auto' }}
+                                                min={1}
+                                                max={1024}
+                                                value={inputMemValue}
+                                                onChange={(value) => setInputMemValue(value || undefined)}
+                                                placeholder="新增内存大小"
+                                            />
+                                            <Button
+                                                color="default"
+                                                icon={<PlusOutlined />}
+                                                variant="text"
+                                                style={{ marginLeft: 10 }}
+                                                onClick={addNewMemOption}
+                                            >
+                                                新增
+                                            </Button>
+                                        </div>
+                                    </>
+                                )
+                            }}
                             rules={[{
                                 required: true,
                                 pattern: /^[1-9]\d*$/,
-                                message: "请选择内存大小。"
+                                message: "选择内存大小"
                             }]}
                         />
                     </ProCard>
 
-                    <ProCard title="存储" headerBordered>
+                    <ProCard title="存储">
                         {/* <ProFormSelect
                             width="lg"
                             label="存储类"
@@ -374,14 +425,13 @@ export default () => {
                                     if (!rootDisk) {
                                         return Promise.resolve()
                                     }
-                                    const spec = jsonParse(rootDisk?.spec)
-                                    const [value] = formatMemory(spec.pvc?.resources?.requests?.storage)
+                                    const [value] = formatMemory(rootDisk?.spec.pvc.resources.requests.storage)
                                     if (rootDiskCapacity <= parseInt(value)) {
                                         return Promise.reject()
                                     }
                                     return Promise.resolve()
                                 },
-                                message: "系统盘的磁盘空间容量需大于所选系统镜像的容量。"
+                                message: "系统盘的磁盘空间容量需大于所选系统镜像的容量"
                             }]}
                         >
                             <InputNumber<number>
@@ -408,11 +458,18 @@ export default () => {
                                     />
                                 )
                             }
-                            <Button type="dashed" onClick={() => setOpenDataDisk(true)}>添加数据盘</Button>
+                            <Button
+                                color="default"
+                                icon={<PlusOutlined />}
+                                variant="text"
+                                onClick={() => setOpenDrawer((prevState) => ({ ...prevState, dataDisk: true }))}
+                            >
+                                添加数据盘
+                            </Button>
                         </ProFormItem>
                     </ProCard>
 
-                    <ProCard title="网络" headerBordered>
+                    <ProCard title="网络">
                         <ProFormItem
                             name="networks"
                             label="网络接口"
@@ -424,7 +481,7 @@ export default () => {
                                     }
                                     return Promise.resolve()
                                 },
-                                message: "请添加网络接口。"
+                                message: "添加网络接口"
                             }]}
                         >
                             {
@@ -439,11 +496,18 @@ export default () => {
                                     />
                                 )
                             }
-                            <Button type="dashed" onClick={() => setOpenNetwork(true)}>添加网络</Button>
+                            <Button
+                                color="default"
+                                icon={<PlusOutlined />}
+                                variant="text"
+                                onClick={() => setOpenDrawer((prevState) => ({ ...prevState, network: true }))}
+                            >
+                                添加网络
+                            </Button>
                         </ProFormItem>
                     </ProCard>
 
-                    <ProCard title="高级设置" headerBordered>
+                    <ProCard title="高级设置">
                         <ProFormItem name="cloudInit" label="Cloud-Init">
                             <CodeMirror
                                 className={classNames(codeMirrorStyles["editor"], commonStyles["small-scrollbar"])}
@@ -451,7 +515,7 @@ export default () => {
                                 maxHeight="100vh"
                                 extensions={[langYaml()]}
                                 onChange={(value) => {
-                                    setCloudInit(value)
+                                    formRef.current?.setFieldValue("cloudInit", value)
                                 }}
                             />
                         </ProFormItem>
@@ -460,31 +524,34 @@ export default () => {
             </ProForm >
 
             <RootDiskDrawer
-                open={openRootDisk}
-                onCanel={() => setOpenRootDisk(false)}
+                open={openDrawer.rootDisk}
+                onCanel={() => setOpenDrawer((prevState) => ({ ...prevState, rootDisk: false }))}
                 current={rootDisk}
                 onConfirm={(data) => {
                     setRootDisk(data)
-                    setOpenRootDisk(false)
+                    setOpenDrawer((prevState) => ({ ...prevState, rootDisk: false }))
                     formRef.current?.setFieldValue("rootDisk", data)
+                    formRef.current?.validateFields(["rootDisk"])
                 }}
             />
 
             <DataDiskDrawer
-                open={openDataDisk}
-                onCanel={() => setOpenDataDisk(false)}
+                open={openDrawer.dataDisk}
+                onCanel={() => setOpenDrawer((prevState) => ({ ...prevState, dataDisk: false }))}
+
                 current={dataDisks}
                 onConfirm={(data) => {
                     setDataDisks(data)
-                    setOpenDataDisk(false)
+                    setOpenDrawer((prevState) => ({ ...prevState, dataDisk: false }))
                     formRef.current?.setFieldValue("dataDisks", data)
+                    formRef.current?.validateFields(["dataDisks"])
                 }}
             />
 
             <NetworkDrawer
-                open={openNetwork}
+                open={openDrawer.network}
+                onCanel={() => setOpenDrawer((prevState) => ({ ...prevState, network: false }))}
                 namespace={namespace}
-                onCanel={() => setOpenNetwork(false)}
                 onConfirm={(data) => {
                     const hasElement = networks.some(cfg => {
                         return cfg.multusCR.metadata?.name === data.multusCR.metadata?.name
@@ -494,8 +561,9 @@ export default () => {
                     }
                     const newNetworks = networks.concat(data)
                     setNetworks(newNetworks)
-                    setOpenNetwork(false)
+                    setOpenDrawer((prevState) => ({ ...prevState, network: false }))
                     formRef.current?.setFieldValue("networks", newNetworks)
+                    formRef.current?.validateFields(["networks"])
                 }}
             />
         </>

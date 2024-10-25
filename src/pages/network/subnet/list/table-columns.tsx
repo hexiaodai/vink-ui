@@ -1,21 +1,20 @@
 import { ProColumns } from "@ant-design/pro-components"
 import { Badge, Dropdown, Flex, MenuProps, Modal, Popover, Tag } from "antd"
 import { EllipsisOutlined } from '@ant-design/icons'
-import { formatTimestamp, jsonParse, parseSpec } from '@/utils/utils'
+import { formatTimestamp, jsonParse } from '@/utils/utils'
 import { NotificationInstance } from "antd/es/notification/interface"
-import { CustomResourceDefinition } from "@/apis/apiextensions/v1alpha1/custom_resource_definition"
 import { subnetStatus } from "@/utils/resource-status"
 import { GroupVersionResourceEnum } from "@/apis/types/group_version"
 import { clients } from "@/clients/clients"
 
 const columnsFunc = (actionRef: any, notification: NotificationInstance) => {
-    const columns: ProColumns<CustomResourceDefinition>[] = [
+    const columns: ProColumns<any>[] = [
         {
             key: 'name',
             title: '名称',
             fixed: 'left',
             ellipsis: true,
-            render: (_, subnet) => subnet.metadata?.name
+            render: (_, subnet) => subnet.metadata.name
         },
         {
             key: 'status',
@@ -27,34 +26,27 @@ const columnsFunc = (actionRef: any, notification: NotificationInstance) => {
             key: 'provider',
             title: 'Provider',
             ellipsis: true,
-            render: (_, subnet) => {
-                const spec = jsonParse(subnet.spec)
-                return spec.provider
-            }
+            render: (_, subnet) => subnet.spec.provider
         },
         {
             key: 'vpc',
             title: 'VPC',
             ellipsis: true,
-            render: (_, subnet) => {
-                const spec = jsonParse(subnet.spec)
-                return spec.vpc
-            }
+            render: (_, subnet) => subnet.spec.vpc
         },
         {
             key: 'namespace',
             title: '命名空间',
             ellipsis: true,
             render: (_, subnet) => {
-                const spec = parseSpec(subnet)
-                let ns = spec.namespaces
-                if (!ns || ns.length === 0) {
+                let nss = subnet.spec.namespaces
+                if (!nss || nss.length === 0) {
                     return
                 }
 
                 const content = (
                     <Flex wrap gap="4px 0" style={{ maxWidth: 250 }}>
-                        {ns.map((element: any, index: any) => (
+                        {nss.map((element: any, index: any) => (
                             <Tag key={index} bordered={true}>
                                 {element}
                             </Tag>
@@ -64,8 +56,8 @@ const columnsFunc = (actionRef: any, notification: NotificationInstance) => {
 
                 return (
                     <Popover content={content}>
-                        <Tag bordered={true}>{ns[0]}</Tag>
-                        +{ns.length}
+                        <Tag bordered={true}>{nss[0]}</Tag>
+                        +{nss.length}
                     </Popover>
                 )
             }
@@ -74,37 +66,26 @@ const columnsFunc = (actionRef: any, notification: NotificationInstance) => {
             key: 'protocol',
             title: 'Protocol',
             ellipsis: true,
-            render: (_, subnet) => {
-                const spec = jsonParse(subnet.spec)
-                return spec.protocol
-            }
+            render: (_, subnet) => subnet.spec.protocol
         },
         {
             key: 'cidr',
             title: 'CIDR',
             ellipsis: true,
-            render: (_, subnet) => {
-                const spec = jsonParse(subnet.spec)
-                return spec.cidrBlock
-            }
+            render: (_, subnet) => subnet.spec.cidrBlock
         },
         {
             key: 'nat',
             title: 'NAT',
             ellipsis: true,
-            render: (_, subnet) => {
-                const spec = jsonParse(subnet.spec)
-                return String(spec.natOutgoing)
-            }
+            render: (_, subnet) => String(subnet.spec.natOutgoing)
         },
         {
             key: 'available',
             title: '可用 IP 数量',
             ellipsis: true,
             render: (_, subnet) => {
-                const spec = jsonParse(subnet.spec)
-                const status = jsonParse(subnet.status)
-                const count = spec.protocol == "IPv4" ? status?.v4availableIPs : status?.v6availableIPs
+                const count = subnet.spec.protocol == "IPv4" ? subnet.status?.v4availableIPs : subnet.status?.v6availableIPs
                 return String(count ? count : 0)
             }
         },
@@ -113,9 +94,7 @@ const columnsFunc = (actionRef: any, notification: NotificationInstance) => {
             title: '已用 IP 数量',
             ellipsis: true,
             render: (_, subnet) => {
-                const spec = jsonParse(subnet.spec)
-                const status = jsonParse(subnet.status)
-                const count = spec.protocol == "IPv4" ? status?.v4usingIPs : status?.v6usingIPs
+                const count = subnet.spec.protocol == "IPv4" ? subnet.status?.v4usingIPs : subnet.status?.v6usingIPs
                 return String(count ? count : 0)
             }
         },
@@ -124,8 +103,8 @@ const columnsFunc = (actionRef: any, notification: NotificationInstance) => {
             title: '创建时间',
             width: 160,
             ellipsis: true,
-            render: (_, mc) => {
-                return formatTimestamp(mc.metadata?.creationTimestamp)
+            render: (_, subnet) => {
+                return formatTimestamp(subnet.metadata.creationTimestamp)
             }
         },
         {
@@ -134,8 +113,8 @@ const columnsFunc = (actionRef: any, notification: NotificationInstance) => {
             fixed: 'right',
             width: 90,
             align: 'center',
-            render: (_, mc) => {
-                const items = actionItemsFunc(mc, actionRef, notification)
+            render: (_, subnet) => {
+                const items = actionItemsFunc(subnet, actionRef, notification)
                 return (
                     <Dropdown menu={{ items }} trigger={['click']}>
                         <EllipsisOutlined />
@@ -147,8 +126,8 @@ const columnsFunc = (actionRef: any, notification: NotificationInstance) => {
     return columns
 }
 
-const actionItemsFunc = (m: CustomResourceDefinition, actionRef: any, notification: NotificationInstance) => {
-    const name = m.metadata?.name!
+const actionItemsFunc = (subnet: any, actionRef: any, notification: NotificationInstance) => {
+    const name = subnet.metadata.name
 
     const items: MenuProps['items'] = [
         {
