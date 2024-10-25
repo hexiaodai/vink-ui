@@ -4,7 +4,6 @@
 * This file is a generated Typescript file for GRPC Gateway, DO NOT MODIFY
 */
 
-import * as VinkKubevmIoApisApiextensionsV1alpha1Custom_resource_definition from "../../../apiextensions/v1alpha1/custom_resource_definition.pb"
 import * as fm from "../../../fetch.pb"
 import * as VinkKubevmIoApisTypesGroup_version from "../../../types/group_version.pb"
 import * as VinkKubevmIoApisTypesList_options from "../../../types/list_options.pb"
@@ -23,7 +22,7 @@ export type ListWatchRequest = {
 
 export type ListWatchResponse = {
   eventType?: EventType
-  items?: VinkKubevmIoApisApiextensionsV1alpha1Custom_resource_definition.CustomResourceDefinition[]
+  items?: string[]
   deleted?: VinkKubevmIoApisTypesNamespace_name.NamespaceName
   options?: VinkKubevmIoApisTypesList_options.ListOptions
 }

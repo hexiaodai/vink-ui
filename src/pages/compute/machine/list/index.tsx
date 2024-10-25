@@ -1,41 +1,44 @@
 import { PlusOutlined, LoadingOutlined } from '@ant-design/icons'
 import { ProTable } from '@ant-design/pro-components'
 import { App, Button, Modal, Select, Space } from 'antd'
-import { useRef, useState } from 'react'
-import { namespaceName } from '@/utils/k8s'
+import { useEffect, useRef, useState } from 'react'
+import { namespaceNameKey } from '@/utils/k8s'
 import { NavLink, Params } from 'react-router-dom'
 import { VirtualMachinePowerStateRequest_PowerState } from '@/apis/management/virtualmachine/v1alpha1/virtualmachine'
-import { CustomResourceDefinition } from "@/apis/apiextensions/v1alpha1/custom_resource_definition"
 import { batchManageVirtualMachinePowerState } from "@/clients/virtualmachine"
 import { calcScroll, classNames, dataSource, generateMessage } from '@/utils/utils'
 import { useNamespace } from '@/common/context'
 import { GroupVersionResourceEnum } from '@/apis/types/group_version'
 import { clients } from '@/clients/clients'
+import { useWatchResources, ListWatchOptions } from '@/hooks/use-resource'
 import type { ActionType } from '@ant-design/pro-components'
 import tableStyles from '@/common/styles/table.module.less'
 import commonStyles from '@/common/styles/common.module.less'
 import columnsFunc from '@/pages/compute/machine/list/table-columns.tsx'
 
 export default () => {
-    const ctrl = useRef<AbortController>()
-
     const { notification } = App.useApp()
 
     const { namespace } = useNamespace()
 
     const [scroll, setScroll] = useState(150 * 11)
-    const [selectedRows, setSelectedRows] = useState<CustomResourceDefinition[]>([])
+
+    const [selectedRows, setSelectedRows] = useState<any[]>([])
 
     const actionRef = useRef<ActionType>()
 
-    const [virtualMachineSummarys, setVirtualMachineSummarys] = useState<Map<string, CustomResourceDefinition>>(new Map<string, CustomResourceDefinition>())
-
-    const watchVirtualMachineSummarys = clients.createWatchResource(GroupVersionResourceEnum.VIRTUAL_MACHINE_INSTANCE_SUMMARY, setVirtualMachineSummarys)
-
     const columns = columnsFunc(notification)
 
+    const [opts, setOpts] = useState<ListWatchOptions>({ namespace: namespace, fieldSelector: undefined })
+
+    const { resources: virtualMachineSummarys, loading } = useWatchResources(GroupVersionResourceEnum.VIRTUAL_MACHINE_INSTANCE_SUMMARY, opts)
+
+    useEffect(() => {
+        actionRef.current?.reload()
+    }, [namespace])
+
     return (
-        <ProTable<CustomResourceDefinition, Params>
+        <ProTable<any, Params>
             className={classNames(tableStyles["table-padding"], commonStyles["small-scrollbar"])}
             scroll={{ x: scroll }}
             rowSelection={{
@@ -106,17 +109,12 @@ export default () => {
             }}
             columns={columns}
             actionRef={actionRef}
-            loading={{ indicator: <LoadingOutlined /> }}
+            loading={{ spinning: loading, indicator: <LoadingOutlined /> }}
             dataSource={dataSource(virtualMachineSummarys)}
             request={async (params) => {
-                ctrl.current?.abort()
-                ctrl.current = new AbortController()
-
-                await watchVirtualMachineSummarys({
+                setOpts({
                     namespace: namespace,
-                    fieldSelector: (params.keyword && params.keyword.length > 0) ? `metadata.name=${params.keyword}` : undefined,
-                    notification: notification,
-                    abortCtrl: ctrl.current
+                    fieldSelector: (params.keyword && params.keyword.length > 0) ? `metadata.name=${params.keyword}` : undefined
                 })
                 return { success: true }
             }}
@@ -125,7 +123,7 @@ export default () => {
                 persistenceType: 'localStorage',
                 onChange: (obj) => setScroll(calcScroll(obj))
             }}
-            rowKey={(vm) => namespaceName(vm.metadata)}
+            rowKey={(vm) => namespaceNameKey(vm)}
             search={false}
             options={{
                 fullScreen: true,

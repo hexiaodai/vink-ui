@@ -21,7 +21,8 @@ message ListWatchRequest {
 
 message ListWatchResponse {
     EventType event_type = 1;
-    repeated vink.kubevm.io.apis.apiextensions.v1alpha1.CustomResourceDefinition items = 2;
+    // repeated vink.kubevm.io.apis.apiextensions.v1alpha1.CustomResourceDefinition items = 2;
+    repeated string items = 2;
     vink.kubevm.io.apis.types.NamespaceName deleted = 3;
     vink.kubevm.io.apis.types.ListOptions options = 4;
 }

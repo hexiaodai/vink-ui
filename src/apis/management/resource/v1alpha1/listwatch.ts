@@ -12,7 +12,6 @@ import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
 import { NamespaceName } from "../../../types/namespace_name";
-import { CustomResourceDefinition } from "../../../apiextensions/v1alpha1/custom_resource_definition";
 import { ListOptions } from "../../../types/list_options";
 import { GroupVersionResourceIdentifier } from "../../../types/group_version";
 /**
@@ -37,9 +36,11 @@ export interface ListWatchResponse {
      */
     eventType: EventType;
     /**
-     * @generated from protobuf field: repeated vink.kubevm.io.apis.apiextensions.v1alpha1.CustomResourceDefinition items = 2;
+     * repeated vink.kubevm.io.apis.apiextensions.v1alpha1.CustomResourceDefinition items = 2;
+     *
+     * @generated from protobuf field: repeated string items = 2;
      */
-    items: CustomResourceDefinition[];
+    items: string[];
     /**
      * @generated from protobuf field: vink.kubevm.io.apis.types.NamespaceName deleted = 3;
      */
@@ -124,7 +125,7 @@ class ListWatchResponse$Type extends MessageType<ListWatchResponse> {
     constructor() {
         super("vink.kubevm.io.apis.management.resource.v1alpha1.ListWatchResponse", [
             { no: 1, name: "event_type", kind: "enum", T: () => ["vink.kubevm.io.apis.management.resource.v1alpha1.EventType", EventType] },
-            { no: 2, name: "items", kind: "message", repeat: 1 /*RepeatType.PACKED*/, T: () => CustomResourceDefinition },
+            { no: 2, name: "items", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "deleted", kind: "message", T: () => NamespaceName },
             { no: 4, name: "options", kind: "message", T: () => ListOptions }
         ]);
@@ -145,8 +146,8 @@ class ListWatchResponse$Type extends MessageType<ListWatchResponse> {
                 case /* vink.kubevm.io.apis.management.resource.v1alpha1.EventType event_type */ 1:
                     message.eventType = reader.int32();
                     break;
-                case /* repeated vink.kubevm.io.apis.apiextensions.v1alpha1.CustomResourceDefinition items */ 2:
-                    message.items.push(CustomResourceDefinition.internalBinaryRead(reader, reader.uint32(), options));
+                case /* repeated string items */ 2:
+                    message.items.push(reader.string());
                     break;
                 case /* vink.kubevm.io.apis.types.NamespaceName deleted */ 3:
                     message.deleted = NamespaceName.internalBinaryRead(reader, reader.uint32(), options, message.deleted);
@@ -169,9 +170,9 @@ class ListWatchResponse$Type extends MessageType<ListWatchResponse> {
         /* vink.kubevm.io.apis.management.resource.v1alpha1.EventType event_type = 1; */
         if (message.eventType !== 0)
             writer.tag(1, WireType.Varint).int32(message.eventType);
-        /* repeated vink.kubevm.io.apis.apiextensions.v1alpha1.CustomResourceDefinition items = 2; */
+        /* repeated string items = 2; */
         for (let i = 0; i < message.items.length; i++)
-            CustomResourceDefinition.internalBinaryWrite(message.items[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+            writer.tag(2, WireType.LengthDelimited).string(message.items[i]);
         /* vink.kubevm.io.apis.types.NamespaceName deleted = 3; */
         if (message.deleted)
             NamespaceName.internalBinaryWrite(message.deleted, writer.tag(3, WireType.LengthDelimited).fork(), options).join();

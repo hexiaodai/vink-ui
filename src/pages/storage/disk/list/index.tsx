@@ -4,7 +4,6 @@ import { App, Button, Modal, Select, Space } from 'antd'
 import { useEffect, useRef, useState } from 'react'
 import { namespaceName } from '@/utils/k8s'
 import { NavLink, Params } from 'react-router-dom'
-import { CustomResourceDefinition } from "@/apis/apiextensions/v1alpha1/custom_resource_definition"
 import { calcScroll, classNames, dataSource, generateMessage } from '@/utils/utils'
 import { useNamespace } from '@/common/context'
 import { clients } from '@/clients/clients'
@@ -14,22 +13,23 @@ import type { ActionType } from '@ant-design/pro-components'
 import tableStyles from '@/common/styles/table.module.less'
 import commonStyles from '@/common/styles/common.module.less'
 import columnsFunc from '@/pages/storage/disk/list/table-columns.tsx'
+import { ListWatchOptions, useWatchResources } from '@/hooks/use-resource'
 
 export default () => {
-    const ctrl = useRef<AbortController>()
+    // const ctrl = useRef<AbortController>()
 
     const { notification } = App.useApp()
 
     const { namespace } = useNamespace()
 
     const [scroll, setScroll] = useState(150 * 9)
-    const [selectedRows, setSelectedRows] = useState<CustomResourceDefinition[]>([])
+    const [selectedRows, setSelectedRows] = useState<any[]>([])
 
     const actionRef = useRef<ActionType>()
 
-    const [disk, setDisk] = useState<Map<string, CustomResourceDefinition>>(new Map<string, CustomResourceDefinition>())
+    const [opts, setOpts] = useState<ListWatchOptions>({ namespace: namespace, labelSelector: `${labels.VinkDatavolumeType.name}!=image` })
 
-    const watchDataDisks = clients.createWatchResource(GroupVersionResourceEnum.DATA_VOLUME, setDisk)
+    const { resources: disks, loading } = useWatchResources(GroupVersionResourceEnum.DATA_VOLUME, opts)
 
     const columns = columnsFunc(notification)
 
@@ -37,15 +37,8 @@ export default () => {
         actionRef.current?.reload()
     }, [namespace])
 
-    useEffect(() => {
-        return () => {
-            console.log('Component is unmounting and aborting operation')
-            ctrl.current?.abort()
-        }
-    }, [])
-
     return (
-        <ProTable<CustomResourceDefinition, Params>
+        <ProTable<any, Params>
             className={classNames(tableStyles["table-padding"], commonStyles["small-scrollbar"])}
             scroll={{ x: scroll }}
             rowSelection={{
@@ -85,18 +78,13 @@ export default () => {
             }}
             columns={columns}
             actionRef={actionRef}
-            loading={{ indicator: <LoadingOutlined /> }}
-            dataSource={dataSource(disk)}
+            loading={{ spinning: loading, indicator: <LoadingOutlined /> }}
+            dataSource={dataSource(disks)}
             request={async (params) => {
-                ctrl.current?.abort()
-                ctrl.current = new AbortController()
-
-                await watchDataDisks({
+                setOpts({
                     namespace: namespace,
                     labelSelector: `${labels.VinkDatavolumeType.name}!=image`,
-                    fieldSelector: (params.keyword && params.keyword.length > 0) ? `metadata.name=${params.keyword}` : undefined,
-                    notification: notification,
-                    abortCtrl: ctrl.current
+                    fieldSelector: (params.keyword && params.keyword.length > 0) ? `metadata.name=${params.keyword}` : undefined
                 })
                 return { success: true }
             }}

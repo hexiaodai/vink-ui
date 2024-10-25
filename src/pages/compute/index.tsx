@@ -5,6 +5,7 @@ import { lazyComponents } from '@/components/lazy'
 
 const MachineList = lazy(() => import("@/pages/compute/machine/list"))
 const MachineCreate = lazy(() => import("@/pages/compute/machine/create"))
+const MachineDetail = lazy(() => import("@/pages/compute/machine/detail"))
 
 const Virtual = () => {
     return (
@@ -14,6 +15,7 @@ const Virtual = () => {
                     <Route path="machines">
                         <Route path="" element={lazyComponents(<MachineList />)} />
                         <Route path="create" element={lazyComponents(<MachineCreate />)} />
+                        <Route path="detail" element={lazyComponents(<MachineDetail />)} />
                     </Route>
                 </Route>
             </Routes>

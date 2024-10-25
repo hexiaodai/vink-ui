@@ -4,40 +4,32 @@ import { App, Button, Modal, Select, Space } from 'antd'
 import { useEffect, useRef, useState } from 'react'
 import { namespaceName } from '@/utils/k8s'
 import { NavLink, Params } from 'react-router-dom'
-import { CustomResourceDefinition } from "@/apis/apiextensions/v1alpha1/custom_resource_definition"
 import { calcScroll, classNames, dataSource, generateMessage } from '@/utils/utils'
 import { GroupVersionResourceEnum } from '@/apis/types/group_version'
 import { clients } from '@/clients/clients'
+import { ListWatchOptions, useWatchResources } from '@/hooks/use-resource'
 import type { ActionType } from '@ant-design/pro-components'
 import tableStyles from '@/common/styles/table.module.less'
 import commonStyles from '@/common/styles/common.module.less'
 import columnsFunc from '@/pages/network/subnet/list/table-columns.tsx'
 
 export default () => {
-    const ctrl = useRef<AbortController>()
-
     const { notification } = App.useApp()
 
     const [scroll, setScroll] = useState(150 * 11)
-    const [selectedRows, setSelectedRows] = useState<CustomResourceDefinition[]>([])
+
+    const [selectedRows, setSelectedRows] = useState<any[]>([])
 
     const actionRef = useRef<ActionType>()
 
-    const [subnets, setSubnets] = useState<Map<string, CustomResourceDefinition>>(new Map<string, CustomResourceDefinition>())
-
-    const watchSubnets = clients.createWatchResource(GroupVersionResourceEnum.SUBNET, setSubnets)
-
     const columns = columnsFunc(actionRef, notification)
 
-    useEffect(() => {
-        return () => {
-            console.log('Component is unmounting and aborting operation')
-            ctrl.current?.abort()
-        }
-    }, [])
+    const [opts, setOpts] = useState<ListWatchOptions>()
+
+    const { resources: subnets, loading } = useWatchResources(GroupVersionResourceEnum.SUBNET, opts)
 
     return (
-        <ProTable<CustomResourceDefinition, Params>
+        <ProTable<any, Params>
             className={classNames(tableStyles["table-padding"], commonStyles["small-scrollbar"])}
             scroll={{ x: scroll }}
             rowSelection={{
@@ -79,16 +71,11 @@ export default () => {
             }}
             columns={columns}
             actionRef={actionRef}
-            loading={{ indicator: <LoadingOutlined /> }}
+            loading={{ spinning: loading, indicator: <LoadingOutlined /> }}
             dataSource={dataSource(subnets)}
             request={async (params) => {
-                ctrl.current?.abort()
-                ctrl.current = new AbortController()
-
-                await watchSubnets({
-                    fieldSelector: (params.keyword && params.keyword.length > 0) ? `metadata.name=${params.keyword}` : undefined,
-                    notification: notification,
-                    abortCtrl: ctrl.current
+                setOpts({
+                    fieldSelector: (params.keyword && params.keyword.length > 0) ? `metadata.name=${params.keyword}` : undefined
                 })
                 return { success: true }
             }}

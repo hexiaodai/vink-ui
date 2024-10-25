@@ -8,7 +8,6 @@ package v1alpha1
 
 import (
 	context "context"
-	v1alpha1 "github.com/kubevm.io/vink/apis/apiextensions/v1alpha1"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -24,9 +23,12 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ResourceManagementClient interface {
-	Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*v1alpha1.CustomResourceDefinition, error)
-	Create(ctx context.Context, in *CreateRequest, opts ...grpc.CallOption) (*v1alpha1.CustomResourceDefinition, error)
-	Update(ctx context.Context, in *UpdateRequest, opts ...grpc.CallOption) (*v1alpha1.CustomResourceDefinition, error)
+	// rpc Get(GetRequest) returns (vink.kubevm.io.apis.apiextensions.v1alpha1.CustomResourceDefinition);
+	// rpc Create(CreateRequest) returns (vink.kubevm.io.apis.apiextensions.v1alpha1.CustomResourceDefinition);
+	// rpc Update(UpdateRequest) returns (vink.kubevm.io.apis.apiextensions.v1alpha1.CustomResourceDefinition);
+	Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*CustomResourceDefinitionResponse, error)
+	Create(ctx context.Context, in *CreateRequest, opts ...grpc.CallOption) (*CustomResourceDefinitionResponse, error)
+	Update(ctx context.Context, in *UpdateRequest, opts ...grpc.CallOption) (*CustomResourceDefinitionResponse, error)
 	Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
@@ -38,8 +40,8 @@ func NewResourceManagementClient(cc grpc.ClientConnInterface) ResourceManagement
 	return &resourceManagementClient{cc}
 }
 
-func (c *resourceManagementClient) Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*v1alpha1.CustomResourceDefinition, error) {
-	out := new(v1alpha1.CustomResourceDefinition)
+func (c *resourceManagementClient) Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*CustomResourceDefinitionResponse, error) {
+	out := new(CustomResourceDefinitionResponse)
 	err := c.cc.Invoke(ctx, "/vink.kubevm.io.apis.management.resource.v1alpha1.ResourceManagement/Get", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -47,8 +49,8 @@ func (c *resourceManagementClient) Get(ctx context.Context, in *GetRequest, opts
 	return out, nil
 }
 
-func (c *resourceManagementClient) Create(ctx context.Context, in *CreateRequest, opts ...grpc.CallOption) (*v1alpha1.CustomResourceDefinition, error) {
-	out := new(v1alpha1.CustomResourceDefinition)
+func (c *resourceManagementClient) Create(ctx context.Context, in *CreateRequest, opts ...grpc.CallOption) (*CustomResourceDefinitionResponse, error) {
+	out := new(CustomResourceDefinitionResponse)
 	err := c.cc.Invoke(ctx, "/vink.kubevm.io.apis.management.resource.v1alpha1.ResourceManagement/Create", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -56,8 +58,8 @@ func (c *resourceManagementClient) Create(ctx context.Context, in *CreateRequest
 	return out, nil
 }
 
-func (c *resourceManagementClient) Update(ctx context.Context, in *UpdateRequest, opts ...grpc.CallOption) (*v1alpha1.CustomResourceDefinition, error) {
-	out := new(v1alpha1.CustomResourceDefinition)
+func (c *resourceManagementClient) Update(ctx context.Context, in *UpdateRequest, opts ...grpc.CallOption) (*CustomResourceDefinitionResponse, error) {
+	out := new(CustomResourceDefinitionResponse)
 	err := c.cc.Invoke(ctx, "/vink.kubevm.io.apis.management.resource.v1alpha1.ResourceManagement/Update", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -78,9 +80,12 @@ func (c *resourceManagementClient) Delete(ctx context.Context, in *DeleteRequest
 // All implementations must embed UnimplementedResourceManagementServer
 // for forward compatibility
 type ResourceManagementServer interface {
-	Get(context.Context, *GetRequest) (*v1alpha1.CustomResourceDefinition, error)
-	Create(context.Context, *CreateRequest) (*v1alpha1.CustomResourceDefinition, error)
-	Update(context.Context, *UpdateRequest) (*v1alpha1.CustomResourceDefinition, error)
+	// rpc Get(GetRequest) returns (vink.kubevm.io.apis.apiextensions.v1alpha1.CustomResourceDefinition);
+	// rpc Create(CreateRequest) returns (vink.kubevm.io.apis.apiextensions.v1alpha1.CustomResourceDefinition);
+	// rpc Update(UpdateRequest) returns (vink.kubevm.io.apis.apiextensions.v1alpha1.CustomResourceDefinition);
+	Get(context.Context, *GetRequest) (*CustomResourceDefinitionResponse, error)
+	Create(context.Context, *CreateRequest) (*CustomResourceDefinitionResponse, error)
+	Update(context.Context, *UpdateRequest) (*CustomResourceDefinitionResponse, error)
 	Delete(context.Context, *DeleteRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedResourceManagementServer()
 }
@@ -89,13 +94,13 @@ type ResourceManagementServer interface {
 type UnimplementedResourceManagementServer struct {
 }
 
-func (UnimplementedResourceManagementServer) Get(context.Context, *GetRequest) (*v1alpha1.CustomResourceDefinition, error) {
+func (UnimplementedResourceManagementServer) Get(context.Context, *GetRequest) (*CustomResourceDefinitionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Get not implemented")
 }
-func (UnimplementedResourceManagementServer) Create(context.Context, *CreateRequest) (*v1alpha1.CustomResourceDefinition, error) {
+func (UnimplementedResourceManagementServer) Create(context.Context, *CreateRequest) (*CustomResourceDefinitionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Create not implemented")
 }
-func (UnimplementedResourceManagementServer) Update(context.Context, *UpdateRequest) (*v1alpha1.CustomResourceDefinition, error) {
+func (UnimplementedResourceManagementServer) Update(context.Context, *UpdateRequest) (*CustomResourceDefinitionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Update not implemented")
 }
 func (UnimplementedResourceManagementServer) Delete(context.Context, *DeleteRequest) (*emptypb.Empty, error) {

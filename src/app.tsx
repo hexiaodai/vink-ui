@@ -1,29 +1,22 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { App, ConfigProvider, Select } from 'antd'
 import { PageContainer, ProLayout } from '@ant-design/pro-components'
 import { NavLink, useLocation } from 'react-router-dom'
 import { LayoutSettings } from '@/layout-config'
 import { NamespaceProvider, useNamespace } from '@/common/context'
-import { CustomResourceDefinition } from '@/apis/apiextensions/v1alpha1/custom_resource_definition'
-import { clients } from './clients/clients'
 import { GroupVersionResourceEnum } from './apis/types/group_version'
+import { useListResources } from './hooks/use-resource'
 import AppRouter from '@/router'
 import styles from '@/styles/app.module.less'
 
 export default () => {
-  const { notification } = App.useApp()
-
   const location = useLocation()
 
   const [pathname, setPathname] = useState(location.pathname)
-  const [namespaces, setNamespaces] = useState<CustomResourceDefinition[]>([])
+
   const [collapsed, setCollapsed] = useState(false)
 
-  useEffect(() => {
-    clients.listResources(GroupVersionResourceEnum.NAMESPACE, setNamespaces, {
-      notification: notification
-    })
-  }, [])
+  const { resources: namespaces } = useListResources(GroupVersionResourceEnum.NAMESPACE)
 
   return (
     <ConfigProvider
@@ -56,7 +49,7 @@ export default () => {
                 onChange={(value) => setNamespace(value)}
                 options={[
                   { value: '', label: '全部工作空间' },
-                  ...namespaces.map((ns: CustomResourceDefinition) => ({
+                  ...namespaces.map((ns: any) => ({
                     value: ns.metadata?.name,
                     label: ns.metadata?.name
                   }))

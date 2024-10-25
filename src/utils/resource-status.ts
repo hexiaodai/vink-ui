@@ -1,5 +1,5 @@
-import { CustomResourceDefinition } from "@/apis/apiextensions/v1alpha1/custom_resource_definition"
-import { parseStatus } from "./utils"
+// import { CustomResourceDefinition } from "@/apis/apiextensions/v1alpha1/custom_resource_definition"
+// import { parseStatus } from "./utils"
 
 interface Status { badge: 'default' | 'processing' | 'success' | 'warning' | 'error', text: string }
 
@@ -49,11 +49,10 @@ export const dataVolumeStatusMap: { [key: string]: Status } = {
     'RebindInProgress': { badge: "processing", text: '正在迁移' },
 }
 
-export const subnetStatus = (subnet: CustomResourceDefinition): Status => {
+export const subnetStatus = (subnet: any): Status => {
     let output: Status = { badge: "warning", text: "未就绪" }
-    const status = parseStatus(subnet)
 
-    const result = status.conditions?.find((item: any) => {
+    const result = subnet.status.conditions?.find((item: any) => {
         if (item.type == "Ready") {
             return true
         }

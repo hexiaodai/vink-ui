@@ -7,7 +7,7 @@ import "types/object_meta.proto";
 option go_package = "github.com/kubevm.io/vink/apis/apiextensions/v1alpha1";
 
 // CustomResourceDefinition message of CustomResource definition
-message CustomResourceDefinition {
+message CustomResourceDefinitionBak {
     // Metadata is that all persisted resources must have, which includes all
     // objects
     vink.kubevm.io.apis.types.ObjectMeta metadata = 1;

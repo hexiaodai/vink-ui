@@ -2,9 +2,8 @@ import { ProColumns } from "@ant-design/pro-components"
 import { Dropdown, MenuProps, Modal, Badge } from "antd"
 import { formatMemory } from '@/utils/k8s'
 import { EllipsisOutlined } from '@ant-design/icons'
-import { jsonParse, formatTimestamp, parseStatus, parseSpec } from '@/utils/utils'
+import { formatTimestamp } from '@/utils/utils'
 import { NotificationInstance } from "antd/es/notification/interface"
-import { CustomResourceDefinition } from "@/apis/apiextensions/v1alpha1/custom_resource_definition"
 import { dataVolumeStatusMap } from "@/utils/resource-status"
 import { instances as labels } from '@/apis/sdks/ts/label/labels.gen'
 import { instances as annotations } from "@/apis/sdks/ts/annotation/annotations.gen"
@@ -12,7 +11,7 @@ import { clients } from "@/clients/clients"
 import { GroupVersionResourceEnum } from "@/apis/types/group_version"
 
 const columnsFunc = (notification: NotificationInstance) => {
-    const columns: ProColumns<CustomResourceDefinition>[] = [
+    const columns: ProColumns<any>[] = [
         {
             key: 'name',
             title: '名称',
@@ -25,9 +24,8 @@ const columnsFunc = (notification: NotificationInstance) => {
             title: '状态',
             ellipsis: true,
             render: (_, dv) => {
-                const status = parseStatus(dv)
-                const displayStatus = parseFloat(status.progress) === 100 ? dataVolumeStatusMap[status.phase].text : status.progress
-                return <Badge status={dataVolumeStatusMap[status.phase].badge} text={displayStatus} />
+                const displayStatus = parseFloat(dv.status.progress) === 100 ? dataVolumeStatusMap[dv.status.phase].text : dv.status.progress
+                return <Badge status={dataVolumeStatusMap[dv.status.phase].badge} text={displayStatus} />
             }
         },
         {
@@ -35,7 +33,7 @@ const columnsFunc = (notification: NotificationInstance) => {
             title: '资源占用',
             ellipsis: true,
             render: (_, dv) => {
-                const binding = dv.metadata?.annotations[annotations.VinkVirtualmachineBinding.name]
+                const binding = dv.metadata.annotations[annotations.VinkVirtualmachineBinding.name]
                 if (!binding) {
                     return "空闲"
                 }
@@ -57,8 +55,7 @@ const columnsFunc = (notification: NotificationInstance) => {
             key: 'capacity',
             ellipsis: true,
             render: (_, dv) => {
-                const spec = jsonParse(dv.spec)
-                const [value, uint] = formatMemory(spec.pvc?.resources?.requests?.storage)
+                const [value, uint] = formatMemory(dv.spec.pvc.resources.requests.storage)
                 return `${value} ${uint}`
             }
         },
@@ -66,13 +63,13 @@ const columnsFunc = (notification: NotificationInstance) => {
             title: '存储类',
             key: 'storageClassName',
             ellipsis: true,
-            render: (_, dv) => parseSpec(dv).pvc?.storageClassName
+            render: (_, dv) => dv.spec.pvc.storageClassName
         },
         {
             title: '访问模式',
             key: 'accessModes',
             ellipsis: true,
-            render: (_, dv) => parseSpec(dv).pvc?.accessModes[0]
+            render: (_, dv) => dv.spec.pvc.accessModes[0]
         },
         {
             key: 'created',
@@ -80,7 +77,7 @@ const columnsFunc = (notification: NotificationInstance) => {
             width: 160,
             ellipsis: true,
             render: (_, dv) => {
-                return formatTimestamp(dv.metadata?.creationTimestamp)
+                return formatTimestamp(dv.metadata.creationTimestamp)
             }
         },
         {
@@ -102,9 +99,9 @@ const columnsFunc = (notification: NotificationInstance) => {
     return columns
 }
 
-const actionItemsFunc = (vm: CustomResourceDefinition, notification: NotificationInstance) => {
-    const namespace = vm.metadata?.namespace!
-    const name = vm.metadata?.name!
+const actionItemsFunc = (vm: any, notification: NotificationInstance) => {
+    const namespace = vm.metadata.namespace
+    const name = vm.metadata.name
 
     const items: MenuProps['items'] = [
         {
@@ -141,12 +138,6 @@ const actionItemsFunc = (vm: CustomResourceDefinition, notification: Notificatio
         }
     ]
     return items
-}
-
-const statusConditions = (status: any) => {
-    return status.conditions
-        ?.filter((c: any) => c.message?.length > 0)
-        .map((c: any) => ({ message: c.message, status: c.status, lastProbeTime: c.lastProbeTime })) || []
 }
 
 export default columnsFunc

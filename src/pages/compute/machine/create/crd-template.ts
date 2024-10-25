@@ -30,10 +30,12 @@ spec:
       architecture: amd64
       domain:
         cpu:
-          cores: 0
+          cores: 1
           model: host-model
-          sockets: 2
-          threads: 1
+          sockets: 1
+          threads: 2
+        memory:
+          guest: 1Gi
         devices:
           disks: []
           interfaces:
@@ -47,6 +49,8 @@ spec:
         resources:
           requests:
             memory: 1Gi
+            cpu: "0"
+          limits: {}
       networks:
         - name: default
           pod: {}

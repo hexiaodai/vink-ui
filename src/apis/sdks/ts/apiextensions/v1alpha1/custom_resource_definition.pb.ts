@@ -5,7 +5,7 @@
 */
 
 import * as VinkKubevmIoApisTypesObject_meta from "../../types/object_meta.pb"
-export type CustomResourceDefinition = {
+export type CustomResourceDefinitionBak = {
   metadata?: VinkKubevmIoApisTypesObject_meta.ObjectMeta
   spec?: string
   status?: string

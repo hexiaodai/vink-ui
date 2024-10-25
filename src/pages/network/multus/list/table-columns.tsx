@@ -1,43 +1,25 @@
 import { ProColumns } from "@ant-design/pro-components"
 import { Dropdown, MenuProps, Modal } from "antd"
 import { EllipsisOutlined } from '@ant-design/icons'
-import { formatTimestamp, jsonParse } from '@/utils/utils'
+import { formatTimestamp, getProvider } from '@/utils/utils'
 import { NotificationInstance } from "antd/es/notification/interface"
-import { CustomResourceDefinition } from "@/apis/apiextensions/v1alpha1/custom_resource_definition"
 import { clients } from "@/clients/clients"
 import { GroupVersionResourceEnum } from "@/apis/types/group_version"
 
 const columnsFunc = (actionRef: any, notification: NotificationInstance) => {
-    const columns: ProColumns<CustomResourceDefinition>[] = [
+    const columns: ProColumns<any>[] = [
         {
             key: 'name',
             title: '名称',
             fixed: 'left',
             ellipsis: true,
-            render: (_, mc) => mc.metadata?.name
+            render: (_, mc) => mc.metadata.name
         },
         {
             key: 'provider',
             title: 'Provider',
             ellipsis: true,
-            render: (_, mc) => {
-                const kubeovn = "kube-ovn"
-                const spec = jsonParse(mc.spec)
-                if (!spec) return
-                const config = jsonParse(spec.config)
-                if (!config) return
-                if (config.type == kubeovn) {
-                    return config.provider
-                }
-                if (!config.plugins) return
-                for (let i = 0; i < config.plugins.length; i++) {
-                    const plugin = config.plugins[i]
-                    if (plugin.type == kubeovn) {
-                        return plugin.provider
-                    }
-                }
-                return
-            }
+            render: (_, mc) => getProvider(mc)
         },
         {
             key: 'created',
@@ -45,7 +27,7 @@ const columnsFunc = (actionRef: any, notification: NotificationInstance) => {
             width: 160,
             ellipsis: true,
             render: (_, mc) => {
-                return formatTimestamp(mc.metadata?.creationTimestamp)
+                return formatTimestamp(mc.metadata.creationTimestamp)
             }
         },
         {
@@ -67,9 +49,9 @@ const columnsFunc = (actionRef: any, notification: NotificationInstance) => {
     return columns
 }
 
-const actionItemsFunc = (m: CustomResourceDefinition, actionRef: any, notification: NotificationInstance) => {
-    const namespace = m.metadata?.namespace!
-    const name = m.metadata?.name!
+const actionItemsFunc = (mc: any, actionRef: any, notification: NotificationInstance) => {
+    const namespace = mc.metadata.namespace
+    const name = mc.metadata.name
 
     const items: MenuProps['items'] = [
         {

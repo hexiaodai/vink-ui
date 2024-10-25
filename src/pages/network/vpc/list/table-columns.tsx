@@ -1,14 +1,13 @@
 import { ProColumns } from "@ant-design/pro-components"
 import { Dropdown, Flex, MenuProps, Modal, Popover, Tag } from "antd"
 import { EllipsisOutlined } from '@ant-design/icons'
-import { formatTimestamp, parseSpec, parseStatus } from '@/utils/utils'
+import { formatTimestamp } from '@/utils/utils'
 import { NotificationInstance } from "antd/es/notification/interface"
-import { CustomResourceDefinition } from "@/apis/apiextensions/v1alpha1/custom_resource_definition"
 import { clients } from "@/clients/clients"
 import { GroupVersionResourceEnum } from "@/apis/types/group_version"
 
 const columnsFunc = (actionRef: any, notification: NotificationInstance) => {
-    const columns: ProColumns<CustomResourceDefinition>[] = [
+    const columns: ProColumns<any>[] = [
         {
             key: 'name',
             title: '名称',
@@ -21,15 +20,14 @@ const columnsFunc = (actionRef: any, notification: NotificationInstance) => {
             title: '命名空间',
             ellipsis: true,
             render: (_, vpc) => {
-                const spec = parseSpec(vpc)
-                let ns = spec.namespaces
-                if (!ns || ns.length === 0) {
+                let nss = vpc.spec.namespaces
+                if (!nss || nss.length === 0) {
                     return
                 }
 
                 const content = (
                     <Flex wrap gap="4px 0" style={{ maxWidth: 250 }}>
-                        {ns.map((element: any, index: any) => (
+                        {nss.map((element: any, index: any) => (
                             <Tag key={index} bordered={true}>
                                 {element}
                             </Tag>
@@ -39,8 +37,8 @@ const columnsFunc = (actionRef: any, notification: NotificationInstance) => {
 
                 return (
                     <Popover content={content}>
-                        <Tag bordered={true}>{ns[0]}</Tag>
-                        +{ns.length}
+                        <Tag bordered={true}>{nss[0]}</Tag>
+                        +{nss.length}
                     </Popover>
                 )
             }
@@ -50,15 +48,13 @@ const columnsFunc = (actionRef: any, notification: NotificationInstance) => {
             title: '子网',
             ellipsis: true,
             render: (_, vpc) => {
-                const status = parseStatus(vpc)
-                let subnets = status.subnets
-                if (!subnets || subnets.length === 0) {
+                if (!vpc.status?.subnets || vpc.status.subnets.length === 0) {
                     return
                 }
 
                 const content = (
                     <Flex wrap gap="4px 0" style={{ maxWidth: 250 }}>
-                        {subnets.map((element: any, index: any) => (
+                        {vpc.status.subnets.map((element: any, index: any) => (
                             <Tag key={index} bordered={true}>
                                 {element}
                             </Tag>
@@ -68,8 +64,8 @@ const columnsFunc = (actionRef: any, notification: NotificationInstance) => {
 
                 return (
                     <Popover content={content}>
-                        <Tag bordered={true}>{subnets[0]}</Tag>
-                        +{subnets.length}
+                        <Tag bordered={true}>{vpc.status.subnets[0]}</Tag>
+                        +{vpc.status.subnets.length}
                     </Popover>
                 )
             }
@@ -80,7 +76,7 @@ const columnsFunc = (actionRef: any, notification: NotificationInstance) => {
             width: 160,
             ellipsis: true,
             render: (_, mc) => {
-                return formatTimestamp(mc.metadata?.creationTimestamp)
+                return formatTimestamp(mc.metadata.creationTimestamp)
             }
         },
         {
@@ -102,8 +98,8 @@ const columnsFunc = (actionRef: any, notification: NotificationInstance) => {
     return columns
 }
 
-const actionItemsFunc = (m: CustomResourceDefinition, actionRef: any, notification: NotificationInstance) => {
-    const name = m.metadata?.name!
+const actionItemsFunc = (m: any, actionRef: any, notification: NotificationInstance) => {
+    const name = m.metadata.name
 
     const items: MenuProps['items'] = [
         {

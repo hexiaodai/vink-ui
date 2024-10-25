@@ -4,7 +4,6 @@ import { App, Button, Modal, Select, Space } from 'antd'
 import { useEffect, useRef, useState } from 'react'
 import { namespaceName } from '@/utils/k8s'
 import { NavLink, Params } from 'react-router-dom'
-import { CustomResourceDefinition } from "@/apis/apiextensions/v1alpha1/custom_resource_definition"
 import { calcScroll, classNames, generateMessage } from '@/utils/utils'
 import { clients } from '@/clients/clients'
 import { GroupVersionResourceEnum } from '@/apis/types/group_version'
@@ -14,28 +13,20 @@ import commonStyles from '@/common/styles/common.module.less'
 import columnsFunc from '@/pages/network/ippool/list/table-columns.tsx'
 
 export default () => {
-    const ctrl = useRef<AbortController>()
-
     const { notification } = App.useApp()
 
     const [scroll, setScroll] = useState(150 * 6)
-    const [selectedRows, setSelectedRows] = useState<CustomResourceDefinition[]>([])
+
+    const [selectedRows, setSelectedRows] = useState<any[]>([])
 
     const actionRef = useRef<ActionType>()
 
-    const [ippools, setIPPools] = useState<CustomResourceDefinition[]>([])
+    const [ippools, setIPPools] = useState<any[]>([])
 
     const columns = columnsFunc(actionRef, notification)
 
-    useEffect(() => {
-        return () => {
-            console.log('Component is unmounting and aborting operation')
-            ctrl.current?.abort()
-        }
-    }, [])
-
     return (
-        <ProTable<CustomResourceDefinition, Params>
+        <ProTable<any, Params>
             className={classNames(tableStyles["table-padding"], commonStyles["small-scrollbar"])}
             scroll={{ x: scroll }}
             rowSelection={{
@@ -80,13 +71,14 @@ export default () => {
             loading={{ indicator: <LoadingOutlined /> }}
             dataSource={ippools}
             request={async (params) => {
-                ctrl.current?.abort()
-                ctrl.current = new AbortController()
-
-                await clients.listResources(GroupVersionResourceEnum.IPPOOL, setIPPools, {
-                    fieldSelector: (params.keyword && params.keyword.length > 0) ? `metadata.name=${params.keyword}` : undefined,
-                    notification: notification
-                })
+                try {
+                    const ippools = await clients.fetchResources(GroupVersionResourceEnum.IPPOOL, {
+                        fieldSelector: (params.keyword && params.keyword.length > 0) ? `metadata.name=${params.keyword}` : undefined
+                    })
+                    setIPPools(ippools)
+                } catch (err: any) {
+                    notification.error({ message: err })
+                }
                 return { success: true }
             }}
             columnsState={{

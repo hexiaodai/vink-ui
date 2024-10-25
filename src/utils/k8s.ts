@@ -62,3 +62,16 @@ export const namespaceName = <T extends ObjectMeta>(obj?: T) => {
     if (!obj) return ""
     return `${obj.namespace}/${obj.name}`
 }
+
+export const namespaceNameKey = (obj: any) => {
+    if (obj.metadata && typeof obj.metadata.namespace === 'string' && typeof obj.metadata.name === 'string') {
+        return `${obj.metadata.namespace}/${obj.metadata.name}`
+    } else if (typeof obj.namespace === 'string' && typeof obj.name === 'string') {
+        return `${obj.namespace}/${obj.name}`
+    } else if (typeof obj.metadata.name === 'string') {
+        return obj.metadata.name
+    } else if (typeof obj.name === 'string') {
+        return obj.name
+    }
+    return ""
+}

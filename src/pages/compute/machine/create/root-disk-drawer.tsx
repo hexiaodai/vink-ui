@@ -1,30 +1,27 @@
 import { LoadingOutlined } from '@ant-design/icons'
 import { ProTable } from '@ant-design/pro-components'
-import { App, Button, Drawer, Flex, Select, Space } from 'antd'
+import { Button, Drawer, Flex, Select, Space } from 'antd'
 import { useEffect, useRef, useState } from 'react'
 import { namespaceName } from '@/utils/k8s'
 import { Params } from 'react-router-dom'
-import { CustomResourceDefinition } from "@/apis/apiextensions/v1alpha1/custom_resource_definition"
 import { instances as labels } from "@/apis/sdks/ts/label/labels.gen"
 import { rootDiskDrawerColumns } from './table-columns'
-import { clients } from '@/clients/clients'
 import { GroupVersionResourceEnum } from '@/apis/types/group_version'
 import type { ActionType } from '@ant-design/pro-components'
 import React from 'react'
 import tableStyles from '@/common/styles/table.module.less'
+import { ListWatchOptions, useListResources } from '@/hooks/use-resource'
 
 interface RootDiskDrawerProps {
     open?: boolean
     namespace?: string
-    current?: CustomResourceDefinition
+    current?: any
     onCanel?: () => void
-    onConfirm?: (rootDisk?: CustomResourceDefinition) => void
+    onConfirm?: (rootDisk?: any) => void
 }
 
 export const RootDiskDrawer: React.FC<RootDiskDrawerProps> = ({ open, current, onCanel, onConfirm }) => {
-    const { notification } = App.useApp()
-
-    const [selectedRows, setSelectedRows] = useState<CustomResourceDefinition[]>([])
+    const [selectedRows, setSelectedRows] = useState<any[]>([])
 
     useEffect(() => {
         setSelectedRows(current ? [current] : [])
@@ -32,7 +29,9 @@ export const RootDiskDrawer: React.FC<RootDiskDrawerProps> = ({ open, current, o
 
     const actionRef = useRef<ActionType>()
 
-    const [images, setImages] = useState<CustomResourceDefinition[]>([])
+    const [opts, setOpts] = useState<ListWatchOptions>({ labelSelector: `${labels.VinkDatavolumeType.name}=image` })
+
+    const { resources: images } = useListResources(GroupVersionResourceEnum.DATA_VOLUME, opts)
 
     return (
         <Drawer
@@ -55,7 +54,7 @@ export const RootDiskDrawer: React.FC<RootDiskDrawerProps> = ({ open, current, o
                 </Flex>
             }
         >
-            <ProTable<CustomResourceDefinition, Params>
+            <ProTable<any, Params>
                 className={tableStyles["table-padding"]}
                 rowSelection={{
                     type: 'radio',
@@ -70,10 +69,9 @@ export const RootDiskDrawer: React.FC<RootDiskDrawerProps> = ({ open, current, o
                 loading={{ indicator: <LoadingOutlined /> }}
                 dataSource={images}
                 request={async (params) => {
-                    await clients.listResources(GroupVersionResourceEnum.DATA_VOLUME, setImages, {
+                    setOpts({
                         labelSelector: `${labels.VinkDatavolumeType.name}=image`,
-                        fieldSelector: (params.keyword && params.keyword.length > 0) ? `metadata.name=${params.keyword}` : undefined,
-                        notification: notification
+                        fieldSelector: (params.keyword && params.keyword.length > 0) ? `metadata.name=${params.keyword}` : undefined
                     })
                     return { success: true }
                 }}

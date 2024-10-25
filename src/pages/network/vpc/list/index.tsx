@@ -1,10 +1,9 @@
 import { PlusOutlined, LoadingOutlined } from '@ant-design/icons'
 import { ProTable } from '@ant-design/pro-components'
 import { App, Button, Modal, Select, Space } from 'antd'
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { namespaceName } from '@/utils/k8s'
 import { NavLink, Params } from 'react-router-dom'
-import { CustomResourceDefinition } from "@/apis/apiextensions/v1alpha1/custom_resource_definition"
 import { classNames, generateMessage } from '@/utils/utils'
 import { clients } from '@/clients/clients'
 import { GroupVersionResourceEnum } from '@/apis/types/group_version'
@@ -13,29 +12,19 @@ import tableStyles from '@/common/styles/table.module.less'
 import commonStyles from '@/common/styles/common.module.less'
 import columnsFunc from '@/pages/network/vpc/list/table-columns.tsx'
 
-
 export default () => {
-    const ctrl = useRef<AbortController>()
-
     const { notification } = App.useApp()
 
-    const [selectedRows, setSelectedRows] = useState<CustomResourceDefinition[]>([])
+    const [selectedRows, setSelectedRows] = useState<any[]>([])
 
     const actionRef = useRef<ActionType>()
 
-    const [vpcs, setVpcs] = useState<CustomResourceDefinition[]>([])
+    const [vpcs, setVpcs] = useState<any[]>([])
 
     const columns = columnsFunc(actionRef, notification)
 
-    useEffect(() => {
-        return () => {
-            console.log('Component is unmounting and aborting operation')
-            ctrl.current?.abort()
-        }
-    }, [])
-
     return (
-        <ProTable<CustomResourceDefinition, Params>
+        <ProTable<any, Params>
             className={classNames(tableStyles["table-padding"], commonStyles["small-scrollbar"])}
             rowSelection={{
                 defaultSelectedRowKeys: [],
@@ -79,13 +68,14 @@ export default () => {
             loading={{ indicator: <LoadingOutlined /> }}
             dataSource={vpcs}
             request={async (params) => {
-                ctrl.current?.abort()
-                ctrl.current = new AbortController()
-
-                await clients.listResources(GroupVersionResourceEnum.VPC, setVpcs, {
-                    fieldSelector: (params.keyword && params.keyword.length > 0) ? `metadata.name=${params.keyword}` : undefined,
-                    notification: notification
-                })
+                try {
+                    const vpcs = await clients.fetchResources(GroupVersionResourceEnum.VPC, {
+                        fieldSelector: (params.keyword && params.keyword.length > 0) ? `metadata.name=${params.keyword}` : undefined,
+                    })
+                    setVpcs(vpcs)
+                } catch (err: any) {
+                    notification.error({ message: err })
+                }
                 return { success: true }
             }}
             columnsState={{
