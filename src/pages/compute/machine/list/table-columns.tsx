@@ -10,7 +10,7 @@ import { manageVirtualMachinePowerState } from "@/clients/virtualmachine"
 import { GroupVersionResourceEnum } from "@/apis/types/group_version"
 import { clients } from "@/clients/clients"
 import { Link } from "react-router-dom"
-import { rootDisk, virtualMachine, virtualMachineHost, virtualMachineIPs } from "@/utils/parse-summary"
+import { rootDisk, virtualMachine, virtualMachineInstance, virtualMachineIPs } from "@/utils/parse-summary"
 import TableColumnOperatingSystem from "@/components/table-column/operating-system"
 import commonStyles from '@/common/styles/common.module.less'
 
@@ -116,17 +116,14 @@ const columnsFunc = (notification: NotificationInstance) => {
             key: 'node',
             title: '节点',
             ellipsis: true,
-            render: (_, summary) => {
-                const host = virtualMachineHost(summary)
-                return host?.metadata.name
-            }
+            render: (_, summary) => virtualMachineInstance(summary)?.status?.nodeName
         },
         {
             key: 'nodeIP',
             title: '节点 IP',
             ellipsis: true,
             render: (_, summary) => {
-                const host = virtualMachineHost(summary)
+                const host = virtualMachineInstance(summary)
                 const interfaces = host?.status.addresses
                 if (!interfaces || interfaces.length === 0) {
                     return
@@ -180,7 +177,7 @@ const statusEqual = (status: any, target: string) => {
     return status.printableStatus as string === target
 }
 
-const actionItemsFunc = (vm: any, notification: NotificationInstance) => {
+export const actionItemsFunc = (vm: any, notification: NotificationInstance) => {
     const items: MenuProps['items'] = [
         {
             key: 'power',
