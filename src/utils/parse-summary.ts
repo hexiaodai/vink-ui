@@ -1,12 +1,9 @@
-// import { CustomResourceDefinition } from "@/apis/apiextensions/v1alpha1/custom_resource_definition"
-// import { jsonParse, parseStatus } from "./utils"
-
 export const virtualMachine = (virtualMachineSummarys?: any) => {
     return virtualMachineSummarys?.status?.virtualMachine
 }
 
-export const virtualMachineHost = (virtualMachineSummarys?: any) => {
-    return virtualMachineSummarys?.status?.host
+export const virtualMachineInstance = (virtualMachineSummarys?: any) => {
+    return virtualMachineSummarys?.status?.virtualMachineInstance
 }
 
 export const rootDisk = (virtualMachineSummarys?: any) => {
@@ -25,5 +22,5 @@ export const dataVolumes = (virtualMachineSummarys?: any, name?: string) => {
 }
 
 export const virtualMachineIPs = (virtualMachineSummarys?: any): any[] => {
-    return virtualMachineSummarys?.status?.networks?.ips
+    return virtualMachineSummarys?.status?.network?.ips
 }

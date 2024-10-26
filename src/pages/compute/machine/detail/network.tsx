@@ -8,6 +8,7 @@ import { GroupVersionResourceEnum } from '@/apis/types/group_version'
 import { namespaceNameKey } from '@/utils/k8s'
 import { LoadingOutlined } from '@ant-design/icons'
 import { clients } from '@/clients/clients'
+import { virtualMachineIPs } from '@/utils/parse-summary'
 import type { ProColumns } from '@ant-design/pro-components'
 import commonStyles from '@/common/styles/common.module.less'
 
@@ -55,7 +56,7 @@ export default () => {
         )
 
         const ipsMap = new Map<string, any>(
-            virtualMachineSummary.status?.networks?.ips?.map((item: any) => {
+            virtualMachineIPs(virtualMachineSummary)?.map((item: any) => {
                 const arr = item.metadata.name.split(".")
                 return [`${arr[1]}/${arr[2]}`, item]
             })

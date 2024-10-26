@@ -179,15 +179,13 @@ class Clients {
         })
     }
 
-    public batchDeleteResources = async (gvr: GroupVersionResourceEnum, resources: string[], opts: DeleteOptions) => {
+    public batchDeleteResources = async (gvr: GroupVersionResourceEnum, resources: any[], opts: DeleteOptions) => {
         const completed: string[] = []
         const failed: string[] = []
         const notificationSuccessKey = "batch-delete-resources-success"
         const notificationFailedKey = "batch-delete-resources-failed"
 
-        await Promise.all(resources.map(async (data) => {
-            const crd = JSON.parse(data)
-            // const crd = jsonParse(data)
+        await Promise.all(resources.map(async (crd) => {
             const namespace = crd.metadata.namespace
             const name = crd.metadata.name
 
