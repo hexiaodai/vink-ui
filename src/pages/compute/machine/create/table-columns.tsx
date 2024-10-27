@@ -4,7 +4,7 @@ import { formatMemoryString, namespaceName } from "@/utils/k8s"
 import { NetworkConfig } from "./network-drawer"
 import { ProColumns } from "@ant-design/pro-components"
 import { instances as annotations } from "@/apis/sdks/ts/annotation/annotations.gen"
-import TableColumnOperatingSystem from "@/components/table-column/operating-system"
+import OperatingSystem from "@/components/operating-system"
 
 export const getDataDiskColumns = (dataDisks: any[], setDataDisks: any) => {
     const dataDiskColumns: TableProps<any>['columns'] = [
@@ -116,7 +116,7 @@ export const rootDiskDrawerColumns: ProColumns<any>[] = [
         title: '操作系统',
         key: 'operatingSystem',
         ellipsis: true,
-        render: (_, dv) => <TableColumnOperatingSystem rootDataVolume={dv} />
+        render: (_, dv) => <OperatingSystem rootDataVolume={dv} />
     },
     {
         title: '容量',

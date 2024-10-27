@@ -1,11 +1,9 @@
 import { GroupVersionResourceEnum } from "@/apis/types/group_version"
-import { namespaceNameKey } from "@/utils/k8s"
 import { dataVolumeStatusMap } from "@/utils/resource-status"
 import { capacity } from "@/utils/utils"
 import { App, Badge, Modal, Space, Table, TableProps } from "antd"
-import { useEffect, useState } from "react"
 import { instances as labels } from '@/apis/sdks/ts/label/labels.gen'
-import { useWatchResources } from "@/hooks/use-resource"
+import { useWatchResourceInNamespaceName } from "@/hooks/use-resource"
 import { LoadingOutlined, StopOutlined } from '@ant-design/icons'
 import { useNamespaceFromURL } from "@/hooks/use-namespace-from-url"
 import { dataVolumes, virtualMachine } from "@/utils/parse-summary"
@@ -17,13 +15,7 @@ export default () => {
 
     const namespaceName = useNamespaceFromURL()
 
-    const [virtualMachineSummary, setVirtualMachineSummary] = useState<any>()
-
-    const { resources: virtualMachineSummaryMap, loading } = useWatchResources(GroupVersionResourceEnum.VIRTUAL_MACHINE_INSTANCE_SUMMARY)
-
-    useEffect(() => {
-        setVirtualMachineSummary(virtualMachineSummaryMap.get(namespaceNameKey(namespaceName)))
-    }, [virtualMachineSummaryMap])
+    const { resource: virtualMachineSummary, loading } = useWatchResourceInNamespaceName(GroupVersionResourceEnum.VIRTUAL_MACHINE_INSTANCE_SUMMARY)
 
     const mount = async (name: string) => {
         try {

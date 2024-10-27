@@ -22,13 +22,15 @@ export function featureStatusToString(status: FeatureStatus): string {
 
 export enum ResourceTypes {
   Unknown,
-  DataVolume,
+  DataVolume,VirtualMachineInstance,
 }
 
 export function resourceTypesToString(type: ResourceTypes): string {
   switch (type) {
     case 1:
       return "DataVolume";
+    case 2:
+      return "VirtualMachineInstance";
     
     default:
       return "Unknown";
@@ -67,16 +69,26 @@ export const instances: { [key: string]: Instance } = {
       ResourceTypes.DataVolume,
     ]
   },
+  VinkVirtualmachineinstanceHost: {
+    name: "vink.kubevm.io/virtualmachineinstance.host",
+    description: "",
+    featureStatus: FeatureStatus.Alpha,
+    hidden: true,
+    deprecated: false,
+    resources: [
+      ResourceTypes.VirtualMachineInstance,
+    ]
+  },
 };
 
 export function allResourceAnnotations(): Instance[] {
   return [
-    instances.IoKubevirtCdiStorageBindImmediateRequested,instances.VinkVirtualmachineBinding,
+    instances.IoKubevirtCdiStorageBindImmediateRequested,instances.VinkVirtualmachineBinding,instances.VinkVirtualmachineinstanceHost,
   ];
 }
 
 export function allResourceTypes(): string[] {
   return [
-    "DataVolume",
+    "DataVolume","VirtualMachineInstance",
   ];
 }

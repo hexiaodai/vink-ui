@@ -7,7 +7,7 @@ import { NotificationInstance } from "antd/es/notification/interface"
 import { dataVolumeStatusMap } from "@/utils/resource-status"
 import { clients } from "@/clients/clients"
 import { GroupVersionResourceEnum } from "@/apis/types/group_version"
-import TableColumnOperatingSystem from "@/components/table-column/operating-system"
+import OperatingSystem from "@/components/operating-system"
 
 const columnsFunc = (notification: NotificationInstance) => {
     const columns: ProColumns<any>[] = [
@@ -32,7 +32,7 @@ const columnsFunc = (notification: NotificationInstance) => {
             title: '操作系统',
             ellipsis: true,
             render: (_, dv) => {
-                return <TableColumnOperatingSystem rootDataVolume={dv} />
+                return <OperatingSystem rootDataVolume={dv} />
             }
         },
         {

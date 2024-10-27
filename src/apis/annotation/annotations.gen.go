@@ -28,12 +28,15 @@ type ResourceTypes int
 const (
 	Unknown ResourceTypes = iota
     DataVolume
+    VirtualMachineInstance
 )
 
 func (r ResourceTypes) String() string {
 	switch r {
 	case 1:
 		return "DataVolume"
+	case 2:
+		return "VirtualMachineInstance"
 	}
 	return "Unknown"
 }
@@ -84,17 +87,30 @@ var (
 		},
 	}
 
+	VinkVirtualmachineinstanceHost = Instance {
+		Name:          "vink.kubevm.io/virtualmachineinstance.host",
+		Description:   "",
+		FeatureStatus: Alpha,
+		Hidden:        true,
+		Deprecated:    false,
+		Resources: []ResourceTypes{
+			VirtualMachineInstance,
+		},
+	}
+
 )
 
 func AllResourceAnnotations() []*Instance {
 	return []*Instance {
 		&IoKubevirtCdiStorageBindImmediateRequested,
 		&VinkVirtualmachineBinding,
+		&VinkVirtualmachineinstanceHost,
 	}
 }
 
 func AllResourceTypes() []string {
 	return []string {
 		"DataVolume",
+		"VirtualMachineInstance",
 	}
 }

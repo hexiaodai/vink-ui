@@ -255,7 +255,7 @@ export const NetworkDrawer: React.FC<NetworkProps> = ({ open, onCanel, onConfirm
                         enabled.ip &&
                         <ProFormText
                             name="ipAddress"
-                            placeholder={enabled.ip ? "从 IP 地址池中选择一个 IP 地址" : "从子网中选择一个 IP 地址"}
+                            placeholder={enabled.ippool ? "从 IP 地址池中选择一个 IP 地址" : "从子网中选择一个 IP 地址"}
                         />
                     }
                     <Button

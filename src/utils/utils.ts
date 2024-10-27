@@ -105,30 +105,6 @@ export const generateMessage = (crds: any[], successMessage: string, multipleMes
     }
 }
 
-// export const emptyOptions = (): ListOptions => {
-//     return {
-//         fieldSelector: "",
-//         labelSelector: "",
-//         limit: 0,
-//         continue: "",
-//         namespaceNames: [],
-//         namespace: "",
-//         watch: false,
-//     }
-// }
-
-// export const capacity = (rootDisk: CustomResourceDefinition) => {
-//     const spec = jsonParse(rootDisk.spec)
-//     const [value, uint] = formatMemory(spec.pvc?.resources?.requests?.storage)
-//     return `${value} ${uint}`
-// }
-
-// export const capacity = (rootDisk: any) => {
-//     const spec = jsonParse(rootDisk.spec)
-//     const [value, uint] = formatMemory(spec.pvc.resources.requests.storage)
-//     return `${value} ${uint}`
-// }
-
 export const capacity = (rootDisk: any) => {
     const [value, uint] = formatMemory(rootDisk.spec.pvc.resources.requests.storage)
     return `${value} ${uint}`
