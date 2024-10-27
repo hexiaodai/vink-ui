@@ -8,6 +8,7 @@ import { EventType } from "@/apis/management/resource/v1alpha1/listwatch"
 import { namespaceNameKey } from "@/utils/k8s"
 import useUnmount from "./use-unmount"
 import { App } from "antd"
+import { useNamespaceFromURL } from "./use-namespace-from-url"
 
 export interface ListWatchOptions {
     namespace?: string
@@ -178,6 +179,22 @@ export const useWatchResources = (gvr: GroupVersionResourceEnum, opts?: ListWatc
     })
 
     return { resources, loading }
+}
+
+export const useWatchResourceInNamespaceName = (gvr: GroupVersionResourceEnum) => {
+    const [resource, setResource] = useState<any>(null)
+    const namespaceName = useNamespaceFromURL()
+
+    const opts = useRef<ListWatchOptions>({ fieldSelector: `metadata.namespace=${namespaceName.namespace},metadata.name=${namespaceName.name}` })
+
+    const { resources, loading } = useWatchResources(gvr, opts.current)
+
+    useEffect(() => {
+        const resourceData = resources.get(namespaceNameKey(namespaceName))
+        setResource(resourceData)
+    }, [resources])
+
+    return { resource, loading }
 }
 
 const emptyOptions = (overrides: Partial<ListOptions> = {}): ListOptions => {

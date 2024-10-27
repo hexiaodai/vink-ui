@@ -2,8 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Space } from 'antd'
 import { EditableProTable } from '@ant-design/pro-components'
 import { classNames } from '@/utils/utils'
-import { useNamespaceFromURL } from '@/hooks/use-namespace-from-url'
-import { useWatchResources } from '@/hooks/use-resource'
+import { useWatchResourceInNamespaceName } from '@/hooks/use-resource'
 import { GroupVersionResourceEnum } from '@/apis/types/group_version'
 import { namespaceNameKey } from '@/utils/k8s'
 import { LoadingOutlined } from '@ant-design/icons'
@@ -32,15 +31,7 @@ const generateKubeovnNetworkAnnon = (mutulsNamespaceName: string, name: string) 
 }
 
 export default () => {
-    const namespaceName = useNamespaceFromURL()
-
-    const [virtualMachineSummary, setVirtualMachineSummary] = useState<any>()
-
-    const { resources: virtualMachineSummaryMap, loading } = useWatchResources(GroupVersionResourceEnum.VIRTUAL_MACHINE_INSTANCE_SUMMARY)
-
-    useEffect(() => {
-        setVirtualMachineSummary(virtualMachineSummaryMap.get(namespaceNameKey(namespaceName)))
-    }, [virtualMachineSummaryMap])
+    const { resource: virtualMachineSummary, loading } = useWatchResourceInNamespaceName(GroupVersionResourceEnum.VIRTUAL_MACHINE_INSTANCE_SUMMARY)
 
     const [dataSource, setDataSource] = useState<readonly DataSourceType[]>([])
     const [editableKeys, setEditableRowKeys] = useState<React.Key[]>([])

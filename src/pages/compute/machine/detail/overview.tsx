@@ -2,31 +2,53 @@ import { App, Space, Spin } from "antd"
 import { useEffect, useRef, useState } from "react"
 import { GroupVersionResourceEnum } from "@/apis/types/group_version"
 import { clients } from "@/clients/clients"
-import { namespaceNameKey } from "@/utils/k8s"
 import { ProCard, ProDescriptions } from "@ant-design/pro-components"
-import { useWatchResources } from "@/hooks/use-resource"
+import { useWatchResourceInNamespaceName } from "@/hooks/use-resource"
 import { LoadingOutlined } from '@ant-design/icons'
-import { useNamespaceFromURL } from "@/hooks/use-namespace-from-url"
-import { classNames, updateNestedValue } from "@/utils/utils"
+import { classNames, formatTimestamp, updateNestedValue } from "@/utils/utils"
 import { yaml as langYaml } from "@codemirror/lang-yaml"
 import CodeMirror from '@uiw/react-codemirror'
 import codeMirrorStyles from "@/common/styles/code-mirror.module.less"
 import commonStyles from "@/common/styles/common.module.less"
+import OperatingSystem from "@/components/operating-system"
+import VirtualMachineStatus from "@/components/vm-status"
+import Terminal from "@/components/terminal"
 
 export default () => {
     const { notification } = App.useApp()
 
     const actionRef = useRef()
 
-    const [virtualMachine, setVirtualMachine] = useState<any>()
+    const { resource: virtualMachine, loading } = useWatchResourceInNamespaceName(GroupVersionResourceEnum.VIRTUAL_MACHINE)
 
-    const namespaceName = useNamespaceFromURL()
-
-    const { resources: virtualMachineMap, loading } = useWatchResources(GroupVersionResourceEnum.VIRTUAL_MACHINE)
+    const [rootDisk, setRootDisk] = useState<any>()
 
     useEffect(() => {
-        setVirtualMachine(virtualMachineMap.get(namespaceNameKey(namespaceName)))
-    }, [virtualMachineMap])
+        if (!virtualMachine || virtualMachine.spec.template.spec.domain.devices.disks.length == 0) {
+            return
+        }
+
+        let disk = virtualMachine.spec.template.spec.domain.devices.disks.find((disk: any) => {
+            return disk.bootOrder == 1
+        })
+        if (!disk) {
+            disk = virtualMachine.spec.template.spec.domain.devices.disks[0]
+        }
+
+        const vol = virtualMachine.spec.template.spec.volumes.find((vol: any) => {
+            return vol.name == disk.name
+        })
+
+        clients.fetchResource(GroupVersionResourceEnum.DATA_VOLUME, { namespace: virtualMachine.metadata.namespace, name: vol.dataVolume.name }).then((crd: any) => {
+            setRootDisk(crd)
+            console.log(crd)
+        }).catch((err: any) => {
+            notification.error({
+                message: "获取系统盘失败",
+                description: err.message
+            })
+        })
+    }, [virtualMachine])
 
     const handleSave = async (keypath: any, newInfo: any, oriInfo: any) => {
         const deepCopyOriInfo = JSON.parse(JSON.stringify(oriInfo))
@@ -61,6 +83,30 @@ export default () => {
                         }}
                     >
                         <ProDescriptions.Item
+                            title="Status"
+                            key="status"
+                            ellipsis
+                            editable={false}
+                        >
+                            <VirtualMachineStatus vm={virtualMachine} />
+                        </ProDescriptions.Item>
+                        <ProDescriptions.Item
+                            title="Operating System"
+                            key="os"
+                            ellipsis
+                            editable={false}
+                        >
+                            <OperatingSystem rootDataVolume={rootDisk} />
+                        </ProDescriptions.Item>
+                        <ProDescriptions.Item
+                            title="Terminal"
+                            key="terminal"
+                            ellipsis
+                            editable={false}
+                        >
+                            <Terminal vm={virtualMachine} />
+                        </ProDescriptions.Item>
+                        <ProDescriptions.Item
                             title="Name"
                             key="name"
                             ellipsis
@@ -94,6 +140,7 @@ export default () => {
                             key="creationTimestamp"
                             ellipsis
                             editable={false}
+                            render={(_, vm: any) => formatTimestamp(vm.metadata?.creationTimestamp)}
                         />
                     </ProDescriptions>
                 </ProCard>
@@ -133,14 +180,6 @@ export default () => {
                             dataIndex={['spec', 'template', 'spec', 'domain', 'cpu', 'sockets']}
                             title="Sockets"
                             key="sockets"
-                            valueType="digit"
-                            ellipsis
-                            render={(value: any) => value}
-                        />
-                        <ProDescriptions.Item
-                            dataIndex={['spec', 'template', 'spec', 'domain', 'cpu', 'maxSockets']}
-                            title="MaxSockets"
-                            key="maxSockets"
                             valueType="digit"
                             ellipsis
                             render={(value: any) => value}

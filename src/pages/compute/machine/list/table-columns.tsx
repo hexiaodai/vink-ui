@@ -1,18 +1,19 @@
 import { ProColumns } from "@ant-design/pro-components"
-import { Dropdown, MenuProps, Modal, Popover, Badge, Flex, Tag } from "antd"
+import { Dropdown, MenuProps, Modal, Popover, Flex, Tag } from "antd"
 import { formatMemory } from '@/utils/k8s'
-import { CodeOutlined, EllipsisOutlined } from '@ant-design/icons'
+import { EllipsisOutlined } from '@ant-design/icons'
 import { VirtualMachinePowerStateRequest_PowerState } from '@/apis/management/virtualmachine/v1alpha1/virtualmachine'
 import { formatTimestamp, openConsole } from '@/utils/utils'
 import { NotificationInstance } from "antd/es/notification/interface"
-import { virtualMachineStatusMap } from "@/utils/resource-status"
 import { manageVirtualMachinePowerState } from "@/clients/virtualmachine"
 import { GroupVersionResourceEnum } from "@/apis/types/group_version"
 import { clients } from "@/clients/clients"
 import { Link } from "react-router-dom"
+import { instances as annotations } from '@/apis/sdks/ts/annotation/annotations.gen'
 import { rootDisk, virtualMachine, virtualMachineInstance, virtualMachineIPs } from "@/utils/parse-summary"
-import TableColumnOperatingSystem from "@/components/table-column/operating-system"
-import commonStyles from '@/common/styles/common.module.less'
+import OperatingSystem from "@/components/operating-system"
+import VirtualMachineStatus from "@/components/vm-status"
+import Terminal from "@/components/terminal"
 
 const columnsFunc = (notification: NotificationInstance) => {
     const columns: ProColumns<any>[] = [
@@ -27,35 +28,20 @@ const columnsFunc = (notification: NotificationInstance) => {
             key: 'status',
             title: '状态',
             ellipsis: true,
-            render: (_, summary) => {
-                const vm = virtualMachine(summary)
-                return <Badge status={virtualMachineStatusMap[vm.status.printableStatus].badge} text={virtualMachineStatusMap[vm.status.printableStatus].text} />
-            }
+            render: (_, summary) => <VirtualMachineStatus vm={virtualMachine(summary)} />
         },
         {
             key: 'console',
             title: '控制台',
             width: 90,
-            render: (_, summary) => {
-                const vm = virtualMachine(summary)
-                const isRunning = vm.status?.printableStatus as string === "Running"
-
-                return (
-                    <a href='#'
-                        className={isRunning ? "" : commonStyles["a-disable"]}
-                        onClick={() => { openConsole(vm) }}
-                    >
-                        <CodeOutlined />
-                    </a>
-                )
-            }
+            render: (_, summary) => <Terminal vm={virtualMachine(summary)} />
         },
         {
             key: 'operatingSystem',
             title: '操作系统',
             ellipsis: true,
             render: (_, summary) => {
-                return <TableColumnOperatingSystem rootDataVolume={rootDisk(summary)} />
+                return <OperatingSystem rootDataVolume={rootDisk(summary)} />
             }
         },
         {
@@ -123,17 +109,26 @@ const columnsFunc = (notification: NotificationInstance) => {
             title: '节点 IP',
             ellipsis: true,
             render: (_, summary) => {
-                const host = virtualMachineInstance(summary)
-                const interfaces = host?.status.addresses
-                if (!interfaces || interfaces.length === 0) {
+                const vmi = virtualMachineInstance(summary)
+                if (!vmi || !vmi.metadata.annotations) {
+                    return
+                }
+
+                const ipsAnnoVale = vmi.metadata.annotations[annotations.VinkVirtualmachineinstanceHost.name]
+                if (!ipsAnnoVale || ipsAnnoVale.length == 0) {
+                    return
+                }
+
+                const ips = JSON.parse(ipsAnnoVale)
+                if (ips.length === 0) {
                     return
                 }
 
                 const content = (
                     <Flex wrap gap="4px 0" style={{ maxWidth: 250 }}>
-                        {interfaces.map((element: any, index: any) => (
+                        {ips.map((element: any, index: any) => (
                             <Tag key={index} bordered={true}>
-                                {element.address}
+                                {element}
                             </Tag>
                         ))}
                     </Flex>
@@ -141,8 +136,8 @@ const columnsFunc = (notification: NotificationInstance) => {
 
                 return (
                     <Popover content={content}>
-                        <Tag bordered={true}>{interfaces[0].address}</Tag>
-                        +{interfaces.length}
+                        <Tag bordered={true}>{ips[0]}</Tag>
+                        +{ips.length}
                     </Popover>
                 )
             }

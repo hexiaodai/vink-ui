@@ -19,7 +19,7 @@ import { clients } from '@/clients/clients'
 import { PlusOutlined } from '@ant-design/icons'
 import type { ProFormInstance } from '@ant-design/pro-components'
 import * as yaml from 'js-yaml'
-import TableColumnOperatingSystem from '@/components/table-column/operating-system'
+import OperatingSystem from '@/components/operating-system'
 import styles from '@/pages/compute/machine/create/styles/index.module.less'
 import CodeMirror from '@uiw/react-codemirror'
 import codeMirrorStyles from "@/common/styles/code-mirror.module.less"
@@ -285,7 +285,7 @@ export default () => {
                                 {
                                     rootDisk?.metadata?.name ? (
                                         <Flex align='center' style={{ height: 32 }}>
-                                            <TableColumnOperatingSystem rootDataVolume={rootDisk} />
+                                            <OperatingSystem rootDataVolume={rootDisk} />
                                             <Divider type="vertical" />
                                             <span>{rootDisk?.metadata?.name}</span>
                                             <Divider type="vertical" />

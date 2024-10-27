@@ -13,31 +13,10 @@ annotations:
     deprecated: false
     resources:
       - DataVolume
-  # - name: vink.io/node-network-interface
-  #   featureStatus: Alpha
-  #   description: Record information of node network interfaces.
-  #   hidden: true
-  #   deprecated: false
-  #   resources:
-  #     - Node
-  # - name: v1.multus-cni.io/default-network
-  #   featureStatus: Alpha
-  #   description: Define the default network for the virtual machine. eg 'namespace/name'
-  #   hidden: true
-  #   deprecated: false
-  #   resources:
-  #     - VirtualMachine
-  # - name: ipam.spidernet.io/subnet
-  #   featureStatus: Alpha
-  #   description: Define the subnet for the virtual machine. eg '{"ipv4":["subnet-v4"]}'
-  #   hidden: true
-  #   deprecated: false
-  #   resources:
-  #     - VirtualMachine
-  # - name: ipam.spidernet.io/ippool
-  #   featureStatus: Alpha
-  #   description: Define the ippool for the virtual machine. eg '{"ipv4":["ippool-v4"]}'
-  #   hidden: true
-  #   deprecated: false
-  #   resources:
-  #     - VirtualMachine
+  - name: vink.kubevm.io/virtualmachineinstance.host
+    featureStatus: Alpha
+    description: 
+    hidden: true
+    deprecated: false
+    resources:
+      - VirtualMachineInstance

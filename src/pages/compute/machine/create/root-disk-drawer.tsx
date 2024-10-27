@@ -7,10 +7,10 @@ import { Params } from 'react-router-dom'
 import { instances as labels } from "@/apis/sdks/ts/label/labels.gen"
 import { rootDiskDrawerColumns } from './table-columns'
 import { GroupVersionResourceEnum } from '@/apis/types/group_version'
+import { ListWatchOptions, useListResources } from '@/hooks/use-resource'
 import type { ActionType } from '@ant-design/pro-components'
 import React from 'react'
 import tableStyles from '@/common/styles/table.module.less'
-import { ListWatchOptions, useListResources } from '@/hooks/use-resource'
 
 interface RootDiskDrawerProps {
     open?: boolean
