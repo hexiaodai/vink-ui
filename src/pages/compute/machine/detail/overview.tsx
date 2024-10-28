@@ -7,12 +7,30 @@ import { useWatchResourceInNamespaceName } from "@/hooks/use-resource"
 import { LoadingOutlined } from '@ant-design/icons'
 import { classNames, formatTimestamp, updateNestedValue } from "@/utils/utils"
 import { yaml as langYaml } from "@codemirror/lang-yaml"
+import { NotificationInstance } from "antd/es/notification/interface"
 import CodeMirror from '@uiw/react-codemirror'
 import codeMirrorStyles from "@/common/styles/code-mirror.module.less"
 import commonStyles from "@/common/styles/common.module.less"
 import OperatingSystem from "@/components/operating-system"
 import VirtualMachineStatus from "@/components/vm-status"
 import Terminal from "@/components/terminal"
+
+const handleSave = async (keypath: any, newInfo: any, oriInfo: any, notification: NotificationInstance) => {
+    const deepCopyOriInfo = JSON.parse(JSON.stringify(oriInfo))
+    updateNestedValue(keypath as string[], newInfo, deepCopyOriInfo, true)
+    await clients.updateResource(GroupVersionResourceEnum.VIRTUAL_MACHINE, deepCopyOriInfo, { notification: notification }).then(() => {
+        return true
+    }).catch(() => {
+        return false
+    })
+}
+
+const cloudinit = (virtualMachine: any) => {
+    const vol = virtualMachine.spec.template.spec.volumes.find((vol: any) => {
+        return vol.cloudInitNoCloud
+    })
+    return vol?.cloudInitNoCloud?.userDataBase64 ? atob(vol.cloudInitNoCloud.userDataBase64) : undefined
+}
 
 export default () => {
     const { notification } = App.useApp()
@@ -50,21 +68,8 @@ export default () => {
         })
     }, [virtualMachine])
 
-    const handleSave = async (keypath: any, newInfo: any, oriInfo: any) => {
-        const deepCopyOriInfo = JSON.parse(JSON.stringify(oriInfo))
-        updateNestedValue(keypath as string[], newInfo, deepCopyOriInfo, true)
-        await clients.updateResource(GroupVersionResourceEnum.VIRTUAL_MACHINE, deepCopyOriInfo, { notification: notification }).then(() => {
-            return true
-        }).catch(() => {
-            return false
-        })
-    }
-
-    const cloudinit = () => {
-        const vol = virtualMachine?.spec.template.spec.volumes.find((vol: any) => {
-            return vol.cloudInitNoCloud
-        })
-        return vol?.cloudInitNoCloud?.userDataBase64 ? atob(vol.cloudInitNoCloud.userDataBase64) : undefined
+    if (!virtualMachine) {
+        return
     }
 
     return (
@@ -79,7 +84,7 @@ export default () => {
                         column={3}
                         dataSource={virtualMachine}
                         editable={{
-                            onSave: handleSave
+                            onSave: (keypath, newInfo, oriInfo) => handleSave(keypath, newInfo, oriInfo, notification)
                         }}
                     >
                         <ProDescriptions.Item
@@ -130,13 +135,13 @@ export default () => {
                         />
                         <ProDescriptions.Item
                             dataIndex={['spec', 'runStrategy']}
-                            title="RunStrategy"
+                            title="Run Strategy"
                             key="runStrategy"
                             ellipsis
                         />
                         <ProDescriptions.Item
                             dataIndex={['metadata', 'creationTimestamp']}
-                            title="CreationTimestamp"
+                            title="Creation Timestamp"
                             key="creationTimestamp"
                             ellipsis
                             editable={false}
@@ -151,7 +156,7 @@ export default () => {
                         dataSource={virtualMachine}
                         column={3}
                         editable={{
-                            onSave: handleSave
+                            onSave: (keypath, newInfo, oriInfo) => handleSave(keypath, newInfo, oriInfo, notification)
                         }}
                     >
                         <ProDescriptions.Item
@@ -193,7 +198,7 @@ export default () => {
                         dataSource={virtualMachine}
                         column={3}
                         editable={{
-                            onSave: handleSave
+                            onSave: (keypath, newInfo, oriInfo) => handleSave(keypath, newInfo, oriInfo, notification)
                         }}
                     >
                         <ProDescriptions.Item
@@ -211,7 +216,7 @@ export default () => {
                         dataSource={virtualMachine}
                         column={3}
                         editable={{
-                            onSave: handleSave
+                            onSave: (keypath, newInfo, oriInfo) => handleSave(keypath, newInfo, oriInfo, notification)
                         }}
                     >
                         <ProDescriptions.Item
@@ -243,13 +248,13 @@ export default () => {
                 <ProCard title="Cloudinit">
                     <CodeMirror
                         className={classNames(codeMirrorStyles["editor"], commonStyles["small-scrollbar"])}
-                        value={cloudinit()?.trimStart()}
+                        value={cloudinit(virtualMachine)?.trimStart()}
                         maxHeight="100vh"
                         editable={false}
                         extensions={[langYaml()]}
                     />
                 </ProCard>
             </Space>
-        </Spin>
+        </Spin >
     )
 }
