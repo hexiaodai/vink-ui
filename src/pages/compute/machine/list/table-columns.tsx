@@ -1,21 +1,16 @@
 import { ProColumns } from "@ant-design/pro-components"
-import { Dropdown, MenuProps, Modal, Popover, Flex, Tag } from "antd"
+import { Popover, Flex, Tag } from "antd"
 import { formatMemory } from '@/utils/k8s'
-import { EllipsisOutlined } from '@ant-design/icons'
-import { VirtualMachinePowerStateRequest_PowerState } from '@/apis/management/virtualmachine/v1alpha1/virtualmachine'
-import { formatTimestamp, openConsole } from '@/utils/utils'
-import { NotificationInstance } from "antd/es/notification/interface"
-import { manageVirtualMachinePowerState } from "@/clients/virtualmachine"
-import { GroupVersionResourceEnum } from "@/apis/types/group_version"
-import { clients } from "@/clients/clients"
+import { formatTimestamp } from '@/utils/utils'
 import { Link } from "react-router-dom"
 import { instances as annotations } from '@/apis/sdks/ts/annotation/annotations.gen'
 import { rootDisk, virtualMachine, virtualMachineInstance, virtualMachineIPs } from "@/utils/parse-summary"
 import OperatingSystem from "@/components/operating-system"
 import VirtualMachineStatus from "@/components/vm-status"
 import Terminal from "@/components/terminal"
+import VirtualMachineManagement from "@/components/vm-mgr"
 
-const columnsFunc = (notification: NotificationInstance) => {
+const columnsFunc = () => {
     const columns: ProColumns<any>[] = [
         {
             key: 'name',
@@ -155,113 +150,10 @@ const columnsFunc = (notification: NotificationInstance) => {
             fixed: 'right',
             width: 90,
             align: 'center',
-            render: (_, summary) => {
-                const items = actionItemsFunc(virtualMachine(summary), notification)
-                return (
-                    <Dropdown menu={{ items }} trigger={['click']}>
-                        <EllipsisOutlined />
-                    </Dropdown>
-                )
-            }
+            render: (_, summary) => <VirtualMachineManagement type="list" vm={virtualMachine(summary)} />
         }
     ]
     return columns
-}
-
-const statusEqual = (status: any, target: string) => {
-    return status.printableStatus as string === target
-}
-
-export const actionItemsFunc = (vm: any, notification: NotificationInstance) => {
-    const items: MenuProps['items'] = [
-        {
-            key: 'power',
-            label: '电源',
-            children: [
-                {
-                    key: 'start',
-                    onClick: () => manageVirtualMachinePowerState(vm.metadata.namespace, vm.metadata.name, VirtualMachinePowerStateRequest_PowerState.ON, notification),
-                    label: "启动",
-                    disabled: statusEqual(vm.status, "Running")
-                },
-                {
-                    key: 'restart',
-                    onClick: () => manageVirtualMachinePowerState(vm.metadata.namespace, vm.metadata.name, VirtualMachinePowerStateRequest_PowerState.REBOOT, notification),
-                    label: "重启",
-                    disabled: !statusEqual(vm.status, "Running")
-                },
-                {
-                    key: 'stop',
-                    onClick: () => manageVirtualMachinePowerState(vm.metadata.namespace, vm.metadata.name, VirtualMachinePowerStateRequest_PowerState.OFF, notification),
-                    label: "关机",
-                    disabled: statusEqual(vm.status, "Stopped")
-                },
-                {
-                    key: 'power-divider-1',
-                    type: 'divider'
-                },
-                {
-                    key: 'force-restart',
-                    onClick: () => manageVirtualMachinePowerState(vm.metadata.namespace, vm.metadata.name, VirtualMachinePowerStateRequest_PowerState.FORCE_REBOOT, notification),
-                    label: "强制重启",
-                    disabled: !statusEqual(vm.status, "Running")
-                },
-                {
-                    key: 'force-stop',
-                    onClick: () => manageVirtualMachinePowerState(vm.metadata.namespace, vm.metadata.name, VirtualMachinePowerStateRequest_PowerState.FORCE_OFF, notification),
-                    label: "强制关机",
-                    disabled: statusEqual(vm.status, "Stopped")
-                },
-            ]
-        },
-        {
-            key: 'divider-1',
-            type: 'divider'
-        },
-        {
-            key: 'console',
-            label: '控制台',
-            onClick: () => openConsole(vm),
-            disabled: !statusEqual(vm.status, "Running")
-        },
-        {
-            key: 'divider-2',
-            type: 'divider'
-        },
-        {
-            key: 'bindlabel',
-            label: '绑定标签'
-        },
-        {
-            key: 'edit',
-            label: "编辑"
-        },
-        {
-            key: 'divider-3',
-            type: 'divider'
-        },
-        {
-            key: 'delete',
-            danger: true,
-            onClick: () => {
-                Modal.confirm({
-                    title: "删除虚拟机？",
-                    content: `即将删除 "${vm.metadata.namespace}/${vm.metadata.name}" 虚拟机，请确认。`,
-                    okText: '确认删除',
-                    okType: 'danger',
-                    cancelText: '取消',
-                    okButtonProps: {
-                        disabled: false,
-                    },
-                    onOk: async () => {
-                        await clients.deleteResource(GroupVersionResourceEnum.VIRTUAL_MACHINE, vm.metadata.namespace, vm.metadata.name, { notification: notification })
-                    }
-                })
-            },
-            label: "删除"
-        }
-    ]
-    return items
 }
 
 export default columnsFunc

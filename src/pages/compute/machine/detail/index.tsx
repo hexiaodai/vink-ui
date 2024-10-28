@@ -1,4 +1,4 @@
-import { Segmented, Space } from "antd"
+import { Flex, Segmented, Space } from "antd"
 import { useEffect, useState } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
 import Overview from "./overview"
@@ -6,12 +6,17 @@ import Volume from "./volume"
 import Network from "./network"
 import YAML from "./yaml"
 import styles from "./styles/index.module.less"
+import VirtualMachineManagement from "@/components/vm-mgr"
+import { useNamespaceFromURL } from "@/hooks/use-namespace-from-url"
 
 const activeKey = "active"
 
 export default () => {
     const location = useLocation()
+
     const navigate = useNavigate()
+
+    const namespaceName = useNamespaceFromURL()
 
     const params = new URLSearchParams(location.search)
 
@@ -31,14 +36,18 @@ export default () => {
             size="middle"
             className={styles["space-container"]}
         >
-            <Segmented
-                value={active}
-                onChange={(e) => {
-                    params.set(activeKey, e)
-                    navigate({ search: params.toString() }, { replace: true })
-                }}
-                options={["概览", "监控", "存储", "网络", "快照", "事件", "YAML"]}
-            />
+            <Flex justify="space-between">
+                <Segmented
+                    value={active}
+                    onChange={(e) => {
+                        params.set(activeKey, e)
+                        navigate({ search: params.toString() }, { replace: true })
+                    }}
+                    options={["YAML", "概览", "监控", "存储", "网络", "快照", "事件"]}
+                />
+
+                <VirtualMachineManagement type="detail" namespace={namespaceName} />
+            </Flex>
 
             {active === "概览" && <Overview />}
             {active === "存储" && <Volume />}
