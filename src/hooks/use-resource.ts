@@ -15,8 +15,6 @@ export interface ListWatchOptions {
     fieldSelector?: string
     labelSelector?: string
     customFieldSelector?: string[]
-    // notification?: NotificationInstance
-    // abortCtrl?: AbortController
 }
 
 interface DeleteOptions {
@@ -53,6 +51,7 @@ export const useListResources = (gvr: GroupVersionResourceEnum, opts?: ListWatch
                 }
             },
             options: emptyOptions({
+                namespace: opts?.namespace,
                 fieldSelector: opts?.fieldSelector,
                 labelSelector: opts?.labelSelector,
                 customSelector: {

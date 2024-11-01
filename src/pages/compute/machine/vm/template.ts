@@ -38,9 +38,7 @@ spec:
           guest: 1Gi
         devices:
           disks: []
-          interfaces:
-            - masquerade: {}
-              name: default
+          interfaces: []
         features:
           acpi:
             enabled: true
@@ -51,9 +49,7 @@ spec:
             memory: 1Gi
             cpu: "0"
           limits: {}
-      networks:
-        - name: default
-          pod: {}
+      networks: []
       volumes: []
 `
 

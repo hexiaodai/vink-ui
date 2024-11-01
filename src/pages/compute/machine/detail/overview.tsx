@@ -12,7 +12,7 @@ import CodeMirror from '@uiw/react-codemirror'
 import codeMirrorStyles from "@/common/styles/code-mirror.module.less"
 import commonStyles from "@/common/styles/common.module.less"
 import OperatingSystem from "@/components/operating-system"
-import VirtualMachineStatus from "@/components/vm-status"
+import VirtualMachineStatus from "@/pages/compute/machine/components/status"
 import Terminal from "@/components/terminal"
 
 const handleSave = async (keypath: any, newInfo: any, oriInfo: any, notification: NotificationInstance) => {

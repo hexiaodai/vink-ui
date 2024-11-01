@@ -1,29 +1,20 @@
-import { ProForm, ProFormItem, ProFormSelect, ProFormText } from '@ant-design/pro-components'
+import { ProForm, ProFormCheckbox, ProFormItem, ProFormSelect, ProFormText } from '@ant-design/pro-components'
 import { App, Button, Drawer, Flex, Space } from 'antd'
 import { useEffect, useRef, useState } from 'react'
 import { clients } from '@/clients/clients'
 import { GroupVersionResourceEnum } from '@/apis/types/group_version'
 import { PlusOutlined } from '@ant-design/icons'
 import { namespaceNameKey } from '@/utils/k8s'
+import { getProvider } from '@/utils/utils'
+import { NetworkConfig } from '../../vm'
 import type { ProFormInstance } from '@ant-design/pro-components'
 import React from 'react'
 import formStyles from "@/common/styles/form.module.less"
-import { getProvider } from '@/utils/utils'
 
 interface NetworkProps {
-    open: boolean
-    namespace: string
-    onCanel: () => void
-    onConfirm: (networkConfig: NetworkConfig) => void
-}
-
-export interface NetworkConfig {
-    interface: string
-    multusCR: any
-    subnet: any
-    ippool?: any
-    ipAddress?: string
-    macAddress?: string
+    open?: boolean
+    onCanel?: () => void
+    onConfirm?: (networkConfig: NetworkConfig) => void
 }
 
 export const NetworkDrawer: React.FC<NetworkProps> = ({ open, onCanel, onConfirm }) => {
@@ -41,36 +32,8 @@ export const NetworkDrawer: React.FC<NetworkProps> = ({ open, onCanel, onConfirm
 
     useEffect(() => {
         if (!open) return
-        reset()
+        reset(formRef, setSelected, setEnabled, setMultus, setSubnets, setIPPools)
     }, [open])
-
-    const reset = () => {
-        formRef.current?.resetFields()
-        setSelected({ multus: null, subnet: null, ippool: null })
-        setEnabled({ ip: false, mac: false, ippool: false })
-
-        resetMultus()
-        resetSubnet()
-        resetIPPool()
-    }
-
-    const resetMultus = () => {
-        setMultus([])
-        formRef.current?.resetFields(["multusCR"])
-        setSelected((prevState) => ({ ...prevState, multus: null }))
-    }
-
-    const resetSubnet = () => {
-        setSubnets([])
-        formRef.current?.resetFields(["subnet"])
-        setSelected((prevState) => ({ ...prevState, subnet: null }))
-    }
-
-    const resetIPPool = () => {
-        setIPPools([])
-        formRef.current?.resetFields(["ippool"])
-        setSelected((prevState) => ({ ...prevState, ippool: null }))
-    }
 
     return (
         <Drawer
@@ -78,19 +41,22 @@ export const NetworkDrawer: React.FC<NetworkProps> = ({ open, onCanel, onConfirm
             open={open}
             onClose={onCanel}
             closeIcon={false}
-            width={500}
+            width={650}
             footer={
                 <Flex justify="space-between" align="flex-start">
                     <Space>
                         <Button onClick={() => {
-                            if (!selected.multus || !selected.subnet) {
+                            const fields = formRef.current?.getFieldsValue()
+                            if (!selected.multus || !selected.subnet || !fields || !onConfirm) {
                                 return
                             }
                             onConfirm({
-                                interface: formRef.current?.getFieldValue("interface"),
-                                ipAddress: formRef.current?.getFieldValue("ipAddress"),
-                                macAddress: formRef.current?.getFieldValue("macAddress"),
-                                multusCR: selected.multus,
+                                network: fields.network,
+                                interface: fields.interface,
+                                ipAddress: fields.ipAddress,
+                                macAddress: fields.macAddress,
+                                default: fields.default,
+                                multus: selected.multus,
                                 subnet: selected.subnet,
                                 ippool: selected.ippool
                             })
@@ -98,7 +64,7 @@ export const NetworkDrawer: React.FC<NetworkProps> = ({ open, onCanel, onConfirm
                         } type="primary">确定</Button>
                         <Button onClick={onCanel}>取消</Button>
                     </Space>
-                    <Button type='text' onClick={() => reset()}>重置</Button>
+                    <Button type='text' onClick={() => reset(formRef, setSelected, setEnabled, setMultus, setSubnets, setIPPools)}>重置</Button>
                 </Flex>
             }
         >
@@ -109,9 +75,25 @@ export const NetworkDrawer: React.FC<NetworkProps> = ({ open, onCanel, onConfirm
                 labelAlign="left"
                 colon={false}
                 formRef={formRef}
-                onReset={() => reset()}
+                onReset={() => reset(formRef, setSelected, setEnabled, setMultus, setSubnets, setIPPools)}
                 submitter={false}
             >
+                <ProFormSelect
+                    label="Network"
+                    name="network"
+                    placeholder="选择网络"
+                    initialValue={"multus"}
+                    fieldProps={{ allowClear: false, showSearch: true }}
+                    options={[
+                        { value: 'multus', label: 'multus' },
+                        { value: 'pod', label: 'pod' }
+                    ]}
+                    rules={[{
+                        required: true,
+                        message: "选择网络"
+                    }]}
+                />
+
                 <ProFormSelect
                     label="Interface"
                     name="interface"
@@ -126,7 +108,7 @@ export const NetworkDrawer: React.FC<NetworkProps> = ({ open, onCanel, onConfirm
                     ]}
                     rules={[{
                         required: true,
-                        message: "选择网络接口。"
+                        message: "选择网络接口"
                     }]}
                 />
                 <ProFormSelect
@@ -152,8 +134,8 @@ export const NetworkDrawer: React.FC<NetworkProps> = ({ open, onCanel, onConfirm
                         const multusCR = multus.find(item => namespaceNameKey(item) === value)
                         setSelected((prevState) => ({ ...prevState, multus: multusCR }))
 
-                        resetSubnet()
-                        resetIPPool()
+                        resetField(formRef, "subnet", setSubnets, setSelected, "subnet")
+                        resetField(formRef, "ippool", setIPPools, setSelected, "ippool")
                     }}
                     options={
                         multus.map((m: any) => ({ value: namespaceNameKey(m), label: namespaceNameKey(m) }))
@@ -193,7 +175,7 @@ export const NetworkDrawer: React.FC<NetworkProps> = ({ open, onCanel, onConfirm
                         const subnet = subnets.find(item => item.metadata.name === value)
                         setSelected((prevState) => ({ ...prevState, subnet: subnet }))
 
-                        resetIPPool()
+                        resetField(formRef, "ippool", setIPPools, setSelected, "ippool")
                     }}
                     options={
                         subnets.map((s: any) => ({ value: s.metadata.name, label: s.metadata.name }))
@@ -292,7 +274,28 @@ export const NetworkDrawer: React.FC<NetworkProps> = ({ open, onCanel, onConfirm
                         {enabled.mac ? "自动分配 MAC 地址" : "自定义 MAC 地址"}
                     </Button>
                 </ProFormItem>
+
+                <ProFormCheckbox
+                    label="设为默认网络"
+                    name="default"
+                />
             </ProForm>
         </Drawer>
     )
+}
+
+const reset = (formRef: any, setSelected: any, setEnabled: any, setMultus: any, setSubnets: any, setIPPools: any) => {
+    formRef.current?.resetFields()
+    setSelected({ multus: null, subnet: null, ippool: null })
+    setEnabled({ ip: false, mac: false, ippool: false })
+
+    resetField(formRef, "multusCR", setMultus, setSelected, "multus")
+    resetField(formRef, "subnet", setSubnets, setSelected, "subnet")
+    resetField(formRef, "ippool", setIPPools, setSelected, "ippool")
+}
+
+const resetField = (formRef: any, fieldName: "multusCR" | "subnet" | "ippool", setList: any, setSelected: any, selectedKey: "multus" | "subnet" | "ippool") => {
+    setList([])
+    formRef.current?.resetFields([fieldName])
+    setSelected((prevState: any) => ({ ...prevState, [selectedKey]: null }))
 }

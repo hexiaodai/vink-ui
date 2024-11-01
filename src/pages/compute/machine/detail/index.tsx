@@ -1,13 +1,13 @@
 import { Flex, Segmented, Space } from "antd"
 import { useEffect, useState } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
+import { useNamespaceFromURL } from "@/hooks/use-namespace-from-url"
 import Overview from "./overview"
 import Volume from "./volume"
 import Network from "./network"
 import YAML from "./yaml"
 import styles from "./styles/index.module.less"
-import VirtualMachineManagement from "@/components/vm-mgr"
-import { useNamespaceFromURL } from "@/hooks/use-namespace-from-url"
+import VirtualMachineManagement from "@/pages/compute/machine/components/management"
 
 const activeKey = "active"
 

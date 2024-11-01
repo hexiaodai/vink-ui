@@ -2,6 +2,7 @@
 import { ColumnsState } from "@ant-design/pro-components"
 import { formatMemory, namespaceName, namespaceNameKey } from "./k8s"
 import { ListOptions } from "@/apis/types/list_options"
+import { NamespaceName } from "@/apis/types/namespace_name"
 
 /**
  * Combines multiple class names into a single string.
@@ -147,12 +148,33 @@ export const updateNestedValue = (keypath: string[], newInfo: any, oriInfo: any,
     }, oriInfo)
 }
 
-export const generateKubeovnNetworkAnnon = (multusCR: any, name: string) => {
-    const md = multusCR.metadata
-    const prefix = `${md.name}.${md.namespace}.ovn.kubernetes.io`
-    return `${prefix}/${name}`
+// export const namespaceNameKey = (obj: any) => {
+//     if (obj.metadata && typeof obj.metadata.namespace === 'string' && typeof obj.metadata.name === 'string') {
+//         return `${obj.metadata.namespace}/${obj.metadata.name}`
+//     } else if (typeof obj.namespace === 'string' && typeof obj.name === 'string') {
+//         return `${obj.namespace}/${obj.name}`
+//     } else if (typeof obj.metadata.name === 'string') {
+//         return obj.metadata.name
+//     } else if (typeof obj.name === 'string') {
+//         return obj.name
+//     }
+//     return ""
+// }
+
+export const generateKubeovnNetworkAnnon = (multus: NamespaceName | any, name: string) => {
+    let prefix = ""
+    if (multus.metadata && typeof multus.metadata.namespace === 'string' && typeof multus.metadata.name === 'string') {
+        prefix = `${multus.metadata.name}.${multus.metadata.namespace}`
+    } else if (typeof multus.namespace === 'string' && typeof multus.name === 'string') {
+        prefix = `${multus.name}.${multus.namespace}`
+    }
+    return `${prefix}.ovn.kubernetes.io/${name}`
 }
 
+// export const generateKubeovnNetworkAnnonByNs = (ns: NamespaceName, name: string) => {
+//     const prefix = `${ns.name}.${ns.namespace}.ovn.kubernetes.io`
+//     return `${prefix}/${name}`
+// }
 
 export const getProvider = (multusCR: any) => {
     const kubeovn = "kube-ovn"

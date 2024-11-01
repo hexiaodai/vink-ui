@@ -1,9 +1,8 @@
 import { TableProps } from "antd"
 import { capacity } from "@/utils/utils"
-import { formatMemoryString, namespaceName } from "@/utils/k8s"
-import { NetworkConfig } from "./network-drawer"
+import { formatMemoryString, namespaceNameKey } from "@/utils/k8s"
 import { ProColumns } from "@ant-design/pro-components"
-import { instances as annotations } from "@/apis/sdks/ts/annotation/annotations.gen"
+import { NetworkConfig } from "../vm"
 import OperatingSystem from "@/components/operating-system"
 
 export const getDataDiskColumns = (dataDisks: any[], setDataDisks: any) => {
@@ -38,7 +37,7 @@ export const getDataDiskColumns = (dataDisks: any[], setDataDisks: any) => {
             width: 100,
             align: 'center',
             render: (_, dv) => (<a onClick={() => {
-                const newDisks = dataDisks.filter(item => !(namespaceName(item.metadata) === namespaceName(dv.metadata)))
+                const newDisks = dataDisks.filter(item => !(namespaceNameKey(item.metadata) === namespaceNameKey(dv.metadata)))
                 setDataDisks(newDisks)
             }}>移除</a>)
         }
@@ -49,34 +48,46 @@ export const getDataDiskColumns = (dataDisks: any[], setDataDisks: any) => {
 export const getNetworkColumns = (networks: NetworkConfig[], setNetworks: any) => {
     const networkColumns: TableProps<NetworkConfig>['columns'] = [
         {
+            title: 'Network',
+            key: 'network',
+            ellipsis: true,
+            render: (_, cfg) => cfg.network
+        },
+        {
             title: 'Interface',
             key: 'interface',
             ellipsis: true,
             render: (_, cfg) => cfg.interface
         },
         {
+            title: '默认网络',
+            key: 'default',
+            ellipsis: true,
+            render: (_, cfg) => cfg.default ? "是" : "否"
+        },
+        {
             title: 'Multus CR',
             key: 'multusCR',
             ellipsis: true,
-            render: (_, cfg) => cfg.multusCR.metadata?.name
+            render: (_, cfg) => namespaceNameKey(cfg.multus)
         },
         {
             title: 'VPC',
             key: 'vpc',
             ellipsis: true,
-            render: (_, cfg) => cfg.subnet.spec.vpc
+            render: (_, cfg) => cfg.subnet?.spec.vpc
         },
         {
             title: '子网',
             key: 'subnet',
             ellipsis: true,
-            render: (_, cfg) => cfg.subnet.metadata?.name
+            render: (_, cfg) => cfg.subnet?.metadata.name
         },
         {
             title: 'IP 地址池',
             key: 'ippool',
             ellipsis: true,
-            render: (_, cfg) => cfg.ippool?.metadata?.name || "自动分配"
+            render: (_, cfg) => cfg.ippool?.metadata.name || "自动分配"
         },
         {
             title: 'IP 地址',
@@ -97,7 +108,7 @@ export const getNetworkColumns = (networks: NetworkConfig[], setNetworks: any) =
             align: 'center',
             fixed: 'right',
             render: (_, cfg) => (<a onClick={() => {
-                const newNetworks = networks.filter(item => item.multusCR.metadata?.name !== cfg.multusCR.metadata?.name)
+                const newNetworks = networks.filter(item => item.multus !== cfg.multus)
                 setNetworks(newNetworks)
             }}>移除</a>)
         }
@@ -123,45 +134,5 @@ export const rootDiskDrawerColumns: ProColumns<any>[] = [
         key: 'capacity',
         ellipsis: true,
         render: (_, dv) => formatMemoryString(dv.spec.pvc?.resources?.requests?.storage)
-    }
-]
-
-export const dataDiskDrawerColumns: ProColumns<any>[] = [
-    {
-        title: '名称',
-        key: 'name',
-        ellipsis: true,
-        render: (_, dv) => dv.metadata?.name
-    },
-    {
-        key: 'binding',
-        title: '资源占用',
-        ellipsis: true,
-        render: (_, dv) => {
-            const binding = dv.metadata?.annotations[annotations.VinkVirtualmachineBinding.name]
-            if (!binding) {
-                return "空闲"
-            }
-            const parse = JSON.parse(binding)
-            return parse && parse.length > 0 ? "使用中" : "空闲"
-        }
-    },
-    {
-        title: '容量',
-        key: 'capacity',
-        ellipsis: true,
-        render: (_, dv) => formatMemoryString(dv.spec.pvc?.resources?.requests?.storage)
-    },
-    {
-        title: '存储类',
-        key: 'storageClassName',
-        ellipsis: true,
-        render: (_, dv) => dv.spec.pvc?.storageClassName
-    },
-    {
-        title: '访问模式',
-        key: 'accessModes',
-        ellipsis: true,
-        render: (_, dv) => dv.spec.pvc?.accessModes[0]
     }
 ]
