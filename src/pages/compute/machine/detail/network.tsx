@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Space } from 'antd'
+import { App, Modal, Space } from 'antd'
 import { EditableProTable } from '@ant-design/pro-components'
 import { classNames } from '@/utils/utils'
 import { useWatchResourceInNamespaceName } from '@/hooks/use-resource'
@@ -8,6 +8,7 @@ import { namespaceNameKey } from '@/utils/k8s'
 import { LoadingOutlined } from '@ant-design/icons'
 import { clients } from '@/clients/clients'
 import { virtualMachineIPs } from '@/utils/parse-summary'
+import { deleteNetwork, updateNetwork } from '../vm'
 import type { ProColumns } from '@ant-design/pro-components'
 import commonStyles from '@/common/styles/common.module.less'
 
@@ -31,6 +32,8 @@ const generateKubeovnNetworkAnnon = (mutulsNamespaceName: string, name: string) 
 }
 
 export default () => {
+    const { notification } = App.useApp()
+
     const { resource: virtualMachineSummary, loading } = useWatchResourceInNamespaceName(GroupVersionResourceEnum.VIRTUAL_MACHINE_INSTANCE_SUMMARY)
 
     const [dataSource, setDataSource] = useState<readonly DataSourceType[]>([])
@@ -54,6 +57,17 @@ export default () => {
         )
 
         const fetchData = async () => {
+            const subnetSelector: string[] = []
+            ipsMap.forEach(ipObj => {
+                subnetSelector.push(`metadata.name=${ipObj.spec.subnet}`)
+            })
+            const subnets = await clients.fetchResources(GroupVersionResourceEnum.SUBNET, { customFieldSelector: subnetSelector })
+            const subnetMap = new Map<string, any>(
+                subnets.map((crd: any) => {
+                    return [crd.metadata.name, crd]
+                })
+            )
+
             const data: DataSourceType[] = await Promise.all(virtualMachine.spec.template.spec.networks.map(async (item: any) => {
                 const inter = interfacesMap.get(item.name)
                 if (!inter) {
@@ -65,11 +79,11 @@ export default () => {
 
                 const ippool = virtualMachine.spec.template.metadata.annotations[generateKubeovnNetworkAnnon(multusCR, "ip_pool")]
 
-                const subnet = ipObject?.spec.subnet ? await clients.fetchResource(GroupVersionResourceEnum.SUBNET, { namespace: "", name: ipObject.spec.subnet }) : null;
+                const subnet = subnetMap.get(ipObject?.spec.subnet)
 
                 const ds: DataSourceType = {
                     name: item.name,
-                    default: item.pod ? true : item.multus.default,
+                    default: item.pod ? true : item.multus.default ? true : false,
                     network: item.multus ? "multus" : "pod",
                     interface: inter.bridge ? "bridge" : inter.masquerade ? "masquerade" : inter.sriov ? "sriov" : inter.slirp ? "slirp" : "",
                     multusCR: multusCR,
@@ -159,27 +173,39 @@ export default () => {
             fixed: 'right',
             align: 'center',
             width: 150,
-            render: (_text, record, _index, action) => {
+            render: (_text, netcfg, _index, action) => {
                 return (
                     <Space>
                         <a
                             onClick={() => {
-                                console.log(record, action)
-                                action?.startEditable?.(record.name)
+                                action?.startEditable?.(netcfg.name)
                             }}
                         >
                             编辑
                         </a>
                         <a
                             className={commonStyles["warning-color"]}
-                            onClick={() => { }}
-                        >
-                            卸载
-                        </a>
-                        <a
-                            className={commonStyles["warning-color"]}
                             onClick={() => {
-                                setDataSource(dataSource.filter((item) => item.name !== record.name))
+                                Modal.confirm({
+                                    title: "移除网络？",
+                                    content: `即将移除 "${namespaceNameKey(virtualMachineSummary)}" 网络，请确认。`,
+                                    okText: '确认移除',
+                                    okType: 'danger',
+                                    cancelText: '取消',
+                                    okButtonProps: {
+                                        disabled: false,
+                                    },
+                                    onOk: async () => {
+                                        try {
+                                            const vm = await clients.fetchResource(GroupVersionResourceEnum.VIRTUAL_MACHINE, { namespace: virtualMachineSummary.metadata.namespace, name: virtualMachineSummary.metadata.name })
+                                            deleteNetwork(vm, netcfg.name)
+                                            await clients.updateResourceAsync(GroupVersionResourceEnum.VIRTUAL_MACHINE, vm)
+                                            notification.success({ message: "删除成功" })
+                                        } catch (err: any) {
+                                            notification.error({ message: "删除失败", description: err.message })
+                                        }
+                                    }
+                                })
                             }}
                         >
                             删除
@@ -204,8 +230,23 @@ export default () => {
             editable={{
                 type: 'single',
                 editableKeys,
-                onSave: async (rowKey, data, row) => {
-                    console.log(rowKey, data, row)
+                onSave: async (_rowKey, data, _row) => {
+                    try {
+                        const vm = await clients.fetchResource(GroupVersionResourceEnum.VIRTUAL_MACHINE, { namespace: virtualMachineSummary.metadata.namespace, name: virtualMachineSummary.metadata.name })
+                        const part = data.multusCR.split("/")
+                        if (part.length !== 2) {
+                            throw new Error("Multus CR 格式错误")
+                        }
+                        updateNetwork(vm, {
+                            ...data,
+                            multus: { namespace: part[0], name: part[1] }
+                        })
+                        console.log(vm)
+                        await clients.updateResourceAsync(GroupVersionResourceEnum.VIRTUAL_MACHINE, vm)
+                        notification.success({ message: "更新成功" })
+                    } catch (err: any) {
+                        notification.error({ message: "更新失败", description: err.message })
+                    }
                 },
                 onChange: setEditableRowKeys,
                 actionRender: (_row, _config, defaultDom) => [defaultDom.save, defaultDom.cancel]

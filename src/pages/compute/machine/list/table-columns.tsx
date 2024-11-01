@@ -6,9 +6,9 @@ import { Link } from "react-router-dom"
 import { instances as annotations } from '@/apis/sdks/ts/annotation/annotations.gen'
 import { rootDisk, virtualMachine, virtualMachineInstance, virtualMachineIPs } from "@/utils/parse-summary"
 import OperatingSystem from "@/components/operating-system"
-import VirtualMachineStatus from "@/components/vm-status"
 import Terminal from "@/components/terminal"
-import VirtualMachineManagement from "@/components/vm-mgr"
+import VirtualMachineManagement from "@/pages/compute/machine/components/management"
+import VirtualMachineStatus from "@/pages/compute/machine/components/status"
 
 const columnsFunc = () => {
     const columns: ProColumns<any>[] = [
@@ -150,7 +150,7 @@ const columnsFunc = () => {
             fixed: 'right',
             width: 90,
             align: 'center',
-            render: (_, summary) => <VirtualMachineManagement type="list" vm={virtualMachine(summary)} />
+            render: (_, summary) => <VirtualMachineManagement type="list" namespace={{ namespace: summary.metadata.namespace, name: summary.metadata.name }} />
         }
     ]
     return columns

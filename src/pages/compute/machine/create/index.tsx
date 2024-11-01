@@ -1,15 +1,11 @@
 import { FooterToolbar, ProCard, ProForm, ProFormItem, ProFormSelect, ProFormText } from '@ant-design/pro-components'
 import { App, Button, Divider, Flex, InputNumber, Space, Table } from 'antd'
 import { useEffect, useRef, useState } from 'react'
-import { formatMemory, namespaceName } from '@/utils/k8s'
+import { formatMemory, namespaceName, namespaceNameKey } from '@/utils/k8s'
 import { RootDiskDrawer } from './root-disk-drawer'
-import { capacity, classNames, generateKubeovnNetworkAnnon } from '@/utils/utils'
-import { DataDiskDrawer } from './data-disk-drawer'
-import { NetworkConfig, NetworkDrawer } from './network-drawer'
-import { virtualmachineYaml, defaultCloudInit } from './crd-template'
+import { capacity, classNames } from '@/utils/utils'
+import { DataDiskDrawer } from '@/pages/compute/machine/components/data-disk-drawer'
 import { NavigateFunction, useNavigate } from 'react-router-dom'
-import { instances as labels } from '@/apis/sdks/ts/label/labels.gen'
-import { instances as annotations } from '@/apis/sdks/ts/annotation/annotations.gen'
 import { useNamespace } from '@/common/context'
 import { yaml as langYaml } from "@codemirror/lang-yaml"
 import { getDataDiskColumns, getNetworkColumns } from './table-columns'
@@ -17,8 +13,10 @@ import { NotificationInstance } from 'antd/es/notification/interface'
 import { GroupVersionResourceEnum } from '@/apis/types/group_version'
 import { clients } from '@/clients/clients'
 import { PlusOutlined } from '@ant-design/icons'
+import { NetworkConfig, newVirtualMachine } from '../vm'
+import { NetworkDrawer } from '../components/network-drawer'
+import { defaultCloudInit } from '../vm/template'
 import type { ProFormInstance } from '@ant-design/pro-components'
-import * as yaml from 'js-yaml'
 import OperatingSystem from '@/components/operating-system'
 import styles from '@/pages/compute/machine/create/styles/index.module.less'
 import CodeMirror from '@uiw/react-codemirror'
@@ -32,17 +30,14 @@ const submit = async (formRef: React.MutableRefObject<ProFormInstance | undefine
         then(async () => {
             const fields = formRef.current?.getFieldsValue()
 
-            const instance: any = yaml.load(virtualmachineYaml)
-
-            instance.metadata.name = fields.name
-            instance.metadata.namespace = fields.namespace
-
-            setupCpuMem(fields, instance)
-            setupNetwork(fields, instance)
-            setupRootDisk(fields, instance)
-            setupDataDisks(fields, instance)
-
-            console.log(instance)
+            const instance = newVirtualMachine(
+                { name: fields.name, namespace: fields.namespace },
+                { cpu: fields.cpu, memory: fields.memory },
+                { image: fields.rootDisk, capacity: fields.rootDiskCapacity },
+                fields.dataDisks || [],
+                fields.networks,
+                fields.cloudInit
+            )
 
             await clients.createResource(GroupVersionResourceEnum.VIRTUAL_MACHINE, instance, { notification: notification }).then(() => {
                 navigate('/compute/machines')
@@ -57,99 +52,6 @@ const submit = async (formRef: React.MutableRefObject<ProFormInstance | undefine
                 )
             })
         })
-}
-
-const setupCpuMem = (fields: any, vm: any) => {
-    vm.spec.template.spec.domain.cpu.cores = fields.cpu
-    vm.spec.template.spec.domain.memory.guest = `${fields.memory}Gi`
-
-    vm.spec.template.spec.domain.resources.requests.memory = `${fields.memory / 2}Gi`
-    vm.spec.template.spec.domain.resources.requests.cpu = `${250 * fields.cpu}m`
-
-    vm.spec.template.spec.domain.resources.limits.memory = `${fields.memory}Gi`
-    vm.spec.template.spec.domain.resources.limits.cpu = fields.cpu
-}
-
-const setupDataDisks = (fields: any, vm: any) => {
-    const rootDiskName = generateRootDiskName(fields.name)
-
-    const additionalDataDisks = fields.dataDisks?.map((disk: any) => ({
-        dataVolume: { name: disk.metadata.name },
-        name: disk.metadata.name
-    })) || []
-    const additionalCloudInit = { cloudInitNoCloud: { userDataBase64: btoa(fields.cloudInit) }, name: "cloudinit" }
-    vm.spec.template.spec.volumes = [...vm.spec.template.spec.volumes, ...additionalDataDisks, additionalCloudInit]
-
-    vm.spec.template.spec.domain.devices.disks = vm.spec.template.spec.volumes.map((vol: any) => {
-        const result: any = {
-            name: vol.name,
-            disk: { bus: "virtio" }
-        }
-        if (vol.name == rootDiskName) {
-            result.bootOrder = 1
-        }
-        return result
-    })
-}
-
-const setupRootDisk = (fields: any, vm: any) => {
-    const rootDiskName = generateRootDiskName(fields.name)
-
-    vm.spec.dataVolumeTemplates[0].metadata.name = rootDiskName
-    vm.spec.dataVolumeTemplates[0].metadata.labels[labels.VinkDatavolumeType.name] = "root"
-    vm.spec.dataVolumeTemplates[0].metadata.labels[labels.VinkVirtualmachineOs.name] = fields.rootDisk.metadata.labels[labels.VinkVirtualmachineOs.name]
-    vm.spec.dataVolumeTemplates[0].metadata.labels[labels.VinkVirtualmachineVersion.name] = fields.rootDisk.metadata.labels[labels.VinkVirtualmachineVersion.name]
-    vm.spec.dataVolumeTemplates[0].metadata.annotations[annotations.VinkVirtualmachineBinding.name] = fields.name
-    vm.spec.dataVolumeTemplates[0].spec.pvc.resources.requests.storage = `${fields.rootDiskCapacity}Gi`
-    vm.spec.dataVolumeTemplates[0].spec.source.pvc.name = fields.rootDisk.metadata.name
-    vm.spec.dataVolumeTemplates[0].spec.source.pvc.namespace = fields.rootDisk.metadata.namespace
-
-    const additionalRootDisk = { dataVolume: { name: rootDiskName }, name: rootDiskName }
-    vm.spec.template.spec.volumes = [...vm.spec.template.spec.volumes, additionalRootDisk]
-    vm.spec.template.spec.domain.devices.disks = vm.spec.template.spec.volumes.map((vol: any) => {
-        const result: any = {
-            name: vol.name,
-            disk: { bus: "virtio" }
-        }
-        if (vol.name == rootDiskName) {
-            result.bootOrder = 1
-        }
-        return result
-    })
-}
-
-const setupNetwork = (fields: any, vm: any) => {
-    vm.spec.template.spec.domain.devices.interfaces = fields.networks.map((network: NetworkConfig, idx: number) => {
-        return { [network.interface]: {}, name: `net-${idx}` }
-    })
-
-    vm.spec.template.spec.networks = fields.networks.map((network: NetworkConfig, idx: number) => {
-        const config: any = { name: `net-${idx}` }
-        const networkName = `${network.multusCR.metadata?.namespace}/${network.multusCR.metadata?.name}`
-        if (network.interface == "masquerade") {
-            config.pod = {}
-            vm.spec.template.metadata.annotations["v1.multus-cni.io/default-network"] = networkName
-        } else {
-            config.multus = { default: idx == 0, networkName: networkName }
-        }
-
-        if (network.ippool) {
-            vm.spec.template.metadata.annotations[generateKubeovnNetworkAnnon(network.multusCR, "ip_pool")] = network.ippool.metadata?.name
-        }
-        if (network.ipAddress && network.ipAddress.length > 0) {
-            vm.spec.template.metadata.annotations[generateKubeovnNetworkAnnon(network.multusCR, "ip_address")] = network.ipAddress
-        }
-        if (network.macAddress && network.macAddress.length > 0) {
-            vm.spec.template.metadata.annotations[generateKubeovnNetworkAnnon(network.multusCR, "mac_address")] = network.macAddress
-        }
-
-        vm.spec.template.metadata.annotations[generateKubeovnNetworkAnnon(network.multusCR, "logical_switch")] = network.subnet.metadata?.name
-        return config
-    })
-}
-
-const generateRootDiskName = (name: string) => {
-    return `${name}-root`
 }
 
 export default () => {
@@ -489,10 +391,10 @@ export default () => {
                                     <Table
                                         size="small"
                                         className={commonStyles["small-scrollbar"]}
-                                        scroll={{ x: 1000 }}
+                                        scroll={{ x: 1300 }}
                                         style={{ marginBottom: 24 }}
                                         columns={networkColumns} dataSource={networks} pagination={false}
-                                        rowKey={(cfg) => cfg.multusCR.metadata?.name!}
+                                        rowKey={(cfg) => namespaceNameKey(cfg.multus)}
                                     />
                                 )
                             }
@@ -551,10 +453,11 @@ export default () => {
             <NetworkDrawer
                 open={openDrawer.network}
                 onCanel={() => setOpenDrawer((prevState) => ({ ...prevState, network: false }))}
-                namespace={namespace}
+                // namespace={namespace}
                 onConfirm={(data) => {
+                    console.log(data, formRef.current?.getFieldsValue(), "formRef.current?.getFieldsValue()")
                     const hasElement = networks.some(cfg => {
-                        return cfg.multusCR.metadata?.name === data.multusCR.metadata?.name
+                        return namespaceNameKey(cfg.multus) === namespaceNameKey(data.multus)
                     })
                     if (hasElement) {
                         return
@@ -564,6 +467,8 @@ export default () => {
                     setOpenDrawer((prevState) => ({ ...prevState, network: false }))
                     formRef.current?.setFieldValue("networks", newNetworks)
                     formRef.current?.validateFields(["networks"])
+
+                    console.log(formRef.current?.getFieldsValue(), "formRef.current?.getFieldsValue()")
                 }}
             />
         </>

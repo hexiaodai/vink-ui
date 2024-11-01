@@ -2,26 +2,28 @@ import { LoadingOutlined } from '@ant-design/icons'
 import { ProTable } from '@ant-design/pro-components'
 import { Button, Drawer, Flex, Select, Space } from 'antd'
 import { useEffect, useRef, useState } from 'react'
-import { namespaceName } from '@/utils/k8s'
+import { formatMemoryString, namespaceNameKey } from '@/utils/k8s'
 import { Params } from 'react-router-dom'
-import { dataDiskDrawerColumns } from './table-columns'
 import { instances as annotations } from "@/apis/sdks/ts/annotation/annotations.gen"
 import { instances as labels } from "@/apis/sdks/ts/label/labels.gen"
 import { GroupVersionResourceEnum } from '@/apis/types/group_version'
 import { ListWatchOptions, useListResources } from '@/hooks/use-resource'
-import type { ActionType } from '@ant-design/pro-components'
+import { fieldSelector } from '@/utils/search'
+import { useNamespaceFromURL } from '@/hooks/use-namespace-from-url'
+import type { ActionType, ProColumns } from '@ant-design/pro-components'
 import React from 'react'
 import tableStyles from '@/common/styles/table.module.less'
 
 interface DataDiskDrawerProps {
     open?: boolean
-    namespace?: string
     current?: any[]
     onCanel?: () => void
     onConfirm?: (dataDisks: any[]) => void
 }
 
 export const DataDiskDrawer: React.FC<DataDiskDrawerProps> = ({ open, current, onCanel, onConfirm }) => {
+    const namespaceName = useNamespaceFromURL()
+
     const [selectedRows, setSelectedRows] = useState<any[]>([])
 
     useEffect(() => {
@@ -30,14 +32,23 @@ export const DataDiskDrawer: React.FC<DataDiskDrawerProps> = ({ open, current, o
 
     const actionRef = useRef<ActionType>()
 
-    const [opts, setOpts] = useState<ListWatchOptions>({ labelSelector: `${labels.VinkDatavolumeType.name}=data` })
+    const [opts, setOpts] = useState<ListWatchOptions>({
+        namespace: namespaceName.namespace,
+        labelSelector: `${labels.VinkDatavolumeType.name}=data`
+    })
+
+    useEffect(() => {
+        if (!open) {
+            return
+        }
+        setOpts(prev => ({ ...prev, namespace: namespaceName.namespace }))
+    }, [namespaceName.namespace, open])
 
     const { resources: dataDisks } = useListResources(GroupVersionResourceEnum.DATA_VOLUME, opts)
 
-
     return (
         <Drawer
-            title="选择系统镜像"
+            title="添加磁盘"
             open={open}
             onClose={onCanel}
             closeIcon={false}
@@ -46,26 +57,28 @@ export const DataDiskDrawer: React.FC<DataDiskDrawerProps> = ({ open, current, o
                 <Flex justify="space-between" align="flex-start">
                     <Space>
                         <Button onClick={() => {
-                            if (selectedRows.length == 0) return
-                            if (onConfirm) onConfirm(selectedRows)
+                            if (selectedRows.length == 0 || !onConfirm) {
+                                return
+                            }
+                            onConfirm(selectedRows)
                         }
                         } type="primary">确定</Button>
                         <Button onClick={onCanel}>取消</Button>
                     </Space>
-                    <Button type='text'>重置</Button>
+                    <Button type='text' onClick={() => setSelectedRows([])}>重置</Button>
                 </Flex>
             }
         >
             <ProTable<any, Params>
                 className={tableStyles["table-padding"]}
                 rowSelection={{
-                    selectedRowKeys: selectedRows.map(dv => namespaceName(dv.metadata)),
+                    selectedRowKeys: selectedRows.map(dv => namespaceNameKey(dv)),
                     onChange: (_, selectedRows) => {
                         setSelectedRows(selectedRows)
                     },
                     getCheckboxProps: (dv) => {
                         const binding = dv.metadata?.annotations[annotations.VinkVirtualmachineBinding.name]
-                        if (!binding) {
+                        if (!binding || binding.length == 0) {
                             return { disabled: false }
                         }
                         const parse = JSON.parse(binding)
@@ -77,13 +90,13 @@ export const DataDiskDrawer: React.FC<DataDiskDrawerProps> = ({ open, current, o
                 loading={{ indicator: <LoadingOutlined /> }}
                 dataSource={dataDisks}
                 request={async (params) => {
-                    setOpts({
-                        labelSelector: `${labels.VinkDatavolumeType.name}=data`,
-                        fieldSelector: (params.keyword && params.keyword.length > 0) ? `metadata.name=${params.keyword}` : undefined
-                    })
+                    setOpts(prev => ({
+                        ...prev,
+                        fieldSelector: fieldSelector(params)
+                    }))
                     return { success: true }
                 }}
-                rowKey={(vm) => namespaceName(vm.metadata)}
+                rowKey={(vm) => namespaceNameKey(vm)}
                 search={false}
                 options={{
                     setting: false,
@@ -101,3 +114,54 @@ export const DataDiskDrawer: React.FC<DataDiskDrawerProps> = ({ open, current, o
         </Drawer>
     )
 }
+
+const dataDiskDrawerColumns: ProColumns<any>[] = [
+    {
+        title: '名称',
+        key: 'name',
+        ellipsis: true,
+        render: (_, dv) => dv.metadata.name
+    },
+    {
+        key: 'binding',
+        title: '资源占用',
+        ellipsis: true,
+        render: (_, dv) => {
+            const binding = dv.metadata?.annotations[annotations.VinkVirtualmachineBinding.name]
+            if (!binding) {
+                return "空闲"
+            }
+            const parse = JSON.parse(binding)
+            return parse && parse.length > 0 ? "使用中" : "空闲"
+        }
+    },
+    {
+        title: '容量',
+        key: 'capacity',
+        ellipsis: true,
+        render: (_, dv) => {
+            const storage = dv.spec.pvc?.resources?.requests?.storage
+            if (!storage) {
+                return
+            }
+            return formatMemoryString(storage)
+        }
+    },
+    {
+        title: '存储类',
+        key: 'storageClassName',
+        ellipsis: true,
+        render: (_, dv) => dv.spec.pvc?.storageClassName
+    },
+    {
+        title: '访问模式',
+        key: 'accessModes',
+        ellipsis: true,
+        render: (_, dv) => {
+            if (dv.spec.pvc?.accessModes.length == 0) {
+                return
+            }
+            return dv.spec.pvc.accessModes[0]
+        }
+    }
+]
