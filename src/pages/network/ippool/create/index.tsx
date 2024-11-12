@@ -2,8 +2,9 @@ import { App } from 'antd'
 import { ippoolYaml } from './crd-template'
 import { useNavigate } from 'react-router-dom'
 import { CreateCRDWithYaml } from '@/components/create-crd-with-yaml'
-import { clients } from '@/clients/clients'
-import { GroupVersionResourceEnum } from '@/apis/types/group_version'
+import { clients, resourceTypeName } from '@/clients/clients'
+import { ResourceType } from '@/apis/types/group_version'
+import { getErrorMessage } from '@/utils/utils'
 import * as yaml from 'js-yaml'
 
 export default () => {
@@ -12,14 +13,13 @@ export default () => {
     const navigate = useNavigate()
 
     const submit = async (data: string) => {
-        const ipppolObject: any = yaml.load(data)
-        if (ipppolObject.metadata.name == "") {
-            notification.error({ message: "IPPool", description: "IPPool name cannot be empty" })
-            return
-        }
-        await clients.createResource(GroupVersionResourceEnum.IPPOOL, ipppolObject, { notification: notification }).then(() => {
+        try {
+            const ipppolObject: any = yaml.load(data)
+            await clients.createResource(ResourceType.IPPOOL, ipppolObject)
             navigate('/network/ippools')
-        })
+        } catch (err: any) {
+            notification.error({ message: resourceTypeName.get(ResourceType.IPPOOL), description: getErrorMessage(err) })
+        }
     }
 
     return (

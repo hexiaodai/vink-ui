@@ -63,51 +63,6 @@
         }
       }
     },
-    "typesGroupVersionResource": {
-      "type": "object",
-      "properties": {
-        "group": {
-          "type": "string"
-        },
-        "version": {
-          "type": "string"
-        },
-        "resource": {
-          "type": "string"
-        }
-      },
-      "title": "GroupVersionResource unambiguously identifies a resource.  It doesn't anonymously include GroupVersion\nto avoid automatic coercion.  It doesn't use a GroupVersion to avoid custom marshalling"
-    },
-    "typesGroupVersionResourceEnum": {
-      "type": "string",
-      "enum": [
-        "UNSPECIFIED",
-        "VIRTUAL_MACHINE",
-        "VIRTUAL_MACHINE_INSTANCE",
-        "DATA_VOLUME",
-        "NODE",
-        "NAMESPACE",
-        "MULTUS",
-        "SUBNET",
-        "VPC",
-        "IPPOOL",
-        "STORAGE_CLASS",
-        "IPS",
-        "VIRTUAL_MACHINE_INSTANCE_SUMMARY"
-      ],
-      "default": "UNSPECIFIED"
-    },
-    "typesGroupVersionResourceIdentifier": {
-      "type": "object",
-      "properties": {
-        "enum": {
-          "$ref": "#/definitions/typesGroupVersionResourceEnum"
-        },
-        "custom": {
-          "$ref": "#/definitions/typesGroupVersionResource"
-        }
-      }
-    },
     "typesListOptions": {
       "type": "object",
       "properties": {
@@ -146,6 +101,25 @@
           "type": "string"
         }
       }
+    },
+    "typesResourceType": {
+      "type": "string",
+      "enum": [
+        "UNSPECIFIED",
+        "VIRTUAL_MACHINE",
+        "VIRTUAL_MACHINE_INSTANCE",
+        "DATA_VOLUME",
+        "NODE",
+        "NAMESPACE",
+        "MULTUS",
+        "SUBNET",
+        "VPC",
+        "IPPOOL",
+        "STORAGE_CLASS",
+        "IPS",
+        "VIRTUAL_MACHINE_SUMMARY"
+      ],
+      "default": "UNSPECIFIED"
     },
     "v1alpha1EventType": {
       "type": "string",

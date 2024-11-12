@@ -1,19 +1,24 @@
 import { PlusOutlined, LoadingOutlined } from '@ant-design/icons'
 import { ProTable } from '@ant-design/pro-components'
-import { App, Button, Modal, Select, Space } from 'antd'
+import { App, Badge, Button, Dropdown, MenuProps, Modal, Select, Space } from 'antd'
 import { useEffect, useRef, useState } from 'react'
-import { namespaceName } from '@/utils/k8s'
+import { formatMemory, namespaceName, namespaceNameKey } from '@/utils/k8s'
 import { NavLink, Params } from 'react-router-dom'
 import { instances as labels } from "@/apis/sdks/ts/label/labels.gen"
-import { calcScroll, classNames, dataSource, generateMessage } from '@/utils/utils'
+import { calcScroll, classNames, dataSource, formatTimestamp, generateMessage, getErrorMessage } from '@/utils/utils'
 import { useNamespace } from '@/common/context'
-import { clients } from '@/clients/clients'
-import { GroupVersionResourceEnum } from '@/apis/types/group_version'
-import type { ActionType } from '@ant-design/pro-components'
+import { clients, emptyOptions, resourceTypeName } from '@/clients/clients'
+import { ResourceType } from '@/apis/types/group_version'
+import { useWatchResources } from '@/hooks/use-resource'
+import { ListOptions } from '@/apis/types/list_options'
+import { NotificationInstance } from 'antd/lib/notification/interface'
+import { fieldSelector } from '@/utils/search'
+import { EllipsisOutlined } from '@ant-design/icons'
+import { dataVolumeStatusMap } from '@/utils/resource-status'
+import type { ActionType, ProColumns } from '@ant-design/pro-components'
 import tableStyles from '@/common/styles/table.module.less'
 import commonStyles from '@/common/styles/common.module.less'
-import columnsFunc from '@/pages/storage/image/list/table-columns.tsx'
-import { ListWatchOptions, useWatchResources } from '@/hooks/use-resource'
+import OperatingSystem from '@/components/operating-system'
 
 export default () => {
     const { notification } = App.useApp()
@@ -32,9 +37,29 @@ export default () => {
         actionRef.current?.reload()
     }, [namespace])
 
-    const [opts, setOpts] = useState<ListWatchOptions>({ namespace: namespace, labelSelector: `${labels.VinkDatavolumeType.name}=image` })
+    const [opts, setOpts] = useState<ListOptions>(emptyOptions({ namespace: namespace, labelSelector: `${labels.VinkDatavolumeType.name}=image` }))
 
-    const { resources: images, loading } = useWatchResources(GroupVersionResourceEnum.DATA_VOLUME, opts)
+    const { resources: images, loading } = useWatchResources(ResourceType.DATA_VOLUME, opts)
+
+    const handleBatchDeleteImage = async () => {
+        const resourceName = resourceTypeName.get(ResourceType.DATA_VOLUME)
+        Modal.confirm({
+            title: `Batch delete ${resourceName}?`,
+            content: generateMessage(selectedRows, `You are about to delete the following ${resourceName}: "{names}", please confirm.`, `You are about to delete the following ${resourceName}: "{names}" and {count} others, please confirm.`),
+            okText: 'Confirm Delete',
+            okType: 'danger',
+            cancelText: 'Cancel',
+            okButtonProps: { disabled: false },
+            onOk: async () => {
+                clients.batchDeleteResources(ResourceType.DATA_VOLUME, selectedRows).catch(err => {
+                    notification.error({
+                        message: `Batch delete of ${resourceName} failed`,
+                        description: getErrorMessage(err)
+                    })
+                })
+            }
+        })
+    }
 
     return (
         <ProTable<any, Params>
@@ -42,9 +67,7 @@ export default () => {
             scroll={{ x: scroll }}
             rowSelection={{
                 defaultSelectedRowKeys: [],
-                onChange: (_, selectedRows) => {
-                    setSelectedRows(selectedRows)
-                }
+                onChange: (_, selectedRows) => setSelectedRows(selectedRows)
             }}
             tableAlertRender={({ selectedRowKeys, onCleanSelected }) => {
                 return (
@@ -57,21 +80,7 @@ export default () => {
             tableAlertOptionRender={() => {
                 return (
                     <Space size={16}>
-                        <a className={commonStyles["warning-color"]} onClick={async () => {
-                            Modal.confirm({
-                                title: "批量删除系统镜像？",
-                                content: generateMessage(selectedRows, `即将删除 "{names}" 系统镜像，请确认`, `即将删除 "{names}" 等 {count} 个系统镜像，请确认。`),
-                                okText: '确认删除',
-                                okType: 'danger',
-                                cancelText: '取消',
-                                okButtonProps: {
-                                    disabled: false,
-                                },
-                                onOk: async () => {
-                                    await clients.batchDeleteResources(GroupVersionResourceEnum.DATA_VOLUME, selectedRows, { notification: notification })
-                                }
-                            })
-                        }}>批量删除</a>
+                        <a className={commonStyles["warning-color"]} onClick={async () => handleBatchDeleteImage()}>批量删除</a>
                     </Space>
                 )
             }}
@@ -80,11 +89,7 @@ export default () => {
             loading={{ spinning: loading, indicator: <LoadingOutlined /> }}
             dataSource={dataSource(images)}
             request={async (params) => {
-                setOpts({
-                    namespace: namespace,
-                    labelSelector: `${labels.VinkDatavolumeType.name}=image`,
-                    fieldSelector: (params.keyword && params.keyword.length > 0) ? `metadata.name=${params.keyword}` : undefined
-                })
+                setOpts({ ...opts, fieldSelector: fieldSelector(params) })
                 return { success: true }
             }}
             columnsState={{
@@ -112,4 +117,109 @@ export default () => {
             }}
         />
     )
+}
+
+const columnsFunc = (notification: NotificationInstance) => {
+    const columns: ProColumns<any>[] = [
+        {
+            key: 'name',
+            title: '名称',
+            fixed: 'left',
+            ellipsis: true,
+            render: (_, dv) => dv.metadata.name
+        },
+        {
+            key: 'status',
+            title: '状态',
+            ellipsis: true,
+            render: (_, dv) => {
+                const displayStatus = parseFloat(dv.status.progress) === 100 ? dataVolumeStatusMap[dv.status.phase].text : dv.status.progress
+                return <Badge status={dataVolumeStatusMap[dv.status.phase].badge} text={displayStatus} />
+            }
+        },
+        {
+            key: 'operatingSystem',
+            title: '操作系统',
+            ellipsis: true,
+            render: (_, dv) => {
+                return <OperatingSystem dv={dv} />
+            }
+        },
+        {
+            title: '容量',
+            key: 'capacity',
+            ellipsis: true,
+            render: (_, dv) => {
+                const [value, uint] = formatMemory(dv.spec.pvc.resources.requests.storage)
+                return `${value} ${uint}`
+            }
+        },
+        {
+            key: 'created',
+            title: '创建时间',
+            width: 160,
+            ellipsis: true,
+            render: (_, dv) => {
+                return formatTimestamp(dv.metadata.creationTimestamp)
+            }
+        },
+        {
+            key: 'action',
+            title: '操作',
+            fixed: 'right',
+            width: 90,
+            align: 'center',
+            render: (_, dv) => {
+                const items = actionItemsFunc(dv, notification)
+                return (
+                    <Dropdown menu={{ items }} trigger={['click']}>
+                        <EllipsisOutlined />
+                    </Dropdown>
+                )
+            }
+        }
+    ]
+    return columns
+}
+
+const actionItemsFunc = (vm: any, notification: NotificationInstance) => {
+    const namespaceName = { namespace: vm.metadata.namespace, name: vm.metadata.name }
+
+    const items: MenuProps['items'] = [
+        {
+            key: 'edit',
+            label: "编辑"
+        },
+        {
+            key: 'bindlabel',
+            label: '绑定标签'
+        },
+        {
+            key: 'divider-3',
+            type: 'divider'
+        },
+        {
+            key: 'delete',
+            danger: true,
+            onClick: () => {
+                Modal.confirm({
+                    title: "Delete system image?",
+                    content: `You are about to delete the system image "${namespaceNameKey(namespaceName)}". Please confirm.`,
+                    okText: 'Confirm delete',
+                    okType: 'danger',
+                    cancelText: 'Cancel',
+                    okButtonProps: { disabled: false },
+                    onOk: async () => {
+                        try {
+                            await clients.deleteResource(ResourceType.DATA_VOLUME, namespaceName)
+                        } catch (err: any) {
+                            notification.error({ message: resourceTypeName.get(ResourceType.DATA_VOLUME), description: getErrorMessage(err) })
+                        }
+                    }
+                })
+            },
+            label: "删除"
+        }
+    ]
+    return items
 }

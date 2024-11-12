@@ -6,10 +6,12 @@ import { formatMemoryString, namespaceNameKey } from '@/utils/k8s'
 import { Params } from 'react-router-dom'
 import { instances as annotations } from "@/apis/sdks/ts/annotation/annotations.gen"
 import { instances as labels } from "@/apis/sdks/ts/label/labels.gen"
-import { GroupVersionResourceEnum } from '@/apis/types/group_version'
-import { ListWatchOptions, useListResources } from '@/hooks/use-resource'
+import { ResourceType } from '@/apis/types/group_version'
+import { useListResources } from '@/hooks/use-resource'
 import { fieldSelector } from '@/utils/search'
 import { useNamespaceFromURL } from '@/hooks/use-namespace-from-url'
+import { ListOptions } from '@/apis/types/list_options'
+import { emptyOptions } from '@/clients/clients'
 import type { ActionType, ProColumns } from '@ant-design/pro-components'
 import React from 'react'
 import tableStyles from '@/common/styles/table.module.less'
@@ -32,10 +34,9 @@ export const DataDiskDrawer: React.FC<DataDiskDrawerProps> = ({ open, current, o
 
     const actionRef = useRef<ActionType>()
 
-    const [opts, setOpts] = useState<ListWatchOptions>({
-        namespace: namespaceName.namespace,
-        labelSelector: `${labels.VinkDatavolumeType.name}=data`
-    })
+    const [opts, setOpts] = useState<ListOptions>(emptyOptions({
+        namespace: namespaceName.namespace, labelSelector: `${labels.VinkDatavolumeType.name}=data`
+    }))
 
     useEffect(() => {
         if (!open) {
@@ -44,7 +45,16 @@ export const DataDiskDrawer: React.FC<DataDiskDrawerProps> = ({ open, current, o
         setOpts(prev => ({ ...prev, namespace: namespaceName.namespace }))
     }, [namespaceName.namespace, open])
 
-    const { resources: dataDisks } = useListResources(GroupVersionResourceEnum.DATA_VOLUME, opts)
+    const { resources: dataDisks } = useListResources(ResourceType.DATA_VOLUME, opts)
+
+    const handleCheckboxProps = (dv: any) => {
+        const binding = dv.metadata.annotations[annotations.VinkVirtualmachineBinding.name]
+        if (!binding || binding.length == 0) {
+            return { disabled: false }
+        }
+        const parse = JSON.parse(binding)
+        return { disabled: parse && parse.length > 0 }
+    }
 
     return (
         <Drawer
@@ -73,27 +83,17 @@ export const DataDiskDrawer: React.FC<DataDiskDrawerProps> = ({ open, current, o
                 className={tableStyles["table-padding"]}
                 rowSelection={{
                     selectedRowKeys: selectedRows.map(dv => namespaceNameKey(dv)),
-                    onChange: (_, selectedRows) => {
-                        setSelectedRows(selectedRows)
-                    },
-                    getCheckboxProps: (dv) => {
-                        const binding = dv.metadata?.annotations[annotations.VinkVirtualmachineBinding.name]
-                        if (!binding || binding.length == 0) {
-                            return { disabled: false }
-                        }
-                        const parse = JSON.parse(binding)
-                        return { disabled: parse && parse.length > 0 }
-                    }
+                    onChange: (_, selectedRows) => { setSelectedRows(selectedRows) },
+                    getCheckboxProps: handleCheckboxProps
                 }}
                 columns={dataDiskDrawerColumns}
                 actionRef={actionRef}
                 loading={{ indicator: <LoadingOutlined /> }}
                 dataSource={dataDisks}
                 request={async (params) => {
-                    setOpts(prev => ({
-                        ...prev,
-                        fieldSelector: fieldSelector(params)
-                    }))
+                    setOpts({
+                        ...opts, ...(fieldSelector(params) && { fieldSelector: fieldSelector(params) })
+                    })
                     return { success: true }
                 }}
                 rowKey={(vm) => namespaceNameKey(vm)}

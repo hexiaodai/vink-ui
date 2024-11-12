@@ -3,6 +3,7 @@ import { ColumnsState } from "@ant-design/pro-components"
 import { formatMemory, namespaceName, namespaceNameKey } from "./k8s"
 import { ListOptions } from "@/apis/types/list_options"
 import { NamespaceName } from "@/apis/types/namespace_name"
+import { ResourceType } from '@/apis/types/group_version'
 
 /**
  * Combines multiple class names into a single string.
@@ -88,19 +89,16 @@ export const dataSource = (data: Map<string, any>): any[] | undefined => {
     return undefined
 }
 
-export const generateMessage = (crds: any[], successMessage: string, multipleMessage: string) => {
-    const names: string[] = []
-    crds.forEach(crd => {
-        names.push(namespaceNameKey(crd))
-    })
+export const generateMessage = (items: any[] | NamespaceName[], successMessage: string, multipleMessage: string) => {
+    const namespaceNames = items.map(item => namespaceNameKey(item))
 
-    const displayedNames = names.slice(0, 3).join("、")
-    const remainingCount = names.length - 3
+    const displayedNames = namespaceNames.slice(0, 3).join(", ")
+    const remainingCount = namespaceNames.length - 3
 
     if (remainingCount > 0) {
         return multipleMessage
             .replace("{names}", displayedNames)
-            .replace("{count}", names.length.toString())
+            .replace("{count}", namespaceNames.length.toString())
     } else {
         return successMessage.replace("{names}", displayedNames)
     }
@@ -193,3 +191,28 @@ export const getProvider = (multusCR: any) => {
     }
     return
 }
+
+export const getErrorMessage = (err: unknown): string => {
+    if (typeof err === 'string') {
+        return err
+    } else if (err instanceof Error) {
+        return err.message
+    } else {
+        return JSON.stringify(err)
+    }
+}
+
+export const resourceTypeName = new Map<ResourceType, string>([
+    [ResourceType.VIRTUAL_MACHINE, "VirtualMachine"],
+    [ResourceType.VIRTUAL_MACHINE_INSTANCE, "VirtualMachineInstance"],
+    [ResourceType.VIRTUAL_MACHINE_SUMMARY, "VirtualMachineSummary"],
+    [ResourceType.DATA_VOLUME, "DataVolume"],
+    [ResourceType.NODE, "Node"],
+    [ResourceType.NAMESPACE, "Namespace"],
+    [ResourceType.MULTUS, "Multus"],
+    [ResourceType.SUBNET, "Subnet"],
+    [ResourceType.VPC, "VPC"],
+    [ResourceType.IPPOOL, "IPPool"],
+    [ResourceType.STORAGE_CLASS, "StorageClass"],
+    [ResourceType.IPS, "IPs"]
+])

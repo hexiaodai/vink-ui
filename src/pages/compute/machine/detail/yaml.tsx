@@ -1,13 +1,11 @@
 import { App, Button, Flex, Spin } from "antd"
-import { useEffect, useRef, useState } from "react"
-import { GroupVersionResourceEnum } from "@/apis/types/group_version"
-import { namespaceNameKey } from "@/utils/k8s"
-import { useWatchResources } from "@/hooks/use-resource"
+import { useEffect, useRef } from "react"
+import { ResourceType } from "@/apis/types/group_version"
+import { useWatchResourceInNamespaceName } from "@/hooks/use-resource"
 import { LoadingOutlined } from '@ant-design/icons'
-import { useNamespaceFromURL } from "@/hooks/use-namespace-from-url"
-import { classNames } from "@/utils/utils"
+import { classNames, getErrorMessage } from "@/utils/utils"
 import { yaml as langYaml } from "@codemirror/lang-yaml"
-import { clients } from "@/clients/clients"
+import { clients, resourceTypeName } from "@/clients/clients"
 import CodeMirror from '@uiw/react-codemirror'
 import codeMirrorStyles from "@/common/styles/code-mirror.module.less"
 import commonStyles from "@/common/styles/common.module.less"
@@ -16,29 +14,23 @@ import yaml from 'js-yaml'
 export default () => {
     const { notification } = App.useApp()
 
-    const [virtualMachine, setVirtualMachine] = useState<any>()
-
-    const namespaceName = useNamespaceFromURL()
-
-    const { resources: virtualMachineMap, loading } = useWatchResources(GroupVersionResourceEnum.VIRTUAL_MACHINE)
+    const { resource: virtualMachine, loading } = useWatchResourceInNamespaceName(ResourceType.VIRTUAL_MACHINE)
 
     const updatedObject = useRef<any>()
-    const change = (value: string) => {
+
+    useEffect(() => {
+        updatedObject.current = virtualMachine
+    }, [virtualMachine])
+
+    const handleChange = (value: string) => {
         updatedObject.current = yaml.load(value)
     }
 
-    useEffect(() => {
-        const vm = virtualMachineMap.get(namespaceNameKey(namespaceName))
-        setVirtualMachine(vm)
-        updatedObject.current = vm
-    }, [virtualMachineMap])
-
-    const save = async () => {
+    const handleSave = async () => {
         try {
-            await clients.updateResourceAsync(GroupVersionResourceEnum.VIRTUAL_MACHINE, updatedObject.current)
-            notification.success({ message: "保存成功" })
+            await clients.updateResource(ResourceType.VIRTUAL_MACHINE, updatedObject.current)
         } catch (err: any) {
-            notification.error({ message: "保存失败", description: err.message })
+            notification.error({ message: resourceTypeName.get(ResourceType.VIRTUAL_MACHINE), description: getErrorMessage(err) })
         }
     }
 
@@ -49,15 +41,12 @@ export default () => {
                 value={yaml.dump(virtualMachine).trimStart()}
                 maxHeight="100vh"
                 extensions={[langYaml()]}
-                onChange={change}
+                onChange={handleChange}
             />
 
-            <Flex
-                className={commonStyles["sticky-footer-bar"]}
-                justify="flex-end"
-            >
+            <Flex className={commonStyles["sticky-footer-bar"]} justify="flex-end">
                 {/* <Button style={{marginRight: 8}}>重置</Button> */}
-                <Button type="primary" onClick={save}>保存</Button>
+                <Button type="primary" onClick={handleSave}>保存</Button>
             </Flex>
         </Spin>
     )

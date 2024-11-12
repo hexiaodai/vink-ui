@@ -26,23 +26,23 @@ message CustomResourceDefinitionResponse {
 }
 
 message GetRequest {
-    vink.kubevm.io.apis.types.GroupVersionResourceIdentifier group_version_resource = 1;
+    vink.kubevm.io.apis.types.ResourceType resource_type = 1;
     vink.kubevm.io.apis.types.NamespaceName namespace_name = 2;
 }
 
 message CreateRequest {
-    vink.kubevm.io.apis.types.GroupVersionResourceIdentifier group_version_resource = 1;
+    vink.kubevm.io.apis.types.ResourceType resource_type = 1;
     string data = 2;
     // google.protobuf.Struct crd = 2;
     // vink.kubevm.io.apis.apiextensions.v1alpha1.CustomResourceDefinition crd = 2;
 }
 
 message UpdateRequest {
-    vink.kubevm.io.apis.types.GroupVersionResourceIdentifier group_version_resource = 1;
+    vink.kubevm.io.apis.types.ResourceType resource_type = 1;
     string data = 2;
 }
 
 message DeleteRequest {
-    vink.kubevm.io.apis.types.GroupVersionResourceIdentifier group_version_resource = 1;
+    vink.kubevm.io.apis.types.ResourceType resource_type = 1;
     vink.kubevm.io.apis.types.NamespaceName namespace_name = 2;
 }

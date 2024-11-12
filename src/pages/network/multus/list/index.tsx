@@ -1,17 +1,19 @@
 import { PlusOutlined, LoadingOutlined } from '@ant-design/icons'
 import { ProTable } from '@ant-design/pro-components'
-import { App, Button, Modal, Select, Space } from 'antd'
+import { App, Button, Dropdown, MenuProps, Modal, Select, Space } from 'antd'
 import { useEffect, useRef, useState } from 'react'
-import { namespaceName } from '@/utils/k8s'
+import { namespaceNameKey } from '@/utils/k8s'
 import { NavLink, Params } from 'react-router-dom'
-import { classNames, generateMessage } from '@/utils/utils'
+import { classNames, formatTimestamp, generateMessage, getErrorMessage, getProvider } from '@/utils/utils'
 import { useNamespace } from '@/common/context'
-import { clients } from '@/clients/clients'
-import { GroupVersionResourceEnum } from '@/apis/types/group_version'
-import type { ActionType } from '@ant-design/pro-components'
+import { clients, emptyOptions, resourceTypeName } from '@/clients/clients'
+import { ResourceType } from '@/apis/types/group_version'
+import { NotificationInstance } from 'antd/lib/notification/interface'
+import { EllipsisOutlined } from '@ant-design/icons'
+import { fieldSelector } from '@/utils/search'
+import type { ActionType, ProColumns } from '@ant-design/pro-components'
 import tableStyles from '@/common/styles/table.module.less'
 import commonStyles from '@/common/styles/common.module.less'
-import columnsFunc from '@/pages/network/multus/list/table-columns.tsx'
 
 export default () => {
     const { notification } = App.useApp()
@@ -25,6 +27,26 @@ export default () => {
     const [multus, setMultus] = useState<any[]>([])
 
     const columns = columnsFunc(actionRef, notification)
+
+    const handleBatchDeleteMultus = async () => {
+        const resourceName = resourceTypeName.get(ResourceType.MULTUS)
+        Modal.confirm({
+            title: `Batch delete ${resourceName}?`,
+            content: generateMessage(selectedRows, `You are about to delete the following ${resourceName}: "{names}", please confirm.`, `You are about to delete the following ${resourceName}: "{names}" and {count} others, please confirm.`),
+            okText: 'Confirm Delete',
+            okType: 'danger',
+            cancelText: 'Cancel',
+            okButtonProps: { disabled: false },
+            onOk: async () => {
+                clients.batchDeleteResources(ResourceType.MULTUS, selectedRows).catch(err => {
+                    notification.error({
+                        message: `Batch delete of ${resourceName} failed`,
+                        description: getErrorMessage(err)
+                    })
+                })
+            }
+        })
+    }
 
     useEffect(() => {
         actionRef.current?.reload()
@@ -50,23 +72,7 @@ export default () => {
             tableAlertOptionRender={() => {
                 return (
                     <Space size={16}>
-                        <a className={commonStyles["warning-color"]} onClick={async () => {
-                            Modal.confirm({
-                                title: "批量删除 Multus？",
-                                content: generateMessage(selectedRows, `即将删除 "{names}" Multus，请确认`, `即将删除 "{names}" 等 {count} 个 Multus，请确认。`),
-                                okText: '确认删除',
-                                okType: 'danger',
-                                cancelText: '取消',
-                                okButtonProps: {
-                                    disabled: false,
-                                },
-                                onOk: async () => {
-                                    await clients.batchDeleteResources(GroupVersionResourceEnum.MULTUS, selectedRows, { notification: notification }).then(() => {
-                                        actionRef.current?.reload()
-                                    })
-                                }
-                            })
-                        }}>批量删除</a>
+                        <a className={commonStyles["warning-color"]} onClick={async () => handleBatchDeleteMultus()}>批量删除</a>
                     </Space>
                 )
             }}
@@ -76,10 +82,7 @@ export default () => {
             dataSource={multus}
             request={async (params) => {
                 try {
-                    const multus = await clients.fetchResources(GroupVersionResourceEnum.MULTUS, {
-                        namespace: namespace,
-                        fieldSelector: (params.keyword && params.keyword.length > 0) ? `metadata.name=${params.keyword}` : undefined,
-                    })
+                    const multus = await clients.listResources(ResourceType.MULTUS, emptyOptions({ fieldSelector: fieldSelector(params) }))
                     setMultus(multus)
                 } catch (err: any) {
                     notification.error({ message: err })
@@ -90,7 +93,7 @@ export default () => {
                 persistenceKey: 'multus-list-table-columns',
                 persistenceType: 'localStorage',
             }}
-            rowKey={(vm) => namespaceName(vm.metadata)}
+            rowKey={(vm) => namespaceNameKey(vm)}
             search={false}
             options={{
                 fullScreen: true,
@@ -110,4 +113,91 @@ export default () => {
             }}
         />
     )
+}
+
+const columnsFunc = (actionRef: any, notification: NotificationInstance) => {
+    const columns: ProColumns<any>[] = [
+        {
+            key: 'name',
+            title: '名称',
+            fixed: 'left',
+            ellipsis: true,
+            render: (_, mc) => mc.metadata.name
+        },
+        {
+            key: 'provider',
+            title: 'Provider',
+            ellipsis: true,
+            render: (_, mc) => getProvider(mc)
+        },
+        {
+            key: 'created',
+            title: '创建时间',
+            width: 160,
+            ellipsis: true,
+            render: (_, mc) => {
+                return formatTimestamp(mc.metadata.creationTimestamp)
+            }
+        },
+        {
+            key: 'action',
+            title: '操作',
+            fixed: 'right',
+            width: 90,
+            align: 'center',
+            render: (_, mc) => {
+                const items = actionItemsFunc(mc, actionRef, notification)
+                return (
+                    <Dropdown menu={{ items }} trigger={['click']}>
+                        <EllipsisOutlined />
+                    </Dropdown>
+                )
+            }
+        }
+    ]
+    return columns
+}
+
+const actionItemsFunc = (mc: any, actionRef: any, notification: NotificationInstance) => {
+    const namespace = mc.metadata.namespace
+    const name = mc.metadata.name
+
+    const items: MenuProps['items'] = [
+        {
+            key: 'edit',
+            label: "编辑"
+        },
+        {
+            key: 'bindlabel',
+            label: '绑定标签'
+        },
+        {
+            key: 'divider-3',
+            type: 'divider'
+        },
+        {
+            key: 'delete',
+            danger: true,
+            onClick: () => {
+                Modal.confirm({
+                    title: "Delete Multus configuration?",
+                    content: `You are about to delete the Multus configuration "${namespace}/${name}". Please confirm.`,
+                    okText: 'Confirm delete',
+                    okType: 'danger',
+                    cancelText: 'Cancel',
+                    okButtonProps: { disabled: false },
+                    onOk: async () => {
+                        try {
+                            await clients.deleteResource(ResourceType.MULTUS, { namespace: namespace, name: name })
+                            actionRef.current?.reload()
+                        } catch (err) {
+                            notification.error({ message: resourceTypeName.get(ResourceType.MULTUS), description: getErrorMessage(err) })
+                        }
+                    }
+                })
+            },
+            label: "删除"
+        }
+    ]
+    return items
 }

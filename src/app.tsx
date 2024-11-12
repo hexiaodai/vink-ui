@@ -4,7 +4,7 @@ import { PageContainer, ProLayout } from '@ant-design/pro-components'
 import { NavLink, useLocation } from 'react-router-dom'
 import { LayoutSettings } from '@/layout-config'
 import { NamespaceProvider, useNamespace } from '@/common/context'
-import { GroupVersionResourceEnum } from './apis/types/group_version'
+import { ResourceType } from './apis/types/group_version'
 import { useListResources } from './hooks/use-resource'
 import AppRouter from '@/router'
 import styles from '@/styles/app.module.less'
@@ -16,7 +16,7 @@ export default () => {
 
   const [collapsed, setCollapsed] = useState(false)
 
-  const { resources: namespaces } = useListResources(GroupVersionResourceEnum.NAMESPACE)
+  const { resources: namespaces } = useListResources(ResourceType.NAMESPACE)
 
   return (
     <ConfigProvider

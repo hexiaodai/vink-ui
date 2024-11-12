@@ -2,9 +2,10 @@ import { App } from 'antd'
 import { subnetYaml } from './crd-template'
 import { useNavigate } from 'react-router-dom'
 import { CreateCRDWithYaml } from '@/components/create-crd-with-yaml'
-import { clients } from '@/clients/clients'
-import { GroupVersionResourceEnum } from '@/apis/types/group_version'
+import { clients, resourceTypeName } from '@/clients/clients'
+import { ResourceType } from '@/apis/types/group_version'
 import * as yaml from 'js-yaml'
+import { getErrorMessage } from '@/utils/utils'
 
 export default () => {
     const { notification } = App.useApp()
@@ -12,14 +13,13 @@ export default () => {
     const navigate = useNavigate()
 
     const submit = async (data: string) => {
-        const subnetObject: any = yaml.load(data)
-        if (subnetObject.metadata.name == "") {
-            notification.error({ message: "Subnet", description: "Subnet name cannot be empty" })
-            return
-        }
-        await clients.createResource(GroupVersionResourceEnum.SUBNET, subnetObject, { notification: notification }).then(() => {
+        try {
+            const subnetObject: any = yaml.load(data)
+            await clients.createResource(ResourceType.SUBNET, subnetObject)
             navigate('/network/subnets')
-        })
+        } catch (err: any) {
+            notification.error({ message: resourceTypeName.get(ResourceType.MULTUS), description: getErrorMessage(err) })
+        }
     }
 
     return (

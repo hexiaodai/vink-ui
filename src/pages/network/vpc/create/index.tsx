@@ -2,8 +2,9 @@ import { App } from 'antd'
 import { vpcYaml } from './crd-template'
 import { useNavigate } from 'react-router-dom'
 import { CreateCRDWithYaml } from '@/components/create-crd-with-yaml'
-import { clients } from '@/clients/clients'
-import { GroupVersionResourceEnum } from '@/apis/types/group_version'
+import { clients, resourceTypeName } from '@/clients/clients'
+import { ResourceType } from '@/apis/types/group_version'
+import { getErrorMessage } from '@/utils/utils'
 import * as yaml from 'js-yaml'
 
 export default () => {
@@ -12,14 +13,13 @@ export default () => {
     const navigate = useNavigate()
 
     const submit = async (data: string) => {
-        const vpcObject: any = yaml.load(data)
-        if (vpcObject.metadata.name == "") {
-            notification.error({ message: "VPC", description: "VPC name cannot be empty" })
-            return
-        }
-        await clients.createResource(GroupVersionResourceEnum.VPC, vpcObject, { notification: notification }).then(() => {
+        try {
+            const vpcObject: any = yaml.load(data)
+            await clients.createResource(ResourceType.VPC, vpcObject)
             navigate('/network/vpcs')
-        })
+        } catch (err: any) {
+            notification.error({ message: resourceTypeName.get(ResourceType.VPC), description: getErrorMessage(err) })
+        }
     }
 
     return (

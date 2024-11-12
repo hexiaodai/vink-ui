@@ -13,22 +13,22 @@ export type CustomResourceDefinitionResponse = {
 }
 
 export type GetRequest = {
-  groupVersionResource?: VinkKubevmIoApisTypesGroup_version.GroupVersionResourceIdentifier
+  resourceType?: VinkKubevmIoApisTypesGroup_version.ResourceType
   namespaceName?: VinkKubevmIoApisTypesNamespace_name.NamespaceName
 }
 
 export type CreateRequest = {
-  groupVersionResource?: VinkKubevmIoApisTypesGroup_version.GroupVersionResourceIdentifier
+  resourceType?: VinkKubevmIoApisTypesGroup_version.ResourceType
   data?: string
 }
 
 export type UpdateRequest = {
-  groupVersionResource?: VinkKubevmIoApisTypesGroup_version.GroupVersionResourceIdentifier
+  resourceType?: VinkKubevmIoApisTypesGroup_version.ResourceType
   data?: string
 }
 
 export type DeleteRequest = {
-  groupVersionResource?: VinkKubevmIoApisTypesGroup_version.GroupVersionResourceIdentifier
+  resourceType?: VinkKubevmIoApisTypesGroup_version.ResourceType
   namespaceName?: VinkKubevmIoApisTypesNamespace_name.NamespaceName
 }
 

@@ -3,27 +3,24 @@ import { useNavigate } from 'react-router-dom'
 import { useNamespace } from '@/common/context'
 import { multusYaml } from './crd-template'
 import { CreateCRDWithYaml } from '@/components/create-crd-with-yaml'
-import { clients } from '@/clients/clients'
-import { GroupVersionResourceEnum } from '@/apis/types/group_version'
+import { clients, resourceTypeName } from '@/clients/clients'
+import { ResourceType } from '@/apis/types/group_version'
+import { getErrorMessage } from '@/utils/utils'
 import * as yaml from 'js-yaml'
 
 export default () => {
     const { notification } = App.useApp()
 
-    const { namespace } = useNamespace()
-
     const navigate = useNavigate()
 
     const submit = async (data: string) => {
-        const multusObject: any = yaml.load(data)
-        if (multusObject.metadata.namespace == "" || multusObject.metadata.namespace != namespace) {
-            const errmsg = multusObject.metadata.namespace.length == 0 ? "请选择 Namespace" : "Namespace 错误"
-            notification.error({ message: "Multus", description: errmsg })
-            return
-        }
-        await clients.createResource(GroupVersionResourceEnum.MULTUS, multusObject, { notification: notification }).then(() => {
+        try {
+            const multusObject: any = yaml.load(data)
+            await clients.createResource(ResourceType.MULTUS, multusObject)
             navigate('/network/multus')
-        })
+        } catch (err: any) {
+            notification.error({ message: resourceTypeName.get(ResourceType.MULTUS), description: getErrorMessage(err) })
+        }
     }
 
     return (

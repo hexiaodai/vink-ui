@@ -13,15 +13,15 @@ import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
 import { NamespaceName } from "../../../types/namespace_name";
 import { ListOptions } from "../../../types/list_options";
-import { GroupVersionResourceIdentifier } from "../../../types/group_version";
+import { ResourceType } from "../../../types/group_version";
 /**
  * @generated from protobuf message vink.kubevm.io.apis.management.resource.v1alpha1.ListWatchRequest
  */
 export interface ListWatchRequest {
     /**
-     * @generated from protobuf field: vink.kubevm.io.apis.types.GroupVersionResourceIdentifier group_version_resource = 1;
+     * @generated from protobuf field: vink.kubevm.io.apis.types.ResourceType resource_type = 1;
      */
-    groupVersionResource?: GroupVersionResourceIdentifier;
+    resourceType: ResourceType;
     /**
      * @generated from protobuf field: vink.kubevm.io.apis.types.ListOptions options = 2;
      */
@@ -71,12 +71,13 @@ export enum EventType {
 class ListWatchRequest$Type extends MessageType<ListWatchRequest> {
     constructor() {
         super("vink.kubevm.io.apis.management.resource.v1alpha1.ListWatchRequest", [
-            { no: 1, name: "group_version_resource", kind: "message", T: () => GroupVersionResourceIdentifier },
+            { no: 1, name: "resource_type", kind: "enum", T: () => ["vink.kubevm.io.apis.types.ResourceType", ResourceType] },
             { no: 2, name: "options", kind: "message", T: () => ListOptions }
         ]);
     }
     create(value?: PartialMessage<ListWatchRequest>): ListWatchRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
+        message.resourceType = 0;
         if (value !== undefined)
             reflectionMergePartial<ListWatchRequest>(this, message, value);
         return message;
@@ -86,8 +87,8 @@ class ListWatchRequest$Type extends MessageType<ListWatchRequest> {
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* vink.kubevm.io.apis.types.GroupVersionResourceIdentifier group_version_resource */ 1:
-                    message.groupVersionResource = GroupVersionResourceIdentifier.internalBinaryRead(reader, reader.uint32(), options, message.groupVersionResource);
+                case /* vink.kubevm.io.apis.types.ResourceType resource_type */ 1:
+                    message.resourceType = reader.int32();
                     break;
                 case /* vink.kubevm.io.apis.types.ListOptions options */ 2:
                     message.options = ListOptions.internalBinaryRead(reader, reader.uint32(), options, message.options);
@@ -104,9 +105,9 @@ class ListWatchRequest$Type extends MessageType<ListWatchRequest> {
         return message;
     }
     internalBinaryWrite(message: ListWatchRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* vink.kubevm.io.apis.types.GroupVersionResourceIdentifier group_version_resource = 1; */
-        if (message.groupVersionResource)
-            GroupVersionResourceIdentifier.internalBinaryWrite(message.groupVersionResource, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* vink.kubevm.io.apis.types.ResourceType resource_type = 1; */
+        if (message.resourceType !== 0)
+            writer.tag(1, WireType.Varint).int32(message.resourceType);
         /* vink.kubevm.io.apis.types.ListOptions options = 2; */
         if (message.options)
             ListOptions.internalBinaryWrite(message.options, writer.tag(2, WireType.LengthDelimited).fork(), options).join();

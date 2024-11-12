@@ -1,20 +1,15 @@
 import { FooterToolbar, ProCard, ProForm, ProFormItem, ProFormSelect, ProFormText, ProFormTextArea } from '@ant-design/pro-components'
 import { App, Button, InputNumber, Space } from 'antd'
 import { useEffect, useRef, useState } from 'react'
-import { diskYaml } from './crd-template'
 import { useNavigate } from 'react-router-dom'
-import { instances as labels } from "@/apis/sdks/ts/label/labels.gen"
 import { useNamespace } from '@/common/context'
-import { classNames } from '@/utils/utils'
-import { GroupVersionResourceEnum } from '@/apis/types/group_version'
-import { clients } from '@/clients/clients'
+import { classNames, getErrorMessage } from '@/utils/utils'
+import { ResourceType } from '@/apis/types/group_version'
+import { clients, resourceTypeName } from '@/clients/clients'
 import { PlusOutlined } from '@ant-design/icons'
+import { newDataDisk } from '../../datavolume'
 import type { ProFormInstance } from '@ant-design/pro-components'
 import formStyles from "@/common/styles/form.module.less"
-import * as yaml from 'js-yaml'
-
-const defaultAccessMode = "ReadWriteOnce"
-const defaultStorageClass = "local-path"
 
 export default () => {
     const { notification } = App.useApp()
@@ -25,9 +20,7 @@ export default () => {
 
     const navigate = useNavigate()
 
-    const [storageClass, setStorageClass] = useState<any[]>([])
-    const [enableCustomStorageClass, setEnableCustomStorageClass] = useState(false)
-    const [enableCustomAccessMode, setEnableCustomAccessMode] = useState(false)
+    const [enableOpts, setEnableOpts] = useState<{ storageClass: boolean, accessMode: boolean }>({ storageClass: false, accessMode: false })
 
     useEffect(() => {
         formRef.current?.setFieldsValue({
@@ -35,45 +28,39 @@ export default () => {
         })
     }, [namespace])
 
-    useEffect(() => {
-        if (!enableCustomStorageClass) {
+    const { storageClass } = useStorageClass(enableOpts.storageClass)
+
+
+    const handleSubmit = async () => {
+        if (!formRef.current) {
             return
         }
-        clients.fetchResources(GroupVersionResourceEnum.STORAGE_CLASS).then((items) => {
-            setStorageClass(items)
-        }).catch(err => {
-            notification.error({ message: err })
-        })
-    }, [enableCustomStorageClass])
 
-    const submit = async () => {
-        formRef.current?.
-            validateFields({ validateOnly: false }).
-            then(async () => {
-                const fields = formRef.current?.getFieldsValue()
+        try {
+            await formRef.current.validateFields()
 
-                const instance: any = yaml.load(diskYaml)
-                instance.metadata.name = fields.name
-                instance.metadata.namespace = fields.namespace
-                instance.spec.pvc.resources.requests.storage = `${fields.dataDiskCapacity}Gi`
+            const fields = formRef.current.getFieldsValue()
 
-                instance.spec.pvc.accessModes = [(fields.accessMode && fields.accessMode.length > 0) ? fields.accessMode : defaultAccessMode]
-                instance.spec.pvc.storageClassName = (fields.storageClass && fields.storageClass.length > 0) ? fields.storageClass : defaultStorageClass
-                instance.metadata.labels[labels.VinkDatavolumeType.name] = "data"
+            const namespaceName = { namespace: fields.namespace, name: fields.name }
 
-                await clients.createResource(GroupVersionResourceEnum.DATA_VOLUME, instance, { notification: notification }).then(() => {
-                    navigate('/storage/disks')
-                })
-            }).
-            catch((err: any) => {
-                const errorMessage = err.errorFields?.map((field: any, idx: number) => `${idx + 1}. ${field.errors}`).join('<br />') || err
-                notification.error({
-                    message: "表单错误",
-                    description: (
-                        <div dangerouslySetInnerHTML={{ __html: errorMessage }} />
-                    )
-                })
+            const instance = newDataDisk(
+                namespaceName,
+                fields.dataDiskCapacity,
+                fields.storageClass,
+                fields.accessMode
+            )
+
+            await clients.createResource(ResourceType.DATA_VOLUME, instance)
+            navigate('/storage/disks')
+        } catch (err: any) {
+            const errorMessage = err.errorFields?.map((field: any, idx: number) => `${idx + 1}. ${field.errors}`).join('<br />') || getErrorMessage(err)
+            notification.error({
+                message: resourceTypeName.get(ResourceType.DATA_VOLUME),
+                description: (
+                    <div dangerouslySetInnerHTML={{ __html: errorMessage }} />
+                )
             })
+        }
     }
 
     return (
@@ -86,7 +73,7 @@ export default () => {
             formRef={formRef}
             onReset={() => { }}
             submitter={{
-                onSubmit: submit,
+                onSubmit: () => handleSubmit(),
                 render: (_, dom) => <FooterToolbar>{dom}</FooterToolbar>
             }}
         >
@@ -141,7 +128,7 @@ export default () => {
 
                     <ProFormItem label="存储类">
                         {
-                            enableCustomStorageClass &&
+                            enableOpts.storageClass &&
                             <ProFormSelect
                                 width="lg"
                                 name="storageClass"
@@ -160,38 +147,21 @@ export default () => {
                             variant="text"
                             onClick={() => {
                                 formRef.current?.resetFields(["storageClass"])
-                                setEnableCustomStorageClass(!enableCustomStorageClass)
+                                setEnableOpts((pre) => ({ ...pre, storageClass: !pre.storageClass }))
                             }}
                         >
-                            {enableCustomStorageClass ? "使用默认存储类" : "自定义存储类"}
+                            {enableOpts.storageClass ? "使用默认存储类" : "自定义存储类"}
                         </Button>
                     </ProFormItem>
 
                     <ProFormItem label="访问模式">
                         {
-                            enableCustomAccessMode &&
+                            enableOpts.accessMode &&
                             <ProFormSelect
                                 width="lg"
                                 name="accessMode"
                                 placeholder="选择访问模式"
-                                options={[
-                                    {
-                                        value: "ReadWriteOnce",
-                                        label: "ReadWriteOnce"
-                                    },
-                                    {
-                                        value: "ReadOnlyMany",
-                                        label: "ReadOnlyMany"
-                                    },
-                                    {
-                                        value: "ReadWriteMany",
-                                        label: "ReadWriteMany"
-                                    },
-                                    {
-                                        value: "ReadWriteOncePod",
-                                        label: "ReadWriteOncePod"
-                                    }
-                                ]}
+                                options={accessModeOptions}
                             />
                         }
                         <Button
@@ -200,10 +170,10 @@ export default () => {
                             variant="text"
                             onClick={() => {
                                 formRef.current?.resetFields(["accessMode"])
-                                setEnableCustomAccessMode(!enableCustomAccessMode)
+                                setEnableOpts((pre) => ({ ...pre, accessMode: !pre.accessMode }))
                             }}
                         >
-                            {enableCustomAccessMode ? "使用默认访问模式" : "自定义访问模式"}
+                            {enableOpts.accessMode ? "使用默认访问模式" : "自定义访问模式"}
                         </Button>
                     </ProFormItem>
 
@@ -219,3 +189,42 @@ export default () => {
         </ProForm >
     )
 }
+
+const useStorageClass = (enableCustomStorageClass: boolean) => {
+    const { notification } = App.useApp()
+    const [loading, setLoading] = useState(false)
+    const [storageClass, setStorageClass] = useState<any[]>([])
+
+    useEffect(() => {
+        if (!enableCustomStorageClass) {
+            return
+        }
+        setLoading(true)
+        clients.listResources(ResourceType.STORAGE_CLASS).then((items) => {
+            setStorageClass(items)
+        }).catch(err => {
+            notification.error({ message: "获取存储类失败", description: getErrorMessage(err) })
+        })
+    }, [enableCustomStorageClass])
+
+    return { storageClass, loading }
+}
+
+const accessModeOptions = [
+    {
+        value: "ReadWriteOnce",
+        label: "ReadWriteOnce"
+    },
+    {
+        value: "ReadOnlyMany",
+        label: "ReadOnlyMany"
+    },
+    {
+        value: "ReadWriteMany",
+        label: "ReadWriteMany"
+    },
+    {
+        value: "ReadWriteOncePod",
+        label: "ReadWriteOncePod"
+    }
+]

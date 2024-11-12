@@ -2,19 +2,21 @@ import { LoadingOutlined } from '@ant-design/icons'
 import { ProTable } from '@ant-design/pro-components'
 import { Button, Drawer, Flex, Select, Space } from 'antd'
 import { useEffect, useRef, useState } from 'react'
-import { namespaceName } from '@/utils/k8s'
+import { formatMemoryString, namespaceName, namespaceNameKey } from '@/utils/k8s'
 import { Params } from 'react-router-dom'
 import { instances as labels } from "@/apis/sdks/ts/label/labels.gen"
-import { rootDiskDrawerColumns } from './table-columns'
-import { GroupVersionResourceEnum } from '@/apis/types/group_version'
-import { ListWatchOptions, useListResources } from '@/hooks/use-resource'
-import type { ActionType } from '@ant-design/pro-components'
+import { ResourceType } from '@/apis/types/group_version'
+import { useListResources } from '@/hooks/use-resource'
+import { ListOptions } from '@/apis/types/list_options'
+import { fieldSelector } from '@/utils/search'
+import { emptyOptions } from '@/clients/clients'
+import type { ActionType, ProColumns } from '@ant-design/pro-components'
 import React from 'react'
 import tableStyles from '@/common/styles/table.module.less'
+import OperatingSystem from '@/components/operating-system'
 
 interface RootDiskDrawerProps {
     open?: boolean
-    namespace?: string
     current?: any
     onCanel?: () => void
     onConfirm?: (rootDisk?: any) => void
@@ -29,9 +31,9 @@ export const RootDiskDrawer: React.FC<RootDiskDrawerProps> = ({ open, current, o
 
     const actionRef = useRef<ActionType>()
 
-    const [opts, setOpts] = useState<ListWatchOptions>({ labelSelector: `${labels.VinkDatavolumeType.name}=image` })
+    const [opts, setOpts] = useState<ListOptions>(emptyOptions({ labelSelector: `${labels.VinkDatavolumeType.name}=image` }))
 
-    const { resources: images } = useListResources(GroupVersionResourceEnum.DATA_VOLUME, opts)
+    const { resources: images } = useListResources(ResourceType.DATA_VOLUME, opts)
 
     return (
         <Drawer
@@ -44,10 +46,11 @@ export const RootDiskDrawer: React.FC<RootDiskDrawerProps> = ({ open, current, o
                 <Flex justify="space-between" align="flex-start">
                     <Space>
                         <Button onClick={() => {
-                            if (selectedRows.length == 0) return
-                            if (onConfirm) onConfirm(selectedRows[0])
-                        }
-                        } type="primary">确定</Button>
+                            if (selectedRows.length == 0 || !onConfirm) {
+                                return
+                            }
+                            onConfirm(selectedRows[0])
+                        }} type="primary">确定</Button>
                         <Button onClick={onCanel}>取消</Button>
                     </Space>
                     <Button type='text'>重置</Button>
@@ -59,9 +62,7 @@ export const RootDiskDrawer: React.FC<RootDiskDrawerProps> = ({ open, current, o
                 rowSelection={{
                     type: 'radio',
                     selectedRowKeys: selectedRows.length > 0 ? [namespaceName(selectedRows[0].metadata)] : [],
-                    onChange: (_, selectedRows) => {
-                        setSelectedRows(selectedRows)
-                    }
+                    onChange: (_, selectedRows) => setSelectedRows(selectedRows)
                 }}
                 tableAlertRender={false}
                 columns={rootDiskDrawerColumns}
@@ -70,12 +71,11 @@ export const RootDiskDrawer: React.FC<RootDiskDrawerProps> = ({ open, current, o
                 dataSource={images}
                 request={async (params) => {
                     setOpts({
-                        labelSelector: `${labels.VinkDatavolumeType.name}=image`,
-                        fieldSelector: (params.keyword && params.keyword.length > 0) ? `metadata.name=${params.keyword}` : undefined
+                        ...opts, ...(fieldSelector(params) && { fieldSelector: fieldSelector(params) })
                     })
                     return { success: true }
                 }}
-                rowKey={(vm) => namespaceName(vm.metadata)}
+                rowKey={(vm) => namespaceNameKey(vm)}
                 search={false}
                 options={{
                     setting: false,
@@ -93,3 +93,25 @@ export const RootDiskDrawer: React.FC<RootDiskDrawerProps> = ({ open, current, o
         </Drawer>
     )
 }
+
+
+export const rootDiskDrawerColumns: ProColumns<any>[] = [
+    {
+        title: '名称',
+        key: 'name',
+        ellipsis: true,
+        render: (_, dv) => dv.metadata.name
+    },
+    {
+        title: '操作系统',
+        key: 'operatingSystem',
+        ellipsis: true,
+        render: (_, dv) => <OperatingSystem dv={dv} />
+    },
+    {
+        title: '容量',
+        key: 'capacity',
+        ellipsis: true,
+        render: (_, dv) => formatMemoryString(dv.spec.pvc.resources.requests.storage)
+    }
+]

@@ -17,6 +17,8 @@ import (
 	"unicode/utf8"
 
 	"google.golang.org/protobuf/types/known/anypb"
+
+	types "github.com/kubevm.io/vink/apis/types"
 )
 
 // ensure the imports are used
@@ -33,6 +35,8 @@ var (
 	_ = (*mail.Address)(nil)
 	_ = anypb.Any{}
 	_ = sort.Sort
+
+	_ = types.ResourceType(0)
 )
 
 // Validate checks the field values on ListWatchRequest with the rules defined
@@ -57,34 +61,7 @@ func (m *ListWatchRequest) validate(all bool) error {
 
 	var errors []error
 
-	if all {
-		switch v := interface{}(m.GetGroupVersionResource()).(type) {
-		case interface{ ValidateAll() error }:
-			if err := v.ValidateAll(); err != nil {
-				errors = append(errors, ListWatchRequestValidationError{
-					field:  "GroupVersionResource",
-					reason: "embedded message failed validation",
-					cause:  err,
-				})
-			}
-		case interface{ Validate() error }:
-			if err := v.Validate(); err != nil {
-				errors = append(errors, ListWatchRequestValidationError{
-					field:  "GroupVersionResource",
-					reason: "embedded message failed validation",
-					cause:  err,
-				})
-			}
-		}
-	} else if v, ok := interface{}(m.GetGroupVersionResource()).(interface{ Validate() error }); ok {
-		if err := v.Validate(); err != nil {
-			return ListWatchRequestValidationError{
-				field:  "GroupVersionResource",
-				reason: "embedded message failed validation",
-				cause:  err,
-			}
-		}
-	}
+	// no validation rules for ResourceType
 
 	if all {
 		switch v := interface{}(m.GetOptions()).(type) {

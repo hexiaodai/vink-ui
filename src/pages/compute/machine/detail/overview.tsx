@@ -1,13 +1,12 @@
 import { App, Space, Spin } from "antd"
 import { useEffect, useRef, useState } from "react"
-import { GroupVersionResourceEnum } from "@/apis/types/group_version"
-import { clients } from "@/clients/clients"
+import { ResourceType } from "@/apis/types/group_version"
+import { clients, resourceTypeName } from "@/clients/clients"
 import { ProCard, ProDescriptions } from "@ant-design/pro-components"
 import { useWatchResourceInNamespaceName } from "@/hooks/use-resource"
 import { LoadingOutlined } from '@ant-design/icons'
-import { classNames, formatTimestamp, updateNestedValue } from "@/utils/utils"
+import { classNames, formatTimestamp, getErrorMessage, updateNestedValue } from "@/utils/utils"
 import { yaml as langYaml } from "@codemirror/lang-yaml"
-import { NotificationInstance } from "antd/es/notification/interface"
 import CodeMirror from '@uiw/react-codemirror'
 import codeMirrorStyles from "@/common/styles/code-mirror.module.less"
 import commonStyles from "@/common/styles/common.module.less"
@@ -15,61 +14,37 @@ import OperatingSystem from "@/components/operating-system"
 import VirtualMachineStatus from "@/pages/compute/machine/components/status"
 import Terminal from "@/components/terminal"
 
-const handleSave = async (keypath: any, newInfo: any, oriInfo: any, notification: NotificationInstance) => {
-    const deepCopyOriInfo = JSON.parse(JSON.stringify(oriInfo))
-    updateNestedValue(keypath as string[], newInfo, deepCopyOriInfo, true)
-    await clients.updateResource(GroupVersionResourceEnum.VIRTUAL_MACHINE, deepCopyOriInfo, { notification: notification }).then(() => {
-        return true
-    }).catch(() => {
-        return false
-    })
-}
-
-const cloudinit = (virtualMachine: any) => {
-    const vol = virtualMachine.spec.template.spec.volumes.find((vol: any) => {
-        return vol.cloudInitNoCloud
-    })
-    return vol?.cloudInitNoCloud?.userDataBase64 ? atob(vol.cloudInitNoCloud.userDataBase64) : undefined
-}
-
 export default () => {
     const { notification } = App.useApp()
 
     const actionRef = useRef()
 
-    const { resource: virtualMachine, loading } = useWatchResourceInNamespaceName(GroupVersionResourceEnum.VIRTUAL_MACHINE)
+    const { resource: virtualMachine, loading } = useWatchResourceInNamespaceName(ResourceType.VIRTUAL_MACHINE)
 
-    const [rootDisk, setRootDisk] = useState<any>()
-
-    useEffect(() => {
-        if (!virtualMachine || virtualMachine.spec.template.spec.domain.devices.disks.length == 0) {
-            return
-        }
-
-        let disk = virtualMachine.spec.template.spec.domain.devices.disks.find((disk: any) => {
-            return disk.bootOrder == 1
-        })
-        if (!disk) {
-            disk = virtualMachine.spec.template.spec.domain.devices.disks[0]
-        }
-
-        const vol = virtualMachine.spec.template.spec.volumes.find((vol: any) => {
-            return vol.name == disk.name
-        })
-
-        clients.fetchResource(GroupVersionResourceEnum.DATA_VOLUME, { namespace: virtualMachine.metadata.namespace, name: vol.dataVolume.name }).then((crd: any) => {
-            setRootDisk(crd)
-            console.log(crd)
-        }).catch((err: any) => {
-            notification.error({
-                message: "获取系统盘失败",
-                description: err.message
-            })
-        })
-    }, [virtualMachine])
+    const rootDisk = useRootDisk(virtualMachine)
 
     if (!virtualMachine) {
         return
+    }
+
+    const cloudinit = () => {
+        const vol = virtualMachine.spec.template.spec.volumes.find((vol: any) => {
+            return vol.cloudInitNoCloud
+        })
+        return vol?.cloudInitNoCloud.userDataBase64 ? atob(vol.cloudInitNoCloud.userDataBase64) : undefined
+    }
+
+    const handleSave = async (keypath: any, newInfo: any, oriInfo: any) => {
+        try {
+            const deepCopyOriInfo = JSON.parse(JSON.stringify(oriInfo))
+            updateNestedValue(keypath as string[], newInfo, deepCopyOriInfo, true)
+            await clients.updateResource(ResourceType.VIRTUAL_MACHINE, deepCopyOriInfo)
+        } catch (err) {
+            notification.error({
+                message: resourceTypeName.get(ResourceType.VIRTUAL_MACHINE),
+                description: getErrorMessage(err)
+            })
+        }
     }
 
     return (
@@ -84,7 +59,7 @@ export default () => {
                         column={3}
                         dataSource={virtualMachine}
                         editable={{
-                            onSave: (keypath, newInfo, oriInfo) => handleSave(keypath, newInfo, oriInfo, notification)
+                            onSave: (keypath, newInfo, oriInfo) => handleSave(keypath, newInfo, oriInfo)
                         }}
                     >
                         <ProDescriptions.Item
@@ -101,7 +76,7 @@ export default () => {
                             ellipsis
                             editable={false}
                         >
-                            <OperatingSystem rootDataVolume={rootDisk} />
+                            <OperatingSystem dv={rootDisk} />
                         </ProDescriptions.Item>
                         <ProDescriptions.Item
                             title="Terminal"
@@ -117,7 +92,7 @@ export default () => {
                             ellipsis
                             editable={false}
                         >
-                            {virtualMachine?.metadata.name}
+                            {virtualMachine.metadata.name}
                         </ProDescriptions.Item>
                         <ProDescriptions.Item
                             title="Namespace"
@@ -125,7 +100,7 @@ export default () => {
                             ellipsis
                             editable={false}
                         >
-                            {virtualMachine?.metadata.namespace}
+                            {virtualMachine.metadata.namespace}
                         </ProDescriptions.Item>
                         <ProDescriptions.Item
                             dataIndex={['spec', 'template', 'spec', 'architecture']}
@@ -145,7 +120,7 @@ export default () => {
                             key="creationTimestamp"
                             ellipsis
                             editable={false}
-                            render={(_, vm: any) => formatTimestamp(vm.metadata?.creationTimestamp)}
+                            render={(_, vm: any) => formatTimestamp(vm.metadata.creationTimestamp)}
                         />
                     </ProDescriptions>
                 </ProCard>
@@ -156,7 +131,7 @@ export default () => {
                         dataSource={virtualMachine}
                         column={3}
                         editable={{
-                            onSave: (keypath, newInfo, oriInfo) => handleSave(keypath, newInfo, oriInfo, notification)
+                            onSave: (keypath, newInfo, oriInfo) => handleSave(keypath, newInfo, oriInfo)
                         }}
                     >
                         <ProDescriptions.Item
@@ -198,7 +173,7 @@ export default () => {
                         dataSource={virtualMachine}
                         column={3}
                         editable={{
-                            onSave: (keypath, newInfo, oriInfo) => handleSave(keypath, newInfo, oriInfo, notification)
+                            onSave: (keypath, newInfo, oriInfo) => handleSave(keypath, newInfo, oriInfo)
                         }}
                     >
                         <ProDescriptions.Item
@@ -216,7 +191,7 @@ export default () => {
                         dataSource={virtualMachine}
                         column={3}
                         editable={{
-                            onSave: (keypath, newInfo, oriInfo) => handleSave(keypath, newInfo, oriInfo, notification)
+                            onSave: (keypath, newInfo, oriInfo) => handleSave(keypath, newInfo, oriInfo)
                         }}
                     >
                         <ProDescriptions.Item
@@ -248,7 +223,7 @@ export default () => {
                 <ProCard title="Cloudinit">
                     <CodeMirror
                         className={classNames(codeMirrorStyles["editor"], commonStyles["small-scrollbar"])}
-                        value={cloudinit(virtualMachine)?.trimStart()}
+                        value={cloudinit()?.trimStart()}
                         maxHeight="100vh"
                         editable={false}
                         extensions={[langYaml()]}
@@ -257,4 +232,41 @@ export default () => {
             </Space>
         </Spin >
     )
+}
+
+const useRootDisk = (virtualMachine: any) => {
+    const { notification } = App.useApp()
+
+    const [rootDisk, setRootDisk] = useState<any>(null)
+
+    useEffect(() => {
+        if (!virtualMachine || virtualMachine.spec.template.spec.domain.devices.disks.length === 0) {
+            return
+        }
+
+        let disk = virtualMachine.spec.template.spec.domain.devices.disks.find((disk: any) => {
+            return disk.bootOrder === 1
+        })
+        if (!disk) {
+            disk = virtualMachine.spec.template.spec.domain.devices.disks[0]
+        }
+
+        const vol = virtualMachine.spec.template.spec.volumes.find((vol: any) => {
+            return vol.name == disk.name
+        })
+        if (!vol) {
+            return
+        }
+
+        clients.getResource(ResourceType.DATA_VOLUME, { namespace: virtualMachine.metadata.namespace, name: vol.dataVolume.name }).then((crd: any) => {
+            setRootDisk(crd)
+        }).catch((err: any) => {
+            notification.error({
+                message: resourceTypeName.get(ResourceType.DATA_VOLUME),
+                description: getErrorMessage(err)
+            })
+        })
+    }, [virtualMachine])
+
+    return rootDisk
 }

@@ -6,7 +6,7 @@ import { namespaceNameKey } from '@/utils/k8s'
 import { virtualmachineYaml } from './template'
 import * as yaml from 'js-yaml'
 
-const defaultNetworkAnno = "v1.multus-cni.io/default-network"
+export const defaultNetworkAnno = "v1.multus-cni.io/default-network"
 
 export const newVirtualMachine = (ns: NamespaceName, cm: { cpu: number, memory: number }, rootDisk: { image: any, capacity: number }, dataDisks: any[], netcfgs: NetworkConfig[], cloudInit: string) => {
     const instance: any = yaml.load(virtualmachineYaml)

@@ -66,5 +66,5 @@ export const dataVolumeTypeLabelSelector = (name: string) => {
 }
 
 export const fieldSelector = (params: { keyword?: string }) => {
-    return (params.keyword && params.keyword.length > 0) ? `metadata.name=${params.keyword}` : undefined
+    return (params.keyword && params.keyword.length > 0) ? `metadata.name=${params.keyword}` : ""
 }

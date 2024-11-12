@@ -1,12 +1,12 @@
 import { ProForm, ProFormCheckbox, ProFormItem, ProFormSelect, ProFormText } from '@ant-design/pro-components'
 import { App, Button, Drawer, Flex, Space } from 'antd'
 import { useEffect, useRef, useState } from 'react'
-import { clients } from '@/clients/clients'
-import { GroupVersionResourceEnum } from '@/apis/types/group_version'
+import { clients, emptyOptions, resourceTypeName } from '@/clients/clients'
+import { ResourceType } from '@/apis/types/group_version'
 import { PlusOutlined } from '@ant-design/icons'
 import { namespaceNameKey } from '@/utils/k8s'
-import { getProvider } from '@/utils/utils'
-import { NetworkConfig } from '../../vm'
+import { getErrorMessage, getProvider } from '@/utils/utils'
+import { NetworkConfig } from '../../virtualmachine'
 import type { ProFormInstance } from '@ant-design/pro-components'
 import React from 'react'
 import formStyles from "@/common/styles/form.module.less"
@@ -32,8 +32,97 @@ export const NetworkDrawer: React.FC<NetworkProps> = ({ open, onCanel, onConfirm
 
     useEffect(() => {
         if (!open) return
-        reset(formRef, setSelected, setEnabled, setMultus, setSubnets, setIPPools)
+        reset()
     }, [open])
+
+    const handleMultusDropdownVisibleChange = (open: boolean) => {
+        if (!open) {
+            return
+        }
+        clients.listResources(ResourceType.MULTUS).then(crds => {
+            setMultus(crds)
+        }).catch(err => {
+            notification.error({
+                message: resourceTypeName.get(ResourceType.MULTUS),
+                description: getErrorMessage(err)
+            })
+        })
+    }
+
+    const handleSubnetDropdownVisibleChange = (open: boolean) => {
+        const multusCR = selected.multus
+        if (!open || !multusCR) {
+            return
+        }
+        const provider = getProvider(multusCR)
+        if (!provider) {
+            return
+        }
+        const opts = emptyOptions({ customSelector: { fieldSelector: [`spec.provider=${provider}`], namespaceNames: [] } })
+        clients.listResources(ResourceType.SUBNET, opts).then(crds => {
+            setSubnets(crds)
+        }).catch(err => {
+            notification.error({
+                message: resourceTypeName.get(ResourceType.SUBNET),
+                description: getErrorMessage(err)
+            })
+        })
+    }
+
+    const handleIPPoolDropdownVisibleChange = (open: boolean) => {
+        const subnet = selected.subnet
+        if (!open || !subnet) {
+            return
+        }
+        const opts = emptyOptions({ customSelector: { fieldSelector: [`spec.subnet=${subnet.metadata.name}`], namespaceNames: [] } })
+        clients.listResources(ResourceType.IPPOOL, opts).then(crds => {
+            setIPPools(crds)
+        }).catch(err => {
+            notification.error({
+                message: resourceTypeName.get(ResourceType.IPPOOL),
+                description: getErrorMessage(err)
+            })
+        })
+    }
+
+    const handleConfirm = () => {
+        const fields = formRef.current?.getFieldsValue()
+        if (!selected.multus || !selected.subnet || !fields || !onConfirm) {
+            return
+        }
+        onConfirm({
+            network: fields.network, interface: fields.interface,
+            ipAddress: fields.ipAddress, macAddress: fields.macAddress,
+            default: fields.default, multus: selected.multus,
+            subnet: selected.subnet, ippool: selected.ippool
+        })
+    }
+
+    const reset = () => {
+        formRef.current?.resetFields()
+        setSelected({ multus: null, subnet: null, ippool: null })
+        setEnabled({ ip: false, mac: false, ippool: false })
+    }
+
+    const handleSelectMultus = (value: string) => {
+        const multusCR = multus.find(item => namespaceNameKey(item) === value)
+        setSelected((prevState) => ({ ...prevState, multus: multusCR }))
+        formRef.current?.resetFields(["subnet", "ippool"])
+        setSubnets([])
+        setIPPools([])
+    }
+
+    const handleSelectSubnet = (value: string) => {
+        const subnet = subnets.find(item => item.metadata.name === value)
+        setSelected((prevState) => ({ ...prevState, subnet: subnet }))
+        formRef.current?.resetFields(["ippool"])
+        setIPPools([])
+    }
+
+    const handleSelectIPPool = (value: string) => {
+        const ippool = ippools.find(item => item.metadata.name === value)
+        setSelected((prevState) => ({ ...prevState, ippool: ippool }))
+    }
 
     return (
         <Drawer
@@ -45,26 +134,10 @@ export const NetworkDrawer: React.FC<NetworkProps> = ({ open, onCanel, onConfirm
             footer={
                 <Flex justify="space-between" align="flex-start">
                     <Space>
-                        <Button onClick={() => {
-                            const fields = formRef.current?.getFieldsValue()
-                            if (!selected.multus || !selected.subnet || !fields || !onConfirm) {
-                                return
-                            }
-                            onConfirm({
-                                network: fields.network,
-                                interface: fields.interface,
-                                ipAddress: fields.ipAddress,
-                                macAddress: fields.macAddress,
-                                default: fields.default,
-                                multus: selected.multus,
-                                subnet: selected.subnet,
-                                ippool: selected.ippool
-                            })
-                        }
-                        } type="primary">确定</Button>
+                        <Button onClick={handleConfirm} type="primary">确定</Button>
                         <Button onClick={onCanel}>取消</Button>
                     </Space>
-                    <Button type='text' onClick={() => reset(formRef, setSelected, setEnabled, setMultus, setSubnets, setIPPools)}>重置</Button>
+                    <Button type='text' onClick={reset}>重置</Button>
                 </Flex>
             }
         >
@@ -75,7 +148,7 @@ export const NetworkDrawer: React.FC<NetworkProps> = ({ open, onCanel, onConfirm
                 labelAlign="left"
                 colon={false}
                 formRef={formRef}
-                onReset={() => reset(formRef, setSelected, setEnabled, setMultus, setSubnets, setIPPools)}
+                onReset={reset}
                 submitter={false}
             >
                 <ProFormSelect
@@ -118,25 +191,9 @@ export const NetworkDrawer: React.FC<NetworkProps> = ({ open, onCanel, onConfirm
                     fieldProps={{
                         allowClear: false,
                         showSearch: true,
-                        onDropdownVisibleChange: async (open) => {
-                            if (!open) {
-                                return
-                            }
-                            try {
-                                const items = await clients.fetchResources(GroupVersionResourceEnum.MULTUS)
-                                setMultus(items)
-                            } catch (err: any) {
-                                notification.error({ message: err })
-                            }
-                        }
+                        onDropdownVisibleChange: handleMultusDropdownVisibleChange
                     }}
-                    onChange={(value: string) => {
-                        const multusCR = multus.find(item => namespaceNameKey(item) === value)
-                        setSelected((prevState) => ({ ...prevState, multus: multusCR }))
-
-                        resetField(formRef, "subnet", setSubnets, setSelected, "subnet")
-                        resetField(formRef, "ippool", setIPPools, setSelected, "ippool")
-                    }}
+                    onChange={handleSelectMultus}
                     options={
                         multus.map((m: any) => ({ value: namespaceNameKey(m), label: namespaceNameKey(m) }))
                     }
@@ -152,31 +209,9 @@ export const NetworkDrawer: React.FC<NetworkProps> = ({ open, onCanel, onConfirm
                     fieldProps={{
                         allowClear: false,
                         showSearch: true,
-                        onDropdownVisibleChange: async (open) => {
-                            const multusCR = selected.multus
-                            if (!open || !multusCR) {
-                                return
-                            }
-                            const provider = getProvider(multusCR)
-                            if (!provider) {
-                                return
-                            }
-                            try {
-                                const items = await clients.fetchResources(GroupVersionResourceEnum.SUBNET, {
-                                    customFieldSelector: [`spec.provider=${provider}`]
-                                })
-                                setSubnets(items)
-                            } catch (err: any) {
-                                notification.error({ message: err })
-                            }
-                        }
+                        onDropdownVisibleChange: handleSubnetDropdownVisibleChange
                     }}
-                    onChange={(value: string) => {
-                        const subnet = subnets.find(item => item.metadata.name === value)
-                        setSelected((prevState) => ({ ...prevState, subnet: subnet }))
-
-                        resetField(formRef, "ippool", setIPPools, setSelected, "ippool")
-                    }}
+                    onChange={handleSelectSubnet}
                     options={
                         subnets.map((s: any) => ({ value: s.metadata.name, label: s.metadata.name }))
                     }
@@ -195,25 +230,9 @@ export const NetworkDrawer: React.FC<NetworkProps> = ({ open, onCanel, onConfirm
                             fieldProps={{
                                 allowClear: false,
                                 showSearch: true,
-                                onDropdownVisibleChange: async (open) => {
-                                    const subnet = selected.subnet
-                                    if (!open || !subnet) {
-                                        return
-                                    }
-                                    try {
-                                        const items = await clients.fetchResources(GroupVersionResourceEnum.IPPOOL, {
-                                            customFieldSelector: [`spec.subnet=${subnet.metadata.name}`]
-                                        })
-                                        setIPPools(items)
-                                    } catch (err: any) {
-                                        notification.error({ message: err })
-                                    }
-                                }
+                                onDropdownVisibleChange: handleIPPoolDropdownVisibleChange
                             }}
-                            onChange={(value: string) => {
-                                const ippool = ippools.find(item => namespaceNameKey(item) === value)
-                                setSelected((prevState) => ({ ...prevState, ippool: ippool }))
-                            }}
+                            onChange={handleSelectIPPool}
                             options={
                                 ippools.map((p: any) => ({ value: p.metadata?.name, label: p.metadata?.name }))
                             }
@@ -282,20 +301,4 @@ export const NetworkDrawer: React.FC<NetworkProps> = ({ open, onCanel, onConfirm
             </ProForm>
         </Drawer>
     )
-}
-
-const reset = (formRef: any, setSelected: any, setEnabled: any, setMultus: any, setSubnets: any, setIPPools: any) => {
-    formRef.current?.resetFields()
-    setSelected({ multus: null, subnet: null, ippool: null })
-    setEnabled({ ip: false, mac: false, ippool: false })
-
-    resetField(formRef, "multusCR", setMultus, setSelected, "multus")
-    resetField(formRef, "subnet", setSubnets, setSelected, "subnet")
-    resetField(formRef, "ippool", setIPPools, setSelected, "ippool")
-}
-
-const resetField = (formRef: any, fieldName: "multusCR" | "subnet" | "ippool", setList: any, setSelected: any, selectedKey: "multus" | "subnet" | "ippool") => {
-    setList([])
-    formRef.current?.resetFields([fieldName])
-    setSelected((prevState: any) => ({ ...prevState, [selectedKey]: null }))
 }
