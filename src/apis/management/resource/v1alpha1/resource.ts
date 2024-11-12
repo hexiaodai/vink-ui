@@ -13,7 +13,7 @@ import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
 import { NamespaceName } from "../../../types/namespace_name";
-import { GroupVersionResourceIdentifier } from "../../../types/group_version";
+import { ResourceType } from "../../../types/group_version";
 /**
  * @generated from protobuf message vink.kubevm.io.apis.management.resource.v1alpha1.CustomResourceDefinitionResponse
  */
@@ -28,9 +28,9 @@ export interface CustomResourceDefinitionResponse {
  */
 export interface GetRequest {
     /**
-     * @generated from protobuf field: vink.kubevm.io.apis.types.GroupVersionResourceIdentifier group_version_resource = 1;
+     * @generated from protobuf field: vink.kubevm.io.apis.types.ResourceType resource_type = 1;
      */
-    groupVersionResource?: GroupVersionResourceIdentifier;
+    resourceType: ResourceType;
     /**
      * @generated from protobuf field: vink.kubevm.io.apis.types.NamespaceName namespace_name = 2;
      */
@@ -41,9 +41,9 @@ export interface GetRequest {
  */
 export interface CreateRequest {
     /**
-     * @generated from protobuf field: vink.kubevm.io.apis.types.GroupVersionResourceIdentifier group_version_resource = 1;
+     * @generated from protobuf field: vink.kubevm.io.apis.types.ResourceType resource_type = 1;
      */
-    groupVersionResource?: GroupVersionResourceIdentifier;
+    resourceType: ResourceType;
     /**
      * @generated from protobuf field: string data = 2;
      */
@@ -55,9 +55,9 @@ export interface CreateRequest {
  */
 export interface UpdateRequest {
     /**
-     * @generated from protobuf field: vink.kubevm.io.apis.types.GroupVersionResourceIdentifier group_version_resource = 1;
+     * @generated from protobuf field: vink.kubevm.io.apis.types.ResourceType resource_type = 1;
      */
-    groupVersionResource?: GroupVersionResourceIdentifier;
+    resourceType: ResourceType;
     /**
      * @generated from protobuf field: string data = 2;
      */
@@ -68,9 +68,9 @@ export interface UpdateRequest {
  */
 export interface DeleteRequest {
     /**
-     * @generated from protobuf field: vink.kubevm.io.apis.types.GroupVersionResourceIdentifier group_version_resource = 1;
+     * @generated from protobuf field: vink.kubevm.io.apis.types.ResourceType resource_type = 1;
      */
-    groupVersionResource?: GroupVersionResourceIdentifier;
+    resourceType: ResourceType;
     /**
      * @generated from protobuf field: vink.kubevm.io.apis.types.NamespaceName namespace_name = 2;
      */
@@ -127,12 +127,13 @@ export const CustomResourceDefinitionResponse = new CustomResourceDefinitionResp
 class GetRequest$Type extends MessageType<GetRequest> {
     constructor() {
         super("vink.kubevm.io.apis.management.resource.v1alpha1.GetRequest", [
-            { no: 1, name: "group_version_resource", kind: "message", T: () => GroupVersionResourceIdentifier },
+            { no: 1, name: "resource_type", kind: "enum", T: () => ["vink.kubevm.io.apis.types.ResourceType", ResourceType] },
             { no: 2, name: "namespace_name", kind: "message", T: () => NamespaceName }
         ]);
     }
     create(value?: PartialMessage<GetRequest>): GetRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
+        message.resourceType = 0;
         if (value !== undefined)
             reflectionMergePartial<GetRequest>(this, message, value);
         return message;
@@ -142,8 +143,8 @@ class GetRequest$Type extends MessageType<GetRequest> {
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* vink.kubevm.io.apis.types.GroupVersionResourceIdentifier group_version_resource */ 1:
-                    message.groupVersionResource = GroupVersionResourceIdentifier.internalBinaryRead(reader, reader.uint32(), options, message.groupVersionResource);
+                case /* vink.kubevm.io.apis.types.ResourceType resource_type */ 1:
+                    message.resourceType = reader.int32();
                     break;
                 case /* vink.kubevm.io.apis.types.NamespaceName namespace_name */ 2:
                     message.namespaceName = NamespaceName.internalBinaryRead(reader, reader.uint32(), options, message.namespaceName);
@@ -160,9 +161,9 @@ class GetRequest$Type extends MessageType<GetRequest> {
         return message;
     }
     internalBinaryWrite(message: GetRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* vink.kubevm.io.apis.types.GroupVersionResourceIdentifier group_version_resource = 1; */
-        if (message.groupVersionResource)
-            GroupVersionResourceIdentifier.internalBinaryWrite(message.groupVersionResource, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* vink.kubevm.io.apis.types.ResourceType resource_type = 1; */
+        if (message.resourceType !== 0)
+            writer.tag(1, WireType.Varint).int32(message.resourceType);
         /* vink.kubevm.io.apis.types.NamespaceName namespace_name = 2; */
         if (message.namespaceName)
             NamespaceName.internalBinaryWrite(message.namespaceName, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
@@ -180,12 +181,13 @@ export const GetRequest = new GetRequest$Type();
 class CreateRequest$Type extends MessageType<CreateRequest> {
     constructor() {
         super("vink.kubevm.io.apis.management.resource.v1alpha1.CreateRequest", [
-            { no: 1, name: "group_version_resource", kind: "message", T: () => GroupVersionResourceIdentifier },
+            { no: 1, name: "resource_type", kind: "enum", T: () => ["vink.kubevm.io.apis.types.ResourceType", ResourceType] },
             { no: 2, name: "data", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<CreateRequest>): CreateRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
+        message.resourceType = 0;
         message.data = "";
         if (value !== undefined)
             reflectionMergePartial<CreateRequest>(this, message, value);
@@ -196,8 +198,8 @@ class CreateRequest$Type extends MessageType<CreateRequest> {
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* vink.kubevm.io.apis.types.GroupVersionResourceIdentifier group_version_resource */ 1:
-                    message.groupVersionResource = GroupVersionResourceIdentifier.internalBinaryRead(reader, reader.uint32(), options, message.groupVersionResource);
+                case /* vink.kubevm.io.apis.types.ResourceType resource_type */ 1:
+                    message.resourceType = reader.int32();
                     break;
                 case /* string data */ 2:
                     message.data = reader.string();
@@ -214,9 +216,9 @@ class CreateRequest$Type extends MessageType<CreateRequest> {
         return message;
     }
     internalBinaryWrite(message: CreateRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* vink.kubevm.io.apis.types.GroupVersionResourceIdentifier group_version_resource = 1; */
-        if (message.groupVersionResource)
-            GroupVersionResourceIdentifier.internalBinaryWrite(message.groupVersionResource, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* vink.kubevm.io.apis.types.ResourceType resource_type = 1; */
+        if (message.resourceType !== 0)
+            writer.tag(1, WireType.Varint).int32(message.resourceType);
         /* string data = 2; */
         if (message.data !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.data);
@@ -234,12 +236,13 @@ export const CreateRequest = new CreateRequest$Type();
 class UpdateRequest$Type extends MessageType<UpdateRequest> {
     constructor() {
         super("vink.kubevm.io.apis.management.resource.v1alpha1.UpdateRequest", [
-            { no: 1, name: "group_version_resource", kind: "message", T: () => GroupVersionResourceIdentifier },
+            { no: 1, name: "resource_type", kind: "enum", T: () => ["vink.kubevm.io.apis.types.ResourceType", ResourceType] },
             { no: 2, name: "data", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<UpdateRequest>): UpdateRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
+        message.resourceType = 0;
         message.data = "";
         if (value !== undefined)
             reflectionMergePartial<UpdateRequest>(this, message, value);
@@ -250,8 +253,8 @@ class UpdateRequest$Type extends MessageType<UpdateRequest> {
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* vink.kubevm.io.apis.types.GroupVersionResourceIdentifier group_version_resource */ 1:
-                    message.groupVersionResource = GroupVersionResourceIdentifier.internalBinaryRead(reader, reader.uint32(), options, message.groupVersionResource);
+                case /* vink.kubevm.io.apis.types.ResourceType resource_type */ 1:
+                    message.resourceType = reader.int32();
                     break;
                 case /* string data */ 2:
                     message.data = reader.string();
@@ -268,9 +271,9 @@ class UpdateRequest$Type extends MessageType<UpdateRequest> {
         return message;
     }
     internalBinaryWrite(message: UpdateRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* vink.kubevm.io.apis.types.GroupVersionResourceIdentifier group_version_resource = 1; */
-        if (message.groupVersionResource)
-            GroupVersionResourceIdentifier.internalBinaryWrite(message.groupVersionResource, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* vink.kubevm.io.apis.types.ResourceType resource_type = 1; */
+        if (message.resourceType !== 0)
+            writer.tag(1, WireType.Varint).int32(message.resourceType);
         /* string data = 2; */
         if (message.data !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.data);
@@ -288,12 +291,13 @@ export const UpdateRequest = new UpdateRequest$Type();
 class DeleteRequest$Type extends MessageType<DeleteRequest> {
     constructor() {
         super("vink.kubevm.io.apis.management.resource.v1alpha1.DeleteRequest", [
-            { no: 1, name: "group_version_resource", kind: "message", T: () => GroupVersionResourceIdentifier },
+            { no: 1, name: "resource_type", kind: "enum", T: () => ["vink.kubevm.io.apis.types.ResourceType", ResourceType] },
             { no: 2, name: "namespace_name", kind: "message", T: () => NamespaceName }
         ]);
     }
     create(value?: PartialMessage<DeleteRequest>): DeleteRequest {
         const message = globalThis.Object.create((this.messagePrototype!));
+        message.resourceType = 0;
         if (value !== undefined)
             reflectionMergePartial<DeleteRequest>(this, message, value);
         return message;
@@ -303,8 +307,8 @@ class DeleteRequest$Type extends MessageType<DeleteRequest> {
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* vink.kubevm.io.apis.types.GroupVersionResourceIdentifier group_version_resource */ 1:
-                    message.groupVersionResource = GroupVersionResourceIdentifier.internalBinaryRead(reader, reader.uint32(), options, message.groupVersionResource);
+                case /* vink.kubevm.io.apis.types.ResourceType resource_type */ 1:
+                    message.resourceType = reader.int32();
                     break;
                 case /* vink.kubevm.io.apis.types.NamespaceName namespace_name */ 2:
                     message.namespaceName = NamespaceName.internalBinaryRead(reader, reader.uint32(), options, message.namespaceName);
@@ -321,9 +325,9 @@ class DeleteRequest$Type extends MessageType<DeleteRequest> {
         return message;
     }
     internalBinaryWrite(message: DeleteRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* vink.kubevm.io.apis.types.GroupVersionResourceIdentifier group_version_resource = 1; */
-        if (message.groupVersionResource)
-            GroupVersionResourceIdentifier.internalBinaryWrite(message.groupVersionResource, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* vink.kubevm.io.apis.types.ResourceType resource_type = 1; */
+        if (message.resourceType !== 0)
+            writer.tag(1, WireType.Varint).int32(message.resourceType);
         /* vink.kubevm.io.apis.types.NamespaceName namespace_name = 2; */
         if (message.namespaceName)
             NamespaceName.internalBinaryWrite(message.namespaceName, writer.tag(2, WireType.LengthDelimited).fork(), options).join();

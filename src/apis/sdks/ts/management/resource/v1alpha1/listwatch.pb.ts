@@ -16,7 +16,7 @@ export enum EventType {
 }
 
 export type ListWatchRequest = {
-  groupVersionResource?: VinkKubevmIoApisTypesGroup_version.GroupVersionResourceIdentifier
+  resourceType?: VinkKubevmIoApisTypesGroup_version.ResourceType
   options?: VinkKubevmIoApisTypesList_options.ListOptions
 }
 

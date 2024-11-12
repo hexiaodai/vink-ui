@@ -15,7 +15,7 @@ service ResourceListWatchManagement {
 }
 
 message ListWatchRequest {
-    vink.kubevm.io.apis.types.GroupVersionResourceIdentifier group_version_resource = 1;
+    vink.kubevm.io.apis.types.ResourceType resource_type = 1;
     vink.kubevm.io.apis.types.ListOptions options = 2;
 }
 

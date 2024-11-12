@@ -1,9 +1,7 @@
 import { VirtualMachinePowerStateRequest_PowerState } from '@/apis/management/virtualmachine/v1alpha1/virtualmachine'
-import { GroupVersionResourceEnum } from '@/apis/types/group_version'
-import { clients } from '@/clients/clients'
-import { manageVirtualMachinePowerState } from '@/clients/virtualmachine'
-import { openConsole } from '@/utils/utils'
-import { App, Button, Dropdown, MenuProps, Modal } from 'antd'
+import { ResourceType } from '@/apis/types/group_version'
+import { getErrorMessage, openConsole } from '@/utils/utils'
+import { App, Button, Dropdown, MenuProps, Modal, Spin } from 'antd'
 import { EllipsisOutlined } from '@ant-design/icons'
 import { useState } from 'react'
 import { NamespaceName } from '@/apis/types/namespace_name'
@@ -11,7 +9,10 @@ import { NotificationInstance } from 'antd/es/notification/interface'
 import { DataDiskDrawer } from '../data-disk-drawer'
 import { Link } from 'react-router-dom'
 import { NetworkDrawer } from '../network-drawer'
-import { updateDataDisks, updateNetwork } from '../../vm'
+import { NetworkConfig, updateDataDisks, updateNetwork } from '../../virtualmachine'
+import { extractNamespaceAndName, namespaceNameKey } from '@/utils/k8s'
+import { LoadingOutlined } from '@ant-design/icons'
+import { clients, powerStateTypeName, resourceTypeName } from '@/clients/clients'
 
 interface Props {
     vm?: any
@@ -26,7 +27,10 @@ const VirtualMachineManagement: React.FC<Props> = ({ vm, namespace, type }) => {
 
     const { notification } = App.useApp()
 
+    const [loading, setLoading] = useState<boolean>(false)
+
     const [openDrawer, setOpenDrawer] = useState({ dataDisk: false, network: false })
+
     const [virtualMachine, setVirtualMachine] = useState<any>(vm)
 
     const items = itemsFunc(virtualMachine, setOpenDrawer, notification)
@@ -36,72 +40,113 @@ const VirtualMachineManagement: React.FC<Props> = ({ vm, namespace, type }) => {
         content = <Button color="default" variant="filled" icon={<EllipsisOutlined style={{ fontSize: 20 }} />} />
     }
 
+    const handleOpenChange = (open: boolean) => {
+        if (!open || !namespace) {
+            return
+        }
+        setLoading(true)
+        clients.getResource(ResourceType.VIRTUAL_MACHINE, namespace).then(crd => {
+            setVirtualMachine(crd)
+        }).catch(err => {
+            notification.error({
+                message: resourceTypeName.get(ResourceType.VIRTUAL_MACHINE),
+                description: getErrorMessage(err)
+            })
+        }).finally(() => {
+            setLoading(false)
+        })
+    }
+
+    const handleConfirmDisk = (disks: any[]) => {
+        if (disks.length == 0) {
+            return
+        }
+        try {
+            updateDataDisks(virtualMachine, disks)
+            clients.updateResource(ResourceType.VIRTUAL_MACHINE, disks)
+            setOpenDrawer((prevState) => ({ ...prevState, dataDisk: false }))
+        } catch (err) {
+            notification.error({
+                message: resourceTypeName.get(ResourceType.VIRTUAL_MACHINE),
+                description: getErrorMessage(err)
+            })
+        }
+    }
+
+    const handleConfirmNetwork = (net: NetworkConfig) => {
+        try {
+            updateNetwork(virtualMachine, net)
+            clients.updateResource(ResourceType.VIRTUAL_MACHINE, virtualMachine)
+            setOpenDrawer((prevState) => ({ ...prevState, network: false }))
+        } catch (err) {
+            notification.error({
+                message: resourceTypeName.get(ResourceType.VIRTUAL_MACHINE),
+                description: getErrorMessage(err)
+            })
+        }
+    }
+
     return (
-        <>
+        <Spin spinning={loading} indicator={<LoadingOutlined spin />} delay={500}>
             <Dropdown
                 menu={{ items }}
                 trigger={['click']}
-                onOpenChange={(open) => handleOpen(open, setVirtualMachine, notification, namespace)}
+                onOpenChange={handleOpenChange}
                 overlayStyle={{ minWidth: 85 }}
             >
                 {content}
             </Dropdown>
+
             <DataDiskDrawer
                 open={openDrawer.dataDisk}
                 onCanel={() => setOpenDrawer((prevState) => ({ ...prevState, dataDisk: false }))}
-                onConfirm={async (disks) => {
-                    if (disks.length == 0) {
-                        return
-                    }
-                    updateDataDisks(virtualMachine, disks)
-                    try {
-                        await clients.updateResourceAsync(GroupVersionResourceEnum.VIRTUAL_MACHINE, virtualMachine)
-                        setOpenDrawer((prevState) => ({ ...prevState, dataDisk: false }))
-                        notification.success({ message: "添加磁盘成功" })
-                    } catch (err: any) {
-                        notification.error({ message: "添加磁盘失败", description: err instanceof Error ? err.message : String(err) })
-                    }
-                }}
+                onConfirm={handleConfirmDisk}
             />
             <NetworkDrawer
                 open={openDrawer.network}
                 onCanel={() => setOpenDrawer((prevState) => ({ ...prevState, network: false }))}
-                onConfirm={async (net) => {
-                    updateNetwork(virtualMachine, net)
-                    try {
-                        await clients.updateResourceAsync(GroupVersionResourceEnum.VIRTUAL_MACHINE, virtualMachine)
-                        setOpenDrawer((prevState) => ({ ...prevState, network: false }))
-                        notification.success({ message: "添加网络成功" })
-                    } catch (err: any) {
-                        notification.error({ message: "添加网络失败", description: err instanceof Error ? err.message : String(err) })
-                    }
-                }}
+                onConfirm={handleConfirmNetwork}
             />
-        </>
+        </Spin>
     )
 }
 
-const statusEqual = (status: any, target: string) => {
-    return status.printableStatus as string === target
-}
-
-const handleOpen = (open: boolean, setVirtualMachine: any, notification: NotificationInstance, ns?: NamespaceName,) => {
-    if (!open || !ns) {
-        return
-    }
-    clients.fetchResource(GroupVersionResourceEnum.VIRTUAL_MACHINE, { namespace: ns.namespace, name: ns.name }).then((crd: any) => {
-        setVirtualMachine(crd)
-    }).catch((err: any) => {
-        notification.error({
-            message: "获取虚拟机失败",
-            description: err.message
-        })
-    })
-}
-
 const itemsFunc = (virtualMachine: any, setOpenDrawer: any, notification: NotificationInstance) => {
-    if (!virtualMachine) {
+    if (!virtualMachine || !virtualMachine.status) {
         return []
+    }
+
+    const namespaceName = extractNamespaceAndName(virtualMachine)
+    const status = virtualMachine.status.printableStatus
+
+    const manageVirtualMachinePowerState = (state: VirtualMachinePowerStateRequest_PowerState) => {
+        clients.manageVirtualMachinePowerState(namespaceName, state).catch(err => {
+            notification.error({
+                message: powerStateTypeName.get(state),
+                description: getErrorMessage(err)
+            })
+        })
+    }
+
+    const handleDeleteVirtualMachine = () => {
+        const resourceName = resourceTypeName.get(ResourceType.VIRTUAL_MACHINE)
+        Modal.confirm({
+            title: `Delete ${resourceName}?`,
+            content: `Are you sure you want to delete "${namespaceNameKey(namespaceName)}" ${resourceName}? This action cannot be undone.`,
+            okText: "Delete",
+            okType: "danger",
+            cancelText: "Cancel",
+            onOk: async () => {
+                try {
+                    await clients.deleteResource(ResourceType.VIRTUAL_MACHINE, namespaceName)
+                } catch (err) {
+                    notification.error({
+                        message: `Failed to delete ${resourceName}`,
+                        description: getErrorMessage(err)
+                    })
+                }
+            }
+        })
     }
 
     const items: MenuProps['items'] = [
@@ -111,21 +156,21 @@ const itemsFunc = (virtualMachine: any, setOpenDrawer: any, notification: Notifi
             children: [
                 {
                     key: 'start',
-                    onClick: () => manageVirtualMachinePowerState(virtualMachine.metadata.namespace, virtualMachine.metadata.name, VirtualMachinePowerStateRequest_PowerState.ON, notification),
+                    onClick: () => manageVirtualMachinePowerState(VirtualMachinePowerStateRequest_PowerState.ON),
                     label: "启动",
-                    disabled: statusEqual(virtualMachine.status, "Running")
+                    disabled: status === "Running"
                 },
                 {
                     key: 'restart',
-                    onClick: () => manageVirtualMachinePowerState(virtualMachine.metadata.namespace, virtualMachine.metadata.name, VirtualMachinePowerStateRequest_PowerState.REBOOT, notification),
+                    onClick: () => manageVirtualMachinePowerState(VirtualMachinePowerStateRequest_PowerState.REBOOT),
                     label: "重启",
-                    disabled: !statusEqual(virtualMachine.status, "Running")
+                    disabled: status !== "Running"
                 },
                 {
                     key: 'stop',
-                    onClick: () => manageVirtualMachinePowerState(virtualMachine.metadata.namespace, virtualMachine.metadata.name, VirtualMachinePowerStateRequest_PowerState.OFF, notification),
+                    onClick: () => manageVirtualMachinePowerState(VirtualMachinePowerStateRequest_PowerState.OFF),
                     label: "关机",
-                    disabled: statusEqual(virtualMachine.status, "Stopped")
+                    disabled: status === "Stopped"
                 },
                 {
                     key: 'power-divider-1',
@@ -133,15 +178,15 @@ const itemsFunc = (virtualMachine: any, setOpenDrawer: any, notification: Notifi
                 },
                 {
                     key: 'force-restart',
-                    onClick: () => manageVirtualMachinePowerState(virtualMachine.metadata.namespace, virtualMachine.metadata.name, VirtualMachinePowerStateRequest_PowerState.FORCE_REBOOT, notification),
+                    onClick: () => manageVirtualMachinePowerState(VirtualMachinePowerStateRequest_PowerState.FORCE_REBOOT),
                     label: "强制重启",
-                    disabled: !statusEqual(virtualMachine.status, "Running")
+                    disabled: status !== "Running"
                 },
                 {
                     key: 'force-stop',
-                    onClick: () => manageVirtualMachinePowerState(virtualMachine.metadata.namespace, virtualMachine.metadata.name, VirtualMachinePowerStateRequest_PowerState.FORCE_OFF, notification),
+                    onClick: () => manageVirtualMachinePowerState(VirtualMachinePowerStateRequest_PowerState.FORCE_OFF),
                     label: "强制关机",
-                    disabled: statusEqual(virtualMachine.status, "Stopped")
+                    disabled: status === "Stopped"
                 },
             ]
         },
@@ -153,7 +198,7 @@ const itemsFunc = (virtualMachine: any, setOpenDrawer: any, notification: Notifi
             key: 'console',
             label: '控制台',
             onClick: () => openConsole(virtualMachine),
-            disabled: !statusEqual(virtualMachine.status, "Running")
+            disabled: status !== "Running"
         },
         {
             key: 'divider-2',
@@ -208,21 +253,7 @@ const itemsFunc = (virtualMachine: any, setOpenDrawer: any, notification: Notifi
         {
             key: 'delete',
             danger: true,
-            onClick: () => {
-                Modal.confirm({
-                    title: "删除虚拟机？",
-                    content: `即将删除 "${virtualMachine.metadata.namespace}/${virtualMachine.metadata.name}" 虚拟机，请确认。`,
-                    okText: '确认删除',
-                    okType: 'danger',
-                    cancelText: '取消',
-                    okButtonProps: {
-                        disabled: false,
-                    },
-                    onOk: async () => {
-                        await clients.deleteResource(GroupVersionResourceEnum.VIRTUAL_MACHINE, virtualMachine.metadata.namespace, virtualMachine.metadata.name, { notification: notification })
-                    }
-                })
-            },
+            onClick: () => handleDeleteVirtualMachine(),
             label: "删除"
         }
     ]

@@ -2,12 +2,20 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { clients, emptyOptions } from "@/clients/clients"
 import { ResourceType } from "@/apis/types/group_version"
 import { ListOptions } from "@/apis/types/list_options"
-import { allowedError } from "@/utils/utils"
+import { allowedError, getErrorMessage, resourceTypeName } from "@/utils/utils"
 import { EventType } from "@/apis/management/resource/v1alpha1/listwatch"
 import { namespaceNameKey } from "@/utils/k8s"
-import { App } from "antd"
+import { App, Modal } from "antd"
 import { useNamespaceFromURL } from "./use-namespace-from-url"
 import useUnmount from "./use-unmount"
+import { NamespaceName } from "@/apis/types/namespace_name"
+
+export interface ListWatchOptions {
+    namespace?: string
+    fieldSelector?: string
+    labelSelector?: string
+    customFieldSelector?: string[]
+}
 
 export const useListResources = (resourceType: ResourceType, opts?: ListOptions) => {
     const abortCtrl = new AbortController()
@@ -146,4 +154,67 @@ export const useWatchResourceInNamespaceName = (resourceType: ResourceType) => {
     }, [resources])
 
     return { resource, loading }
+}
+
+export const useDeleteResource = (resourceType: ResourceType, namespaceName: NamespaceName) => {
+    const { notification } = App.useApp()
+    const [loading, setLoading] = useState(true)
+
+    const resourceName = resourceTypeName.get(resourceType)
+
+    Modal.confirm({
+        title: `删除 ${resourceName}？`,
+        content: `即将删除 "${namespaceNameKey(namespaceName)}" ${resourceName}，请确认。`,
+        okText: '确认删除',
+        okType: 'danger',
+        cancelText: '取消',
+        okButtonProps: {
+            disabled: false,
+        },
+        onOk: async () => {
+            setLoading(true)
+            try {
+                await clients.resource.delete({ resourceType: resourceType, namespaceName: namespaceName })
+            } catch (err) {
+                notification.error({ message: "删除失败", description: getErrorMessage(err) })
+            } finally {
+                setLoading(false)
+            }
+        }
+    })
+
+    return loading
+}
+
+export const useConfirmDeleteResource = () => {
+    const { notification } = App.useApp()
+    const [loading, setLoading] = useState(false)
+
+    const confirmDelete = (resourceType: ResourceType, namespaceName: NamespaceName) => {
+        const resourceName = resourceTypeName.get(resourceType)
+
+        Modal.confirm({
+            title: `Delete ${resourceName}?`,
+            content: `Are you sure you want to delete "${namespaceNameKey(namespaceName)}" ${resourceName}? This action cannot be undone.`,
+            okText: "Delete",
+            okType: "danger",
+            cancelText: "Cancel",
+            onOk: async () => {
+                setLoading(true)
+                try {
+                    await clients.resource.delete({ resourceType, namespaceName })
+                    notification.success({ message: `${resourceName} deleted successfully` })
+                } catch (err) {
+                    notification.error({
+                        message: `Failed to delete ${resourceName}`,
+                        description: getErrorMessage(err)
+                    })
+                } finally {
+                    setLoading(false)
+                }
+            }
+        })
+    }
+
+    return { loading, confirmDelete }
 }

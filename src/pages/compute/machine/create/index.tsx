@@ -1,21 +1,19 @@
 import { FooterToolbar, ProCard, ProForm, ProFormItem, ProFormSelect, ProFormText } from '@ant-design/pro-components'
-import { App, Button, Divider, Flex, InputNumber, Space, Table } from 'antd'
+import { App, Button, Divider, Flex, InputNumber, Space, Table, TableProps } from 'antd'
 import { useEffect, useRef, useState } from 'react'
 import { formatMemory, namespaceName, namespaceNameKey } from '@/utils/k8s'
-import { RootDiskDrawer } from './root-disk-drawer'
-import { capacity, classNames } from '@/utils/utils'
+import { capacity, classNames, getErrorMessage } from '@/utils/utils'
 import { DataDiskDrawer } from '@/pages/compute/machine/components/data-disk-drawer'
-import { NavigateFunction, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useNamespace } from '@/common/context'
 import { yaml as langYaml } from "@codemirror/lang-yaml"
-import { getDataDiskColumns, getNetworkColumns } from './table-columns'
-import { NotificationInstance } from 'antd/es/notification/interface'
-import { GroupVersionResourceEnum } from '@/apis/types/group_version'
-import { clients } from '@/clients/clients'
+import { ResourceType } from '@/apis/types/group_version'
+import { clients, resourceTypeName } from '@/clients/clients'
 import { PlusOutlined } from '@ant-design/icons'
-import { NetworkConfig, newVirtualMachine } from '../vm'
+import { NetworkConfig, newVirtualMachine } from '../virtualmachine'
 import { NetworkDrawer } from '../components/network-drawer'
-import { defaultCloudInit } from '../vm/template'
+import { defaultCloudInit } from '../virtualmachine/template'
+import { RootDiskDrawer } from '../components/root-disk-drawer'
 import type { ProFormInstance } from '@ant-design/pro-components'
 import OperatingSystem from '@/components/operating-system'
 import styles from '@/pages/compute/machine/create/styles/index.module.less'
@@ -23,36 +21,6 @@ import CodeMirror from '@uiw/react-codemirror'
 import codeMirrorStyles from "@/common/styles/code-mirror.module.less"
 import formStyles from "@/common/styles/form.module.less"
 import commonStyles from "@/common/styles/common.module.less"
-
-const submit = async (formRef: React.MutableRefObject<ProFormInstance | undefined>, notification: NotificationInstance, navigate: NavigateFunction) => {
-    formRef.current?.
-        validateFields({ validateOnly: false }).
-        then(async () => {
-            const fields = formRef.current?.getFieldsValue()
-
-            const instance = newVirtualMachine(
-                { name: fields.name, namespace: fields.namespace },
-                { cpu: fields.cpu, memory: fields.memory },
-                { image: fields.rootDisk, capacity: fields.rootDiskCapacity },
-                fields.dataDisks || [],
-                fields.networks,
-                fields.cloudInit
-            )
-
-            await clients.createResource(GroupVersionResourceEnum.VIRTUAL_MACHINE, instance, { notification: notification }).then(() => {
-                navigate('/compute/machines')
-            })
-        }).
-        catch((err: any) => {
-            const errorMessage = err.errorFields?.map((field: any, idx: number) => `${idx + 1}. ${field.errors}`).join('<br />') || err
-            notification.error({
-                message: "表单错误",
-                description: (
-                    <div dangerouslySetInnerHTML={{ __html: errorMessage }} />
-                )
-            })
-        })
-}
 
 export default () => {
     const { notification } = App.useApp()
@@ -65,10 +33,6 @@ export default () => {
 
     const [openDrawer, setOpenDrawer] = useState({ rootDisk: false, network: false, dataDisk: false })
 
-    const [rootDisk, setRootDisk] = useState<any>()
-    const [dataDisks, setDataDisks] = useState<any[]>([])
-    const [networks, setNetworks] = useState<NetworkConfig[]>([])
-
     useEffect(() => {
         formRef.current?.setFieldValue("namespace", namespace)
         if (namespace) {
@@ -77,50 +41,75 @@ export default () => {
     }, [namespace])
 
     useEffect(() => {
-        formRef.current?.setFieldValue("cloudInit", defaultCloudInit)
-    })
+        return formRef.current?.setFieldValue("cloudInit", defaultCloudInit)
+    }, [defaultCloudInit])
 
-    const dataDiskcolumns = getDataDiskColumns(dataDisks, setDataDisks)
-    const networkColumns = getNetworkColumns(networks, setNetworks)
-
-    const [cpuOptions, setCpuOptions] = useState(
-        Array.from({ length: 32 }, (_, i) => ({
-            label: `${(i + 1) * 2} 核`,
-            value: (i + 1) * 2
-        }))
-    )
-
-    const [memOptions, setMemOptions] = useState(
-        Array.from({ length: 32 }, (_, i) => ({
-            label: `${(i + 1) * 2} Gi`,
-            value: (i + 1) * 2
-        }))
-    )
+    const dataDiskcolumns = getDataDiskColumns(formRef)
+    const networkColumns = getNetworkColumns(formRef)
 
     const [inputCpuValue, setInputCpuValue] = useState<number>()
     const [inputMemValue, setInputMemValue] = useState<number>()
 
-    const addNewCpuOption = () => {
-        if (!inputCpuValue) {
+    const [_, setReset] = useState(false)
+
+    const createOptions = (count: number, multiplier: number, unit: string) => {
+        return Array.from({ length: count }, (_, i) => ({
+            label: `${(i + 1) * multiplier} ${unit}`,
+            value: (i + 1) * multiplier
+        }))
+    }
+
+    const [cpuOptions, setCpuOptions] = useState(createOptions(32, 2, "Core"))
+    const [memOptions, setMemOptions] = useState(createOptions(32, 2, "Gi"))
+
+    const handleAddNewOption = (
+        inputValue: number | undefined,
+        options: { label: string; value: number }[],
+        setOptions: React.Dispatch<React.SetStateAction<{ label: string, value: number }[]>>,
+        fieldName: "cpu" | "memory"
+    ) => {
+        if (!inputValue || !formRef.current) {
             return
         }
-        if (!cpuOptions.some(opt => opt.value === inputCpuValue)) {
-            const newOption = { label: `${inputCpuValue} 核`, value: inputCpuValue }
-            setCpuOptions([...cpuOptions, newOption])
-            setInputCpuValue(undefined)
-            formRef.current?.setFieldsValue({ cpu: inputCpuValue })
+        const unit = fieldName === "cpu" ? "Core" : "Gi"
+        if (!options.some(opt => opt.value === inputValue)) {
+            const newOption = { label: `${inputValue} ${unit}`, value: inputValue }
+            setOptions([...options, newOption])
+            formRef.current.setFieldsValue({ [fieldName]: inputValue })
         }
     }
 
-    const addNewMemOption = () => {
-        if (!inputMemValue) {
+    const handleSubmit = async () => {
+        if (!formRef.current) {
             return
         }
-        if (!memOptions.some(opt => opt.value === inputMemValue)) {
-            const newOption = { label: `${inputMemValue} Gi`, value: inputMemValue }
-            setMemOptions([...memOptions, newOption])
-            setInputMemValue(undefined)
-            formRef.current?.setFieldsValue({ memory: inputMemValue })
+
+        try {
+            await formRef.current.validateFields()
+
+            const fields = formRef.current.getFieldsValue()
+
+            const namespaceName = { name: fields.name, namespace: fields.namespace }
+            const cpuMem = { cpu: fields.cpu, memory: fields.memory }
+            const rootDisk = { image: fields.rootDisk, capacity: fields.rootDiskCapacity }
+            const instance = newVirtualMachine(
+                namespaceName,
+                cpuMem,
+                rootDisk,
+                fields.dataDisks || [],
+                fields.networks,
+                fields.cloudInit
+            )
+            await clients.createResource(ResourceType.VIRTUAL_MACHINE, instance)
+            navigate('/compute/machines')
+        } catch (err: any) {
+            const errorMessage = err.errorFields?.map((field: any, idx: number) => `${idx + 1}. ${field.errors}`).join('<br />') || getErrorMessage(err)
+            notification.error({
+                message: resourceTypeName.get(ResourceType.VIRTUAL_MACHINE),
+                description: (
+                    <div dangerouslySetInnerHTML={{ __html: errorMessage }} />
+                )
+            })
         }
     }
 
@@ -134,11 +123,11 @@ export default () => {
                 colon={false}
                 formRef={formRef}
                 onReset={() => {
-                    setRootDisk(undefined)
-                    setDataDisks([])
+                    formRef.current?.resetFields()
+                    setReset((pre) => !pre)
                 }}
                 submitter={{
-                    onSubmit: () => { submit(formRef, notification, navigate) },
+                    onSubmit: handleSubmit,
                     render: (_, dom) => <FooterToolbar>{dom}</FooterToolbar>
                 }}
             >
@@ -185,13 +174,13 @@ export default () => {
                         >
                             <Space size="large" direction='vertical'>
                                 {
-                                    rootDisk?.metadata?.name ? (
+                                    formRef.current?.getFieldValue("rootDisk")?.metadata.name ? (
                                         <Flex align='center' style={{ height: 32 }}>
-                                            <OperatingSystem rootDataVolume={rootDisk} />
+                                            <OperatingSystem dv={formRef.current?.getFieldValue("rootDisk")} />
                                             <Divider type="vertical" />
-                                            <span>{rootDisk?.metadata?.name}</span>
+                                            <span>{formRef.current?.getFieldValue("rootDisk").metadata.name}</span>
                                             <Divider type="vertical" />
-                                            <span>{capacity(rootDisk)}</span>
+                                            <span>{capacity(formRef.current?.getFieldValue("rootDisk"))}</span>
                                         </Flex>
                                     ) : ("")
                                 }
@@ -236,13 +225,13 @@ export default () => {
                                                 icon={<PlusOutlined />}
                                                 variant="text"
                                                 style={{ marginLeft: 10 }}
-                                                onClick={addNewCpuOption}
+                                                onClick={() => handleAddNewOption(inputCpuValue, cpuOptions, setCpuOptions, "cpu")}
                                             >
                                                 新增
                                             </Button>
                                         </div>
                                     </>
-                                ),
+                                )
                             }}
                             rules={[{
                                 required: true,
@@ -278,7 +267,7 @@ export default () => {
                                                 icon={<PlusOutlined />}
                                                 variant="text"
                                                 style={{ marginLeft: 10 }}
-                                                onClick={addNewMemOption}
+                                                onClick={() => handleAddNewOption(inputMemValue, memOptions, setMemOptions, "memory")}
                                             >
                                                 新增
                                             </Button>
@@ -327,7 +316,7 @@ export default () => {
                                     if (!rootDisk) {
                                         return Promise.resolve()
                                     }
-                                    const [value] = formatMemory(rootDisk?.spec.pvc.resources.requests.storage)
+                                    const [value] = formatMemory(rootDisk.spec.pvc.resources.requests.storage)
                                     if (rootDiskCapacity <= parseInt(value)) {
                                         return Promise.reject()
                                     }
@@ -351,11 +340,11 @@ export default () => {
                             label="数据盘"
                         >
                             {
-                                dataDisks.length > 0 && (
+                                formRef.current?.getFieldValue("dataDisks") && (
                                     <Table
                                         size="small"
                                         style={{ marginBottom: 24 }}
-                                        columns={dataDiskcolumns} dataSource={dataDisks} pagination={false}
+                                        columns={dataDiskcolumns} dataSource={formRef.current?.getFieldValue("dataDisks")} pagination={false}
                                         rowKey={(dv) => namespaceName(dv.metadata)}
                                     />
                                 )
@@ -378,7 +367,8 @@ export default () => {
                             rules={[{
                                 required: true,
                                 validator() {
-                                    if (networks.length == 0) {
+                                    const networks = formRef.current?.getFieldValue("networks")
+                                    if (!networks || networks.length == 0) {
                                         return Promise.reject()
                                     }
                                     return Promise.resolve()
@@ -387,13 +377,13 @@ export default () => {
                             }]}
                         >
                             {
-                                networks.length > 0 && (
+                                formRef.current?.getFieldValue("networks") && (
                                     <Table
                                         size="small"
                                         className={commonStyles["small-scrollbar"]}
                                         scroll={{ x: 1300 }}
                                         style={{ marginBottom: 24 }}
-                                        columns={networkColumns} dataSource={networks} pagination={false}
+                                        columns={networkColumns} dataSource={formRef.current?.getFieldValue("networks")} pagination={false}
                                         rowKey={(cfg) => namespaceNameKey(cfg.multus)}
                                     />
                                 )
@@ -428,9 +418,8 @@ export default () => {
             <RootDiskDrawer
                 open={openDrawer.rootDisk}
                 onCanel={() => setOpenDrawer((prevState) => ({ ...prevState, rootDisk: false }))}
-                current={rootDisk}
+                current={formRef.current?.getFieldValue("rootDisk")}
                 onConfirm={(data) => {
-                    setRootDisk(data)
                     setOpenDrawer((prevState) => ({ ...prevState, rootDisk: false }))
                     formRef.current?.setFieldValue("rootDisk", data)
                     formRef.current?.validateFields(["rootDisk"])
@@ -441,9 +430,8 @@ export default () => {
                 open={openDrawer.dataDisk}
                 onCanel={() => setOpenDrawer((prevState) => ({ ...prevState, dataDisk: false }))}
 
-                current={dataDisks}
+                current={formRef.current?.getFieldValue("dataDisks")}
                 onConfirm={(data) => {
-                    setDataDisks(data)
                     setOpenDrawer((prevState) => ({ ...prevState, dataDisk: false }))
                     formRef.current?.setFieldValue("dataDisks", data)
                     formRef.current?.validateFields(["dataDisks"])
@@ -453,24 +441,139 @@ export default () => {
             <NetworkDrawer
                 open={openDrawer.network}
                 onCanel={() => setOpenDrawer((prevState) => ({ ...prevState, network: false }))}
-                // namespace={namespace}
                 onConfirm={(data) => {
-                    console.log(data, formRef.current?.getFieldsValue(), "formRef.current?.getFieldsValue()")
-                    const hasElement = networks.some(cfg => {
+                    const networks = formRef.current?.getFieldValue("networks") || []
+                    const hasElement = networks.some((cfg: any) => {
                         return namespaceNameKey(cfg.multus) === namespaceNameKey(data.multus)
                     })
                     if (hasElement) {
                         return
                     }
                     const newNetworks = networks.concat(data)
-                    setNetworks(newNetworks)
                     setOpenDrawer((prevState) => ({ ...prevState, network: false }))
                     formRef.current?.setFieldValue("networks", newNetworks)
                     formRef.current?.validateFields(["networks"])
-
-                    console.log(formRef.current?.getFieldsValue(), "formRef.current?.getFieldsValue()")
                 }}
             />
         </>
     )
+}
+
+const getDataDiskColumns = (formRef: React.MutableRefObject<ProFormInstance | undefined>) => {
+    const dataDiskColumns: TableProps<any>['columns'] = [
+        {
+            title: '名称',
+            key: 'name',
+            ellipsis: true,
+            render: (_, dv) => dv.metadata.name
+        },
+        {
+            title: '存储类',
+            key: 'storageClassName',
+            ellipsis: true,
+            render: (_, dv) => dv.spec.pvc.storageClassName
+        },
+        {
+            title: '访问模式',
+            key: 'capacity',
+            ellipsis: true,
+            render: (_, dv) => dv.spec.pvc.accessModes[0]
+        },
+        {
+            title: '容量',
+            key: 'capacity',
+            ellipsis: true,
+            render: (_, dv) => capacity(dv)
+        },
+        {
+            title: '操作',
+            key: 'action',
+            width: 100,
+            align: 'center',
+            render: (_, dv) => (<a onClick={() => {
+                if (!formRef.current) {
+                    return
+                }
+                const dataDisks = formRef.current.getFieldValue('dataDisks')
+                const newDisks = dataDisks.filter((item: any) => !(namespaceNameKey(item.metadata) === namespaceNameKey(dv.metadata)))
+                formRef.current.setFieldValue('dataDisks', newDisks)
+            }}>移除</a>)
+        }
+    ]
+    return dataDiskColumns
+}
+
+const getNetworkColumns = (formRef: React.MutableRefObject<ProFormInstance | undefined>) => {
+    const networkColumns: TableProps<NetworkConfig>['columns'] = [
+        {
+            title: 'Network',
+            key: 'network',
+            ellipsis: true,
+            render: (_, cfg) => cfg.network
+        },
+        {
+            title: 'Interface',
+            key: 'interface',
+            ellipsis: true,
+            render: (_, cfg) => cfg.interface
+        },
+        {
+            title: '默认网络',
+            key: 'default',
+            ellipsis: true,
+            render: (_, cfg) => cfg.default ? "是" : "否"
+        },
+        {
+            title: 'Multus CR',
+            key: 'multusCR',
+            ellipsis: true,
+            render: (_, cfg) => namespaceNameKey(cfg.multus)
+        },
+        {
+            title: 'VPC',
+            key: 'vpc',
+            ellipsis: true,
+            render: (_, cfg) => cfg.subnet?.spec.vpc
+        },
+        {
+            title: '子网',
+            key: 'subnet',
+            ellipsis: true,
+            render: (_, cfg) => cfg.subnet?.metadata.name
+        },
+        {
+            title: 'IP 地址池',
+            key: 'ippool',
+            ellipsis: true,
+            render: (_, cfg) => cfg.ippool?.metadata.name || "自动分配"
+        },
+        {
+            title: 'IP 地址',
+            key: 'ipAddress',
+            ellipsis: true,
+            render: (_, cfg) => cfg.ipAddress || "自动分配"
+        },
+        {
+            title: 'MAC 地址',
+            key: 'macAddress',
+            ellipsis: true,
+            render: (_, cfg) => cfg.macAddress || "自动分配"
+        },
+        {
+            title: '操作',
+            key: 'action',
+            width: 100,
+            align: 'center',
+            fixed: 'right',
+            render: (_, cfg) => (<a onClick={() => {
+                if (!formRef.current) {
+                    return
+                }
+                const networks = formRef.current.getFieldValue('networks')
+                const newNetworks = networks.filter((item: any) => item.multus !== cfg.multus)
+                formRef.current.setFieldValue('networks', newNetworks)
+            }}>移除</a>)
+        }
+    ]
+    return networkColumns
 }

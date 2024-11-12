@@ -68,10 +68,14 @@ export const namespaceNameKey = (obj: any) => {
         return `${obj.metadata.namespace}/${obj.metadata.name}`
     } else if (typeof obj.namespace === 'string' && typeof obj.name === 'string') {
         return `${obj.namespace}/${obj.name}`
-    } else if (typeof obj.metadata.name === 'string') {
-        return obj.metadata.name
     } else if (typeof obj.name === 'string') {
         return obj.name
+    } else if (obj.metadata && typeof obj.metadata.name === 'string') {
+        return obj.metadata.name
     }
     return ""
+}
+
+export const extractNamespaceAndName = (crd: any) => {
+    return { namespace: crd.metadata.namespace, name: crd.metadata.name }
 }

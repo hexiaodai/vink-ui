@@ -1,103 +1,16 @@
 import { FooterToolbar, ProCard, ProForm, ProFormCascader, ProFormItem, ProFormText, ProFormTextArea } from '@ant-design/pro-components'
 import { App, InputNumber, Space } from 'antd'
 import { useEffect, useRef } from 'react'
-import { imageYaml } from './crd-template'
 import { useNavigate } from 'react-router-dom'
-import { IconFont } from '@/components/icon'
-import { instances as labels } from "@/apis/sdks/ts/label/labels.gen"
 import { useNamespace } from '@/common/context'
-import { classNames } from '@/utils/utils'
-import { clients } from '@/clients/clients'
-import { GroupVersionResourceEnum } from '@/apis/types/group_version'
+import { classNames, getErrorMessage } from '@/utils/utils'
+import { clients, resourceTypeName } from '@/clients/clients'
+import { ResourceType } from '@/apis/types/group_version'
+import { newSystemImage } from '../../datavolume'
 import type { ProFormInstance } from '@ant-design/pro-components'
-import * as yaml from 'js-yaml'
+import OperatingSystem from '@/components/operating-system'
 import formStyles from "@/common/styles/form.module.less"
-
-const options = [
-    {
-        value: 'ubuntu',
-        label: <>
-            <IconFont type={"icon-ubuntu"} />
-            <span style={{ marginLeft: 8 }}>Ubuntu</span>
-        </>,
-        children: [
-            {
-                value: '20.04',
-                label: '20.04',
-            },
-            {
-                value: '22.04',
-                label: '22.04',
-            },
-        ],
-    },
-    {
-        value: 'centos',
-        label: <>
-            <IconFont type={"icon-centos"} />
-            <span style={{ marginLeft: 8 }}>CentOS</span>
-        </>,
-        icons: <IconFont type={"icon-centos"} />,
-        children: [
-            {
-                value: '7',
-                label: '7',
-            },
-            {
-                value: '8',
-                label: '8',
-            },
-        ],
-    },
-    {
-        value: 'debian',
-        label: <>
-            <IconFont type={"icon-debian"} />
-            <span style={{ marginLeft: 8 }}>Debian</span>
-        </>,
-        icons: <IconFont type={"icon-debian"} />,
-        children: [
-            {
-                value: '9',
-                label: '9',
-            },
-            {
-                value: '10',
-                label: '10',
-            },
-            {
-                value: '11',
-                label: '11',
-            },
-        ],
-    },
-    {
-        value: 'linux',
-        label: <>
-            <IconFont type={"icon-linux"} />
-            <span style={{ marginLeft: 8 }}>Linux</span>
-        </>,
-        icons: <IconFont type={"icon-linux"} />,
-    },
-    {
-        value: 'windows',
-        label: <>
-            <IconFont type={"icon-windows"} />
-            <span style={{ marginLeft: 8 }}>Windows</span>
-        </>,
-        icons: <IconFont type={"icon-windows"} />,
-        children: [
-            {
-                value: '10',
-                label: '10',
-            },
-            {
-                value: '11',
-                label: '11',
-            }
-        ]
-    }
-]
+import styles from "./styles/index.module.less"
 
 export default () => {
     const { notification } = App.useApp()
@@ -115,35 +28,37 @@ export default () => {
         }
     }, [namespace])
 
-    const submit = async () => {
-        formRef.current?.
-            validateFields({ validateOnly: false }).
-            then(async () => {
-                const fields = formRef.current?.getFieldsValue()
+    const handleSubmit = async () => {
+        if (!formRef.current) {
+            return
+        }
 
-                const instance: any = yaml.load(imageYaml)
-                instance.metadata.name = fields.name
-                instance.metadata.namespace = fields.namespace
-                instance.spec.pvc.resources.requests.storage = `${fields.imageCapacity}Gi`
-                instance.spec.source.registry.url = fields.imageSource
+        try {
+            await formRef.current.validateFields()
 
-                instance.metadata.labels[labels.VinkDatavolumeType.name] = "image"
-                instance.metadata.labels[labels.VinkVirtualmachineOs.name] = fields.operatingSystem[0]
-                instance.metadata.labels[labels.VinkVirtualmachineVersion.name] = fields.operatingSystem[1]
+            const fields = formRef.current.getFieldsValue()
 
-                await clients.createResource(GroupVersionResourceEnum.DATA_VOLUME, instance, { notification: notification }).then(() => {
-                    navigate('/storage/images')
-                })
-            }).
-            catch((err: any) => {
-                const errorMessage = err.errorFields?.map((field: any, idx: number) => `${idx + 1}. ${field.errors}`).join('<br />') || err
-                notification.error({
-                    message: "表单错误",
-                    description: (
-                        <div dangerouslySetInnerHTML={{ __html: errorMessage }} />
-                    )
-                })
+            const namespaceName = { namespace: fields.namespace, name: fields.name }
+
+            const instance = newSystemImage(
+                namespaceName,
+                fields.imageSource,
+                fields.imageCapacity,
+                fields.operatingSystem?.[0],
+                fields.operatingSystem?.[1]
+            )
+
+            await clients.createResource(ResourceType.DATA_VOLUME, instance)
+            navigate('/storage/images')
+        } catch (err: any) {
+            const errorMessage = err.errorFields?.map((field: any, idx: number) => `${idx + 1}. ${field.errors}`).join('<br />') || getErrorMessage(err)
+            notification.error({
+                message: resourceTypeName.get(ResourceType.DATA_VOLUME),
+                description: (
+                    <div dangerouslySetInnerHTML={{ __html: errorMessage }} />
+                )
             })
+        }
     }
 
     return (
@@ -156,7 +71,7 @@ export default () => {
             formRef={formRef}
             onReset={() => { }}
             submitter={{
-                onSubmit: submit,
+                onSubmit: () => handleSubmit(),
                 render: (_, dom) => <FooterToolbar>{dom}</FooterToolbar>
             }}
         >
@@ -198,7 +113,7 @@ export default () => {
                     />
                 </ProCard>
 
-                <ProCard title="镜像" headerBordered>
+                <ProCard title="镜像" headerBordered className={styles["system-image"]}>
                     <ProFormCascader
                         name="operatingSystem"
                         label="操作系统"
@@ -253,3 +168,70 @@ export default () => {
         </ProForm >
     )
 }
+
+const options = [
+    {
+        value: 'ubuntu',
+        label: <OperatingSystem family="ubuntu" />,
+        children: [
+            {
+                value: '20.04',
+                label: '20.04',
+            },
+            {
+                value: '22.04',
+                label: '22.04',
+            },
+        ],
+    },
+    {
+        value: 'centos',
+        label: <OperatingSystem family="centos" />,
+        children: [
+            {
+                value: '7',
+                label: '7',
+            },
+            {
+                value: '8',
+                label: '8',
+            },
+        ],
+    },
+    {
+        value: 'debian',
+        label: <OperatingSystem family="debian" />,
+        children: [
+            {
+                value: '9',
+                label: '9',
+            },
+            {
+                value: '10',
+                label: '10',
+            },
+            {
+                value: '11',
+                label: '11',
+            },
+        ],
+    },
+    {
+        value: 'linux',
+        label: <OperatingSystem family="linux" />,
+    },
+    {
+        value: 'windows',
+        label: <OperatingSystem family="windows" />,
+        children: [
+            {
+                value: '10',
+                label: '10',
+            },
+            {
+                value: '11',
+                label: '11',
+            }
+        ]
+    }
+]

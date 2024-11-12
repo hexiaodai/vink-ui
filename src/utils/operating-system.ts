@@ -1,7 +1,6 @@
 import { instances } from "@kubevm.io/vink/label/labels.gen.ts"
-import { ObjectMeta } from "@/apis/types/object_meta"
 
-export const getOperatingSystemFromDataVolume = (metadata?: ObjectMeta): { family: string, version: string } => {
+export const getOperatingSystemFromDataVolume = (metadata?: any): { family: string, version: string } => {
     const info = { family: "linux", version: "" }
     if (!metadata) {
         return info

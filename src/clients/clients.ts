@@ -2,41 +2,36 @@ import { GrpcWebFetchTransport } from "@protobuf-ts/grpcweb-transport"
 import { ResourceListWatchManagementClient } from "@/apis/management/resource/v1alpha1/listwatch.client"
 import { VirtualMachineManagementClient } from "@/apis/management/virtualmachine/v1alpha1/virtualmachine.client"
 import { ResourceManagementClient } from "@/apis/management/resource/v1alpha1/resource.client"
-import { NotificationInstance } from "antd/es/notification/interface"
-import { GroupVersionResourceEnum } from "@/apis/types/group_version"
-import { EventType } from "@/apis/management/resource/v1alpha1/listwatch"
-import { namespaceNameKey } from "@/utils/k8s"
-import { allowedError, generateMessage } from "@/utils/utils"
+import { ResourceType } from "@/apis/types/group_version"
+import { extractNamespaceAndName, namespaceNameKey } from "@/utils/k8s"
 import { ListOptions } from "@/apis/types/list_options"
 import { NamespaceName } from "@/apis/types/namespace_name"
+import { VirtualMachinePowerStateRequest_PowerState } from "@/apis/management/virtualmachine/v1alpha1/virtualmachine"
 
-interface ListWatchOptions {
-    namespace?: string
-    fieldSelector?: string
-    labelSelector?: string
-    notification?: NotificationInstance
-    abortCtrl?: AbortController
-    customFieldSelector?: string[]
-}
+export const resourceTypeName = new Map<ResourceType, string>([
+    [ResourceType.VIRTUAL_MACHINE, "VirtualMachine"],
+    [ResourceType.VIRTUAL_MACHINE_INSTANCE, "VirtualMachineInstance"],
+    [ResourceType.VIRTUAL_MACHINE_SUMMARY, "VirtualMachineSummary"],
+    [ResourceType.DATA_VOLUME, "DataVolume"],
+    [ResourceType.NODE, "Node"],
+    [ResourceType.NAMESPACE, "Namespace"],
+    [ResourceType.MULTUS, "Multus"],
+    [ResourceType.SUBNET, "Subnet"],
+    [ResourceType.VPC, "VPC"],
+    [ResourceType.IPPOOL, "IPPool"],
+    [ResourceType.STORAGE_CLASS, "StorageClass"],
+    [ResourceType.IPS, "IPs"]
+])
 
-interface DeleteOptions {
-    notification?: NotificationInstance
-}
+export const powerStateTypeName = new Map<VirtualMachinePowerStateRequest_PowerState, string>([
+    [VirtualMachinePowerStateRequest_PowerState.OFF, "OFF"],
+    [VirtualMachinePowerStateRequest_PowerState.ON, "ON"],
+    [VirtualMachinePowerStateRequest_PowerState.REBOOT, "REBOOT"],
+    [VirtualMachinePowerStateRequest_PowerState.FORCE_REBOOT, "FORCE REBOOT"],
+    [VirtualMachinePowerStateRequest_PowerState.FORCE_OFF, "FORCE OFF"]
+])
 
-interface CreateOptions {
-    notification?: NotificationInstance
-}
-
-interface GetOptions {
-    notification?: NotificationInstance
-}
-
-interface UpdateOptions {
-    notification?: NotificationInstance
-    setResource?: any
-}
-
-class Clients {
+export class Clients {
     private static instance: Clients
 
     readonly watch: ResourceListWatchManagementClient
@@ -60,217 +55,66 @@ class Clients {
         return Clients.instance
     }
 
-    public listResources = (gvr: GroupVersionResourceEnum, setResources: any, opts: ListWatchOptions): Promise<void> => {
-        return new Promise((resolve, reject) => {
-            const call = this.watch.listWatch({
-                groupVersionResource: {
-                    option: {
-                        oneofKind: "enum",
-                        enum: gvr
-                    }
-                },
-                options: emptyOptions({
-                    fieldSelector: opts.fieldSelector,
-                    labelSelector: opts.labelSelector,
-                    watch: false
-                })
-            },
-                { abort: opts.abortCtrl?.signal }
-            )
-
-            call.responses.onMessage((response) => {
-                setResources(response.items)
-                resolve()
-            })
-
-            call.responses.onError((err: Error) => {
-                opts.notification?.error({ message: "", description: err.message })
-                reject(err.message)
-            })
-        })
-    }
-
-    public createWatchResource = (gvr: GroupVersionResourceEnum, setResources: (resource: Map<string, any>) => void) => {
-        let resources = new Map<string, any>()
-
-        const watchResource = async (opts: ListWatchOptions): Promise<void> => {
-            return new Promise((resolve, reject) => {
-                const call = this.watch.listWatch(
-                    {
-                        groupVersionResource: {
-                            option: {
-                                oneofKind: "enum",
-                                enum: gvr
-                            }
-                        },
-                        options: emptyOptions({
-                            labelSelector: opts.labelSelector,
-                            fieldSelector: opts.fieldSelector,
-                            namespace: opts.namespace,
-                            watch: true
-                        })
-                    },
-                    { abort: opts.abortCtrl?.signal }
-                )
-
-                call.responses.onMessage((response) => {
-                    switch (response.eventType) {
-                        case EventType.ADDED: {
-                            const temp = new Map<string, any>()
-                            response.items.forEach((data) => {
-                                const crd = JSON.parse(data)
-                                temp.set(namespaceNameKey(crd), crd)
-                            })
-                            resources = temp
-                            setResources(temp)
-                            break
-                        }
-                        case EventType.MODIFIED: {
-                            response.items.forEach((data) => {
-                                const crd = JSON.parse(data)
-                                resources.set(namespaceNameKey(crd), crd)
-                            })
-                            setResources(new Map(resources))
-                            break
-                        }
-                        case EventType.DELETED: {
-                            resources.delete(namespaceNameKey(response.deleted))
-                            setResources(new Map(resources))
-                            break
-                        }
-                    }
-                    resolve()
-                })
-
-                call.responses.onError((err: Error) => {
-                    if (!allowedError(err)) {
-                        opts.notification?.error({
-                            message: "",
-                            description: err.message
-                        })
-                    }
-                    reject(err.message)
-                })
-            })
-        }
-
-        return watchResource
-    }
-
-    public deleteResource = (gvr: GroupVersionResourceEnum, namespace: string, name: string, opts: DeleteOptions): Promise<void> => {
-        return new Promise((resolve, reject) => {
-            const call = this.resource.delete({
-                namespaceName: { namespace: namespace, name: name },
-                groupVersionResource: {
-                    option: {
-                        oneofKind: "enum",
-                        enum: gvr
-                    }
-                }
-            })
-            call.then(() => {
-                opts.notification?.success({ message: "", description: `删除 "${namespace}/${name}" 资源成功` })
-                resolve()
-            })
-            call.response.catch((err: Error) => {
-                opts.notification?.error({ message: "", description: `删除 "${namespace}/${name}" 资源失败：${err.message}` })
-                reject()
-            })
-        })
-    }
-
-    public batchDeleteResources = async (gvr: GroupVersionResourceEnum, resources: any[], opts: DeleteOptions) => {
-        const completed: string[] = []
-        const failed: string[] = []
-        const notificationSuccessKey = "batch-delete-resources-success"
-        const notificationFailedKey = "batch-delete-resources-failed"
+    public batchDeleteResources = async (resourceType: ResourceType, resources: any[]): Promise<void> => {
+        const completed: NamespaceName[] = []
+        const failed: NamespaceName[] = []
 
         await Promise.all(resources.map(async (crd) => {
-            const namespace = crd.metadata.namespace
-            const name = crd.metadata.name
-
+            const namespaceName = extractNamespaceAndName(crd)
             try {
-                await clients.resource.delete({
-                    namespaceName: { namespace: namespace, name: name },
-                    groupVersionResource: {
-                        option: {
-                            oneofKind: "enum",
-                            enum: gvr
-                        }
-                    }
-                }).response
-                completed.push(crd)
-                const msg = generateMessage(completed, `正在删除 "{names}" 资源`, `正在删除 "{names}" 等 {count} 个资源`)
-                opts.notification?.success({ key: notificationSuccessKey, message: "", description: msg })
+                await this.resource.delete({ namespaceName: namespaceName, resourceType: resourceType }).response
+                completed.push(namespaceName)
             } catch (err: any) {
-                failed.push(crd)
-                const msg = generateMessage(failed, `删除 "{names}" 资源失败`, `删除 "{names}" 等 {count} 个资源失败`)
-                opts.notification?.error({ key: notificationFailedKey, message: "", description: msg })
-                console.log(err)
+                failed.push(namespaceName)
             }
             return
         }))
+
+        if (failed.length > 0) {
+            Promise.reject(new Error(`Failed to delete ${resourceTypeName.get(resourceType)} ${failed.map(namespaceNameKey).join(", ")}`))
+        }
     }
 
-    public createResource = async (gvr: GroupVersionResourceEnum, crd: any, opts: CreateOptions): Promise<void> => {
+    public createResource = async (resourceType: ResourceType, crd: any): Promise<any> => {
+        const namespaceName = extractNamespaceAndName(crd)
         const data = JSON.stringify(crd)
         return new Promise((resolve, reject) => {
             const call = this.resource.create({
-                groupVersionResource: {
-                    option: {
-                        oneofKind: "enum",
-                        enum: gvr
-                    }
-                },
+                resourceType: resourceType,
                 data: data
+            })
+
+            call.then((result) => {
+                resolve(JSON.parse(result.response.data))
+            })
+            call.response.catch((err: Error) => {
+                console.log(namespaceName, "=====")
+                reject(new Error(`Failed to create ${resourceTypeName.get(resourceType)} ${namespaceNameKey(namespaceName)}: ${err.message}`))
+            })
+        })
+    }
+
+    public deleteResource = async (resourceType: ResourceType, namespaceName: NamespaceName): Promise<void> => {
+        return new Promise((resolve, reject) => {
+            const call = this.resource.delete({
+                resourceType: resourceType
             })
 
             call.then(() => {
-                opts.notification?.success({ message: "", description: `创建 "${crd.metadata.namespace}/${crd.metadata.name}" 资源成功` })
                 resolve()
             })
             call.response.catch((err: Error) => {
-                opts.notification?.error({ message: "", description: `创建 "${crd.metadata.namespace}/${crd.metadata.name}" 资源失败：${err.message}` })
-                reject()
+                reject(new Error(`Failed to delete ${resourceTypeName.get(resourceType)} ${namespaceNameKey(namespaceName)}: ${err.message}`))
             })
         })
     }
 
-    public updateResource = async (gvr: GroupVersionResourceEnum, crd: any, opts: UpdateOptions): Promise<void> => {
+    public updateResource = async (resourceType: ResourceType, crd: any): Promise<any> => {
+        const namespaceName = extractNamespaceAndName(crd)
         const data = JSON.stringify(crd)
         return new Promise((resolve, reject) => {
             const call = this.resource.update({
-                groupVersionResource: {
-                    option: {
-                        oneofKind: "enum",
-                        enum: gvr
-                    }
-                },
-                data: data
-            })
-
-            call.then((result) => {
-                opts.notification?.success({ message: "", description: `更新 "${crd.metadata.namespace}/${crd.metadata.name}" 资源成功` })
-                opts.setResource?.(JSON.parse(result.response.data))
-                resolve()
-            })
-            call.response.catch((err: Error) => {
-                opts.notification?.error({ message: "", description: `更新 "${crd.metadata.namespace}/${crd.metadata.name}" 资源失败：${err.message}` })
-                reject()
-            })
-        })
-    }
-
-    public updateResourceAsync = async (gvr: GroupVersionResourceEnum, crd: any): Promise<any> => {
-        const data = JSON.stringify(crd)
-        return new Promise((resolve, reject) => {
-            const call = this.resource.update({
-                groupVersionResource: {
-                    option: {
-                        oneofKind: "enum",
-                        enum: gvr
-                    }
-                },
+                resourceType: resourceType,
                 data: data
             })
 
@@ -278,74 +122,31 @@ class Clients {
                 resolve(JSON.parse(result.response.data))
             })
             call.response.catch((err: Error) => {
-                reject(err)
+                reject(new Error(`Failed to update ${resourceTypeName.get(resourceType)} ${namespaceNameKey(namespaceName)}: ${err.message}`))
             })
         })
     }
 
-    public getResource = async (gvr: GroupVersionResourceEnum, namespaceName: NamespaceName, setResource: any, opts: GetOptions): Promise<void> => {
+    public getResource = async (resourceType: ResourceType, namespaceName: NamespaceName): Promise<any> => {
         return new Promise((resolve, reject) => {
             const call = this.resource.get({
-                groupVersionResource: {
-                    option: {
-                        oneofKind: "enum",
-                        enum: gvr
-                    }
-                },
+                resourceType: resourceType,
                 namespaceName: namespaceName
             })
-
-            call.then((result) => {
-                setResource(JSON.parse(result.response.data))
-                resolve()
-            })
-            call.response.catch((err: Error) => {
-                opts.notification?.error({ message: "", description: `获取 "${namespaceName.namespace}/${namespaceName.name}" 资源失败：${err.message}` })
-                reject()
-            })
-        })
-    }
-
-    public fetchResource = async (gvr: GroupVersionResourceEnum, namespaceName: NamespaceName): Promise<any> => {
-        return new Promise((resolve, reject) => {
-            const call = this.resource.get({
-                groupVersionResource: {
-                    option: {
-                        oneofKind: "enum",
-                        enum: gvr
-                    }
-                },
-                namespaceName: namespaceName
-            })
-
             call.then((result) => {
                 resolve(JSON.parse(result.response.data))
             })
             call.response.catch((err: Error) => {
-                reject(err)
+                reject(new Error(`Failed to get ${resourceTypeName.get(resourceType)} ${namespaceNameKey(namespaceName)}: ${err.message}`))
             })
         })
     }
 
-    public fetchResources = async (gvr: GroupVersionResourceEnum, opts?: ListWatchOptions): Promise<any> => {
+    public listResources = async (resourceType: ResourceType, opts?: ListOptions): Promise<any> => {
         return new Promise((resolve, reject) => {
             const call = this.watch.listWatch({
-                groupVersionResource: {
-                    option: {
-                        oneofKind: "enum",
-                        enum: gvr
-                    }
-                },
-                options: emptyOptions({
-                    namespace: opts?.namespace,
-                    fieldSelector: opts?.fieldSelector,
-                    labelSelector: opts?.labelSelector,
-                    customSelector: {
-                        namespaceNames: [],
-                        fieldSelector: opts?.customFieldSelector || []
-                    },
-                    watch: false
-                })
+                resourceType: resourceType,
+                options: emptyOptions({ ...opts, watch: false })
             })
 
             call.responses.onMessage((response) => {
@@ -355,18 +156,64 @@ class Clients {
                 })
                 resolve(items)
             })
-
             call.responses.onError((err: Error) => {
-                reject(err)
+                reject(new Error(`Failed to list ${resourceTypeName.get(resourceType)}: ${err.message}`))
+            })
+        })
+    }
+
+    public batchManageVirtualMachinePowerState = async (vms: any[], state: VirtualMachinePowerStateRequest_PowerState): Promise<void> => {
+        const completed: NamespaceName[] = []
+        const failed: NamespaceName[] = []
+
+        await Promise.all(vms.map(async (vm) => {
+            const namespaceName = extractNamespaceAndName(vm)
+            const isRunning = vm.status.printableStatus as string === "Running"
+
+            if (state === VirtualMachinePowerStateRequest_PowerState.OFF && !isRunning) {
+                return
+            }
+            if (state === VirtualMachinePowerStateRequest_PowerState.ON && isRunning) {
+                return
+            }
+            if (state === VirtualMachinePowerStateRequest_PowerState.REBOOT && !isRunning) {
+                return
+            }
+
+            try {
+                await this.virtualmachine.virtualMachinePowerState({
+                    namespaceName: namespaceName, powerState: state
+                }).response
+                completed.push(namespaceName)
+            } catch (err: any) {
+                failed.push(namespaceName)
+            }
+            return
+        }))
+
+        if (failed.length > 0) {
+            Promise.reject(new Error(`Failed to updated power state ${resourceTypeName.get(ResourceType.VIRTUAL_MACHINE)}: ${failed.map((vm) => namespaceNameKey(vm)).join(", ")}`))
+        }
+    }
+
+    public manageVirtualMachinePowerState = (namespaceName: NamespaceName, state: VirtualMachinePowerStateRequest_PowerState): Promise<void> => {
+        return new Promise((resolve, reject) => {
+            const call = this.virtualmachine.virtualMachinePowerState({
+                namespaceName: namespaceName,
+                powerState: state
+            })
+            call.response.then(() => {
+                resolve()
+            })
+            call.response.catch((err: Error) => {
+                reject(new Error(`Failed to update power state for ${namespaceNameKey(namespaceName)}: ${err.message}`))
             })
         })
     }
 }
 
-export const clients = Clients.getInstance()
-
-const emptyOptions = (overrides: Partial<ListOptions> = {}): ListOptions => {
-    const defaults: ListOptions = {
+export const emptyOptions = (overrides: Partial<ListOptions> = {}): ListOptions => {
+    return Object.assign({}, {
         fieldSelector: "",
         labelSelector: "",
         limit: 0,
@@ -377,10 +224,7 @@ const emptyOptions = (overrides: Partial<ListOptions> = {}): ListOptions => {
         },
         namespace: "",
         watch: false,
-    }
-
-    return {
-        ...defaults,
-        ...overrides
-    }
+    }, overrides)
 }
+
+export const clients = Clients.getInstance()

@@ -1,4 +1,4 @@
-export const diskYaml = `
+export const dataVolumYaml = `
 apiVersion: cdi.kubevirt.io/v1beta1
 kind: DataVolume
 metadata:
@@ -15,6 +15,5 @@ spec:
       requests:
         storage: ""
     storageClassName: local-path
-  source:
-    blank: {}
+  source: {}
 `

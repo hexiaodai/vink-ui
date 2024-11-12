@@ -6,21 +6,21 @@ option go_package = "github.com/kubevm.io/vink/apis/types";
 
 // GroupVersionResource unambiguously identifies a resource.  It doesn't anonymously include GroupVersion
 // to avoid automatic coercion.  It doesn't use a GroupVersion to avoid custom marshalling
-message GroupVersionResource {
-	string group = 1;
-	string version = 2;
-	string resource = 3;
-}
+// message GroupVersionResource {
+// 	string group = 1;
+// 	string version = 2;
+// 	string resource = 3;
+// }
 
 // GroupVersionKind unambiguously identifies a kind.  It doesn't anonymously include GroupVersion
 // to avoid automatic coercion.  It doesn't use a GroupVersion to avoid custom marshalling
-message GroupVersionKind {
-	string group = 1;
-	string version = 2;
-	string kind = 3;
-}
+// message GroupVersionKind {
+// 	string group = 1;
+// 	string version = 2;
+// 	string kind = 3;
+// }
 
-enum GroupVersionResourceEnum {
+enum ResourceType {
 	UNSPECIFIED = 0;
 	VIRTUAL_MACHINE = 1;
 	VIRTUAL_MACHINE_INSTANCE = 2;
@@ -33,12 +33,12 @@ enum GroupVersionResourceEnum {
 	IPPOOL = 9;
 	STORAGE_CLASS = 10;
 	IPS = 11;
-	VIRTUAL_MACHINE_INSTANCE_SUMMARY = 12;
+	VIRTUAL_MACHINE_SUMMARY = 12;
 }
 
-message GroupVersionResourceIdentifier {
-    oneof option {
-        GroupVersionResourceEnum enum = 1;
-        GroupVersionResource custom = 2;
-    }
-}
+// message GroupVersionResourceIdentifier {
+//     oneof option {
+//         GroupVersionResourceEnum enum = 1;
+//         GroupVersionResource custom = 2;
+//     }
+// }

@@ -5,15 +5,21 @@ import { formatOSFamily } from '@/utils/k8s'
 import styles from "./index.module.less"
 
 interface OperatingSystemProps {
-    rootDataVolume?: any
+    dv?: any
+    family?: "ubuntu" | "centos" | "debian" | "linux" | "windows"
+    version?: string
 }
 
-const OperatingSystem: React.FC<OperatingSystemProps> = ({ rootDataVolume }) => {
-    const info = getOperatingSystemFromDataVolume(rootDataVolume?.metadata)
+const OperatingSystem: React.FC<OperatingSystemProps> = ({ dv, family, version }) => {
+    if (dv) {
+        const info = getOperatingSystemFromDataVolume(dv.metadata)
+        family = info.family as OperatingSystemProps["family"]
+        version = info.version
+    }
     return (
         <Flex justify="flex-start" align="center">
-            <IconFont type={`icon-${info.family}`} className={styles['icon']} />
-            {formatOSFamily(info.family)} {info.version}
+            <IconFont type={`icon-${family}`} className={styles['icon']} />
+            <span>{formatOSFamily(family)} {version}</span>
         </Flex>
     )
 }
