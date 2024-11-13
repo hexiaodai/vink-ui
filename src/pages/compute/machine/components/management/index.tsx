@@ -1,10 +1,10 @@
-import { VirtualMachinePowerStateRequest_PowerState } from '@/apis/management/virtualmachine/v1alpha1/virtualmachine'
-import { ResourceType } from '@/apis/types/group_version'
+import { VirtualMachinePowerStateRequest_PowerState } from '@/clients/ts/management/virtualmachine/v1alpha1/virtualmachine'
+import { ResourceType } from '@/clients/ts/types/resource_type'
 import { getErrorMessage, openConsole } from '@/utils/utils'
 import { App, Button, Dropdown, MenuProps, Modal, Spin } from 'antd'
 import { EllipsisOutlined } from '@ant-design/icons'
 import { useState } from 'react'
-import { NamespaceName } from '@/apis/types/namespace_name'
+import { NamespaceName } from '@/clients/ts/types/namespace_name'
 import { NotificationInstance } from 'antd/es/notification/interface'
 import { DataDiskDrawer } from '../data-disk-drawer'
 import { Link } from 'react-router-dom'
@@ -12,7 +12,7 @@ import { NetworkDrawer } from '../network-drawer'
 import { NetworkConfig, updateDataDisks, updateNetwork } from '../../virtualmachine'
 import { extractNamespaceAndName, namespaceNameKey } from '@/utils/k8s'
 import { LoadingOutlined } from '@ant-design/icons'
-import { clients, powerStateTypeName, resourceTypeName } from '@/clients/clients'
+import { clients, getPowerStateName, getResourceName } from '@/clients/clients'
 
 interface Props {
     vm?: any
@@ -49,7 +49,7 @@ const VirtualMachineManagement: React.FC<Props> = ({ vm, namespace, type }) => {
             setVirtualMachine(crd)
         }).catch(err => {
             notification.error({
-                message: resourceTypeName.get(ResourceType.VIRTUAL_MACHINE),
+                message: getResourceName(ResourceType.VIRTUAL_MACHINE),
                 description: getErrorMessage(err)
             })
         }).finally(() => {
@@ -67,7 +67,7 @@ const VirtualMachineManagement: React.FC<Props> = ({ vm, namespace, type }) => {
             setOpenDrawer((prevState) => ({ ...prevState, dataDisk: false }))
         } catch (err) {
             notification.error({
-                message: resourceTypeName.get(ResourceType.VIRTUAL_MACHINE),
+                message: getResourceName(ResourceType.VIRTUAL_MACHINE),
                 description: getErrorMessage(err)
             })
         }
@@ -80,7 +80,7 @@ const VirtualMachineManagement: React.FC<Props> = ({ vm, namespace, type }) => {
             setOpenDrawer((prevState) => ({ ...prevState, network: false }))
         } catch (err) {
             notification.error({
-                message: resourceTypeName.get(ResourceType.VIRTUAL_MACHINE),
+                message: getResourceName(ResourceType.VIRTUAL_MACHINE),
                 description: getErrorMessage(err)
             })
         }
@@ -122,14 +122,14 @@ const itemsFunc = (virtualMachine: any, setOpenDrawer: any, notification: Notifi
     const manageVirtualMachinePowerState = (state: VirtualMachinePowerStateRequest_PowerState) => {
         clients.manageVirtualMachinePowerState(namespaceName, state).catch(err => {
             notification.error({
-                message: powerStateTypeName.get(state),
+                message: getPowerStateName(state),
                 description: getErrorMessage(err)
             })
         })
     }
 
     const handleDeleteVirtualMachine = () => {
-        const resourceName = resourceTypeName.get(ResourceType.VIRTUAL_MACHINE)
+        const resourceName = getResourceName(ResourceType.VIRTUAL_MACHINE)
         Modal.confirm({
             title: `Delete ${resourceName}?`,
             content: `Are you sure you want to delete "${namespaceNameKey(namespaceName)}" ${resourceName}? This action cannot be undone.`,

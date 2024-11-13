@@ -6,15 +6,15 @@ import { formatMemory, namespaceName } from '@/utils/k8s'
 import { NavLink, Params } from 'react-router-dom'
 import { calcScroll, classNames, dataSource, formatTimestamp, generateMessage, getErrorMessage } from '@/utils/utils'
 import { useNamespace } from '@/common/context'
-import { clients, emptyOptions, resourceTypeName } from '@/clients/clients'
-import { ResourceType } from '@/apis/types/group_version'
-import { instances as labels } from "@/apis/sdks/ts/label/labels.gen"
+import { clients, emptyOptions, getResourceName } from '@/clients/clients'
+import { ResourceType } from '@/clients/ts/types/resource_type'
+import { instances as labels } from "@/clients/ts/label/labels.gen"
 import { useWatchResources } from '@/hooks/use-resource'
-import { ListOptions } from '@/apis/types/list_options'
+import { ListOptions } from '@/clients/ts/types/list_options'
 import { fieldSelector } from '@/utils/search'
 import { NotificationInstance } from 'antd/lib/notification/interface'
 import { dataVolumeStatusMap } from '@/utils/resource-status'
-import { instances as annotations } from "@/apis/sdks/ts/annotation/annotations.gen"
+import { instances as annotations } from "@/clients/ts/annotation/annotations.gen"
 import { EllipsisOutlined } from '@ant-design/icons'
 import type { ActionType, ProColumns } from '@ant-design/pro-components'
 import tableStyles from '@/common/styles/table.module.less'
@@ -42,7 +42,7 @@ export default () => {
     }, [namespace])
 
     const handleBatchDeleteDataDisk = async () => {
-        const resourceName = resourceTypeName.get(ResourceType.DATA_VOLUME)
+        const resourceName = getResourceName(ResourceType.DATA_VOLUME)
         Modal.confirm({
             title: `Batch delete ${resourceName}?`,
             content: generateMessage(selectedRows, `You are about to delete the following ${resourceName}: "{names}", please confirm.`, `You are about to delete the following ${resourceName}: "{names}" and {count} others, please confirm.`),
@@ -242,7 +242,7 @@ const actionItemsFunc = (vm: any, notification: NotificationInstance) => {
                         try {
                             await clients.deleteResource(ResourceType.DATA_VOLUME, { namespace, name })
                         } catch (err) {
-                            notification.error({ message: resourceTypeName.get(ResourceType.DATA_VOLUME), description: getErrorMessage(err) })
+                            notification.error({ message: getResourceName(ResourceType.DATA_VOLUME), description: getErrorMessage(err) })
                         }
                     }
                 })

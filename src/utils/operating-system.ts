@@ -1,4 +1,4 @@
-import { instances } from "@kubevm.io/vink/label/labels.gen.ts"
+import { instances } from "@/clients/ts/label/labels.gen.ts"
 
 export const getOperatingSystemFromDataVolume = (metadata?: any): { family: string, version: string } => {
     const info = { family: "linux", version: "" }

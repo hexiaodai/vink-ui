@@ -1,12 +1,12 @@
-import { ResourceType } from "@/apis/types/group_version"
+import { ResourceType } from "@/clients/ts/types/resource_type"
 import { dataVolumeStatusMap } from "@/utils/resource-status"
 import { capacity, getErrorMessage } from "@/utils/utils"
 import { App, Badge, Modal, Space, Table, TableProps } from "antd"
-import { instances as labels } from '@/apis/sdks/ts/label/labels.gen'
+import { instances as labels } from '@/clients/ts/label/labels.gen'
 import { useWatchResourceInNamespaceName } from "@/hooks/use-resource"
 import { LoadingOutlined, StopOutlined } from '@ant-design/icons'
 import { dataVolumes, virtualMachine } from "@/utils/parse-summary"
-import { clients, resourceTypeName } from "@/clients/clients"
+import { clients, getResourceName } from "@/clients/clients"
 import { NotificationInstance } from "antd/es/notification/interface"
 import { extractNamespaceAndName } from "@/utils/k8s"
 import commonStyles from "@/common/styles/common.module.less"
@@ -54,7 +54,7 @@ const columnsFunc = (virtualMachineSummary: any, notification: NotificationInsta
             await clients.updateResource(ResourceType.VIRTUAL_MACHINE, vm)
         } catch (err: any) {
             notification.error({
-                message: resourceTypeName.get(ResourceType.VIRTUAL_MACHINE),
+                message: getResourceName(ResourceType.VIRTUAL_MACHINE),
                 description: getErrorMessage(err)
             })
         }
@@ -75,7 +75,7 @@ const columnsFunc = (virtualMachineSummary: any, notification: NotificationInsta
                     await clients.updateResource(ResourceType.VIRTUAL_MACHINE, vm)
                 } catch (err: any) {
                     notification.error({
-                        message: resourceTypeName.get(ResourceType.VIRTUAL_MACHINE),
+                        message: getResourceName(ResourceType.VIRTUAL_MACHINE),
                         description: getErrorMessage(err)
                     })
                 }
@@ -99,7 +99,7 @@ const columnsFunc = (virtualMachineSummary: any, notification: NotificationInsta
                     await clients.updateResource(ResourceType.VIRTUAL_MACHINE, vm)
                 } catch (err: any) {
                     notification.error({
-                        message: resourceTypeName.get(ResourceType.VIRTUAL_MACHINE),
+                        message: getResourceName(ResourceType.VIRTUAL_MACHINE),
                         description: getErrorMessage(err)
                     })
                 }

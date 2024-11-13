@@ -1,7 +1,7 @@
 import { App, Space, Spin } from "antd"
 import { useEffect, useRef, useState } from "react"
-import { ResourceType } from "@/apis/types/group_version"
-import { clients, resourceTypeName } from "@/clients/clients"
+import { ResourceType } from "@/clients/ts/types/resource_type"
+import { clients, getResourceName } from "@/clients/clients"
 import { ProCard, ProDescriptions } from "@ant-design/pro-components"
 import { useWatchResourceInNamespaceName } from "@/hooks/use-resource"
 import { LoadingOutlined } from '@ant-design/icons'
@@ -41,7 +41,7 @@ export default () => {
             await clients.updateResource(ResourceType.VIRTUAL_MACHINE, deepCopyOriInfo)
         } catch (err) {
             notification.error({
-                message: resourceTypeName.get(ResourceType.VIRTUAL_MACHINE),
+                message: getResourceName(ResourceType.VIRTUAL_MACHINE),
                 description: getErrorMessage(err)
             })
         }
@@ -262,7 +262,7 @@ const useRootDisk = (virtualMachine: any) => {
             setRootDisk(crd)
         }).catch((err: any) => {
             notification.error({
-                message: resourceTypeName.get(ResourceType.DATA_VOLUME),
+                message: getResourceName(ResourceType.DATA_VOLUME),
                 description: getErrorMessage(err)
             })
         })

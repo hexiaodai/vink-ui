@@ -1,4 +1,4 @@
-import { NamespaceName } from "@/apis/types/namespace_name"
+import { NamespaceName } from "@/clients/ts/types/namespace_name"
 import { getNamespaceName } from "@/utils/utils"
 import { useEffect, useState } from "react"
 import { useLocation } from "react-router-dom"

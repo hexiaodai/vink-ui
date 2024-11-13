@@ -5,8 +5,8 @@ import { useRef, useState } from 'react'
 import { extractNamespaceAndName, namespaceName } from '@/utils/k8s'
 import { NavLink, Params } from 'react-router-dom'
 import { calcScroll, classNames, formatTimestamp, generateMessage, getErrorMessage } from '@/utils/utils'
-import { clients, emptyOptions, resourceTypeName } from '@/clients/clients'
-import { ResourceType } from '@/apis/types/group_version'
+import { clients, emptyOptions, getResourceName } from '@/clients/clients'
+import { ResourceType } from '@/clients/ts/types/resource_type'
 import { fieldSelector } from '@/utils/search'
 import { NotificationInstance } from 'antd/lib/notification/interface'
 import { EllipsisOutlined } from '@ant-design/icons'
@@ -28,7 +28,7 @@ export default () => {
     const columns = columnsFunc(actionRef, notification)
 
     const handleBatchDeleteIPPool = async () => {
-        const resourceName = resourceTypeName.get(ResourceType.IPPOOL)
+        const resourceName = getResourceName(ResourceType.IPPOOL)
         Modal.confirm({
             title: `Batch delete ${resourceName}?`,
             content: generateMessage(selectedRows, `You are about to delete the following ${resourceName}: "{names}", please confirm.`, `You are about to delete the following ${resourceName}: "{names}" and {count} others, please confirm.`),
@@ -244,7 +244,7 @@ const actionItemsFunc = (ippool: any, actionRef: any, notification: Notification
                             await clients.deleteResource(ResourceType.IPPOOL, extractNamespaceAndName(ippool))
                             actionRef.current?.reload()
                         } catch (err) {
-                            notification.error({ message: resourceTypeName.get(ResourceType.IPPOOL), description: getErrorMessage(err) })
+                            notification.error({ message: getResourceName(ResourceType.IPPOOL), description: getErrorMessage(err) })
                         }
                     }
                 })

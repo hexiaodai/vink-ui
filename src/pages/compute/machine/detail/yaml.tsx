@@ -1,11 +1,11 @@
 import { App, Button, Flex, Spin } from "antd"
 import { useEffect, useRef } from "react"
-import { ResourceType } from "@/apis/types/group_version"
+import { ResourceType } from "@/clients/ts/types/resource_type"
 import { useWatchResourceInNamespaceName } from "@/hooks/use-resource"
 import { LoadingOutlined } from '@ant-design/icons'
 import { classNames, getErrorMessage } from "@/utils/utils"
 import { yaml as langYaml } from "@codemirror/lang-yaml"
-import { clients, resourceTypeName } from "@/clients/clients"
+import { clients, getResourceName } from "@/clients/clients"
 import CodeMirror from '@uiw/react-codemirror'
 import codeMirrorStyles from "@/common/styles/code-mirror.module.less"
 import commonStyles from "@/common/styles/common.module.less"
@@ -30,7 +30,7 @@ export default () => {
         try {
             await clients.updateResource(ResourceType.VIRTUAL_MACHINE, updatedObject.current)
         } catch (err: any) {
-            notification.error({ message: resourceTypeName.get(ResourceType.VIRTUAL_MACHINE), description: getErrorMessage(err) })
+            notification.error({ message: getResourceName(ResourceType.VIRTUAL_MACHINE), description: getErrorMessage(err) })
         }
     }
 

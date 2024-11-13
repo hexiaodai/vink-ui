@@ -1,4 +1,4 @@
-// import { CustomResourceDefinition } from "@/apis/apiextensions/v1alpha1/custom_resource_definition"
+// import { CustomResourceDefinition } from "@/clients/ts/apiextensions/v1alpha1/custom_resource_definition"
 // import { parseStatus } from "./utils"
 
 interface Status { badge: 'default' | 'processing' | 'success' | 'warning' | 'error', text: string }
