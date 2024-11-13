@@ -6,8 +6,8 @@ import { namespaceNameKey } from '@/utils/k8s'
 import { NavLink, Params } from 'react-router-dom'
 import { classNames, formatTimestamp, generateMessage, getErrorMessage, getProvider } from '@/utils/utils'
 import { useNamespace } from '@/common/context'
-import { clients, emptyOptions, resourceTypeName } from '@/clients/clients'
-import { ResourceType } from '@/apis/types/group_version'
+import { clients, emptyOptions, getResourceName } from '@/clients/clients'
+import { ResourceType } from '@/clients/ts/types/resource_type'
 import { NotificationInstance } from 'antd/lib/notification/interface'
 import { EllipsisOutlined } from '@ant-design/icons'
 import { fieldSelector } from '@/utils/search'
@@ -29,7 +29,7 @@ export default () => {
     const columns = columnsFunc(actionRef, notification)
 
     const handleBatchDeleteMultus = async () => {
-        const resourceName = resourceTypeName.get(ResourceType.MULTUS)
+        const resourceName = getResourceName(ResourceType.MULTUS)
         Modal.confirm({
             title: `Batch delete ${resourceName}?`,
             content: generateMessage(selectedRows, `You are about to delete the following ${resourceName}: "{names}", please confirm.`, `You are about to delete the following ${resourceName}: "{names}" and {count} others, please confirm.`),
@@ -191,7 +191,7 @@ const actionItemsFunc = (mc: any, actionRef: any, notification: NotificationInst
                             await clients.deleteResource(ResourceType.MULTUS, { namespace: namespace, name: name })
                             actionRef.current?.reload()
                         } catch (err) {
-                            notification.error({ message: resourceTypeName.get(ResourceType.MULTUS), description: getErrorMessage(err) })
+                            notification.error({ message: getResourceName(ResourceType.MULTUS), description: getErrorMessage(err) })
                         }
                     }
                 })

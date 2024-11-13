@@ -5,10 +5,10 @@ import { useRef, useState } from 'react'
 import { extractNamespaceAndName, namespaceName } from '@/utils/k8s'
 import { NavLink, Params } from 'react-router-dom'
 import { calcScroll, classNames, dataSource, formatTimestamp, generateMessage, getErrorMessage } from '@/utils/utils'
-import { ResourceType } from '@/apis/types/group_version'
-import { clients, emptyOptions, resourceTypeName } from '@/clients/clients'
+import { ResourceType } from '@/clients/ts/types/resource_type'
+import { clients, emptyOptions, getResourceName } from '@/clients/clients'
 import { useWatchResources } from '@/hooks/use-resource'
-import { ListOptions } from '@/apis/types/list_options'
+import { ListOptions } from '@/clients/ts/types/list_options'
 import { NotificationInstance } from 'antd/es/notification/interface'
 import { subnetStatus } from '@/utils/resource-status'
 import { EllipsisOutlined } from '@ant-design/icons'
@@ -34,7 +34,7 @@ export default () => {
 
 
     const handleBatchDeleteSubnet = async () => {
-        const resourceName = resourceTypeName.get(ResourceType.SUBNET)
+        const resourceName = getResourceName(ResourceType.SUBNET)
         Modal.confirm({
             title: `Batch delete ${resourceName}?`,
             content: generateMessage(selectedRows, `You are about to delete the following ${resourceName}: "{names}", please confirm.`, `You are about to delete the following ${resourceName}: "{names}" and {count} others, please confirm.`),
@@ -267,7 +267,7 @@ const actionItemsFunc = (subnet: any, actionRef: any, notification: Notification
                             await clients.deleteResource(ResourceType.SUBNET, extractNamespaceAndName(subnet))
                             actionRef.current?.reload()
                         } catch (err) {
-                            notification.error({ message: resourceTypeName.get(ResourceType.SUBNET), description: getErrorMessage(err) })
+                            notification.error({ message: getResourceName(ResourceType.SUBNET), description: getErrorMessage(err) })
                         }
                     }
                 })

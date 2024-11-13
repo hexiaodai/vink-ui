@@ -4,15 +4,15 @@ import { App, Button, Flex, Modal, Popover, Select, Space, Tag } from 'antd'
 import { useEffect, useRef, useState } from 'react'
 import { extractNamespaceAndName, formatMemory, namespaceNameKey } from '@/utils/k8s'
 import { Link, NavLink, Params } from 'react-router-dom'
-import { VirtualMachinePowerStateRequest_PowerState } from '@/apis/management/virtualmachine/v1alpha1/virtualmachine'
+import { VirtualMachinePowerStateRequest_PowerState } from '@/clients/ts/management/virtualmachine/v1alpha1/virtualmachine'
 import { calcScroll, classNames, dataSource, formatTimestamp, generateMessage, getErrorMessage } from '@/utils/utils'
 import { useNamespace } from '@/common/context'
-import { ResourceType } from '@/apis/types/group_version'
-import { clients, emptyOptions, powerStateTypeName, resourceTypeName } from '@/clients/clients'
+import { ResourceType } from '@/clients/ts/types/resource_type'
+import { clients, emptyOptions, getPowerStateName, getResourceName } from '@/clients/clients'
 import { useWatchResources } from '@/hooks/use-resource'
-import { ListOptions } from '@/apis/types/list_options'
+import { ListOptions } from '@/clients/ts/types/list_options'
 import { fieldSelector } from '@/utils/search'
-import { instances as annotations } from '@/apis/sdks/ts/annotation/annotations.gen'
+import { instances as annotations } from '@/clients/ts/annotation/annotations.gen'
 import { rootDisk, virtualMachine, virtualMachineInstance, virtualMachineIPs } from '@/utils/parse-summary'
 import type { ActionType, ProColumns } from '@ant-design/pro-components'
 import tableStyles from '@/common/styles/table.module.less'
@@ -42,7 +42,7 @@ export default () => {
     }, [namespace])
 
     const handleBatchManageVirtualMachinePowerState = async (state: VirtualMachinePowerStateRequest_PowerState) => {
-        const statusText = powerStateTypeName.get(state)
+        const statusText = getPowerStateName(state)
         Modal.confirm({
             title: `Batch ${statusText} virtual machines?`,
             content: generateMessage(selectedRows, `You are about to ${statusText} the "{names}" virtual machines. Please confirm.`, `You are about to ${statusText} {count} virtual machines, including "{names}". Please confirm.`),
@@ -62,7 +62,7 @@ export default () => {
     }
 
     const handleBatchDeleteVirtualMachines = async () => {
-        const resourceName = resourceTypeName.get(ResourceType.VIRTUAL_MACHINE)
+        const resourceName = getResourceName(ResourceType.VIRTUAL_MACHINE)
         Modal.confirm({
             title: `Batch delete ${resourceName}?`,
             content: generateMessage(selectedRows, `You are about to delete the following ${resourceName}: "{names}", please confirm.`, `You are about to delete the following ${resourceName}: "{names}" and {count} others, please confirm.`),

@@ -3,10 +3,10 @@ import { App, Modal, Space } from 'antd'
 import { EditableProTable } from '@ant-design/pro-components'
 import { classNames, generateKubeovnNetworkAnnon, getErrorMessage } from '@/utils/utils'
 import { useWatchResourceInNamespaceName } from '@/hooks/use-resource'
-import { ResourceType } from '@/apis/types/group_version'
+import { ResourceType } from '@/clients/ts/types/resource_type'
 import { extractNamespaceAndName, namespaceNameKey } from '@/utils/k8s'
 import { LoadingOutlined } from '@ant-design/icons'
-import { clients, emptyOptions, resourceTypeName } from '@/clients/clients'
+import { clients, emptyOptions, getResourceName } from '@/clients/clients'
 import { virtualMachine, virtualMachineIPs } from '@/utils/parse-summary'
 import { defaultNetworkAnno, deleteNetwork, updateNetwork } from '../virtualmachine'
 import { NotificationInstance } from 'antd/es/notification/interface'
@@ -50,7 +50,7 @@ export default () => {
             })
             await clients.updateResource(ResourceType.VIRTUAL_MACHINE, vm)
         } catch (err: any) {
-            notification.error({ message: resourceTypeName.get(ResourceType.VIRTUAL_MACHINE), description: getErrorMessage(err) })
+            notification.error({ message: getResourceName(ResourceType.VIRTUAL_MACHINE), description: getErrorMessage(err) })
         }
     }
 
@@ -173,7 +173,7 @@ const columnsFunc = (virtualMachineSummary: any, notification: NotificationInsta
                     deleteNetwork(vm, netName)
                     await clients.updateResource(ResourceType.VIRTUAL_MACHINE, vm)
                 } catch (err: any) {
-                    notification.error({ message: resourceTypeName.get(ResourceType.VIRTUAL_MACHINE), description: getErrorMessage(err) })
+                    notification.error({ message: getResourceName(ResourceType.VIRTUAL_MACHINE), description: getErrorMessage(err) })
                 }
             }
         })

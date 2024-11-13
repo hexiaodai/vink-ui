@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useNamespace } from '@/common/context'
 import { classNames, getErrorMessage } from '@/utils/utils'
-import { ResourceType } from '@/apis/types/group_version'
-import { clients, resourceTypeName } from '@/clients/clients'
+import { ResourceType } from '@/clients/ts/types/resource_type'
+import { clients, getResourceName } from '@/clients/clients'
 import { PlusOutlined } from '@ant-design/icons'
 import { newDataDisk } from '../../datavolume'
 import type { ProFormInstance } from '@ant-design/pro-components'
@@ -55,7 +55,7 @@ export default () => {
         } catch (err: any) {
             const errorMessage = err.errorFields?.map((field: any, idx: number) => `${idx + 1}. ${field.errors}`).join('<br />') || getErrorMessage(err)
             notification.error({
-                message: resourceTypeName.get(ResourceType.DATA_VOLUME),
+                message: getResourceName(ResourceType.DATA_VOLUME),
                 description: (
                     <div dangerouslySetInnerHTML={{ __html: errorMessage }} />
                 )

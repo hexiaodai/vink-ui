@@ -7,8 +7,8 @@ import { DataDiskDrawer } from '@/pages/compute/machine/components/data-disk-dra
 import { useNavigate } from 'react-router-dom'
 import { useNamespace } from '@/common/context'
 import { yaml as langYaml } from "@codemirror/lang-yaml"
-import { ResourceType } from '@/apis/types/group_version'
-import { clients, resourceTypeName } from '@/clients/clients'
+import { ResourceType } from '@/clients/ts/types/resource_type'
+import { clients, getResourceName } from '@/clients/clients'
 import { PlusOutlined } from '@ant-design/icons'
 import { NetworkConfig, newVirtualMachine } from '../virtualmachine'
 import { NetworkDrawer } from '../components/network-drawer'
@@ -105,7 +105,7 @@ export default () => {
         } catch (err: any) {
             const errorMessage = err.errorFields?.map((field: any, idx: number) => `${idx + 1}. ${field.errors}`).join('<br />') || getErrorMessage(err)
             notification.error({
-                message: resourceTypeName.get(ResourceType.VIRTUAL_MACHINE),
+                message: getResourceName(ResourceType.VIRTUAL_MACHINE),
                 description: (
                     <div dangerouslySetInnerHTML={{ __html: errorMessage }} />
                 )

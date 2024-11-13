@@ -4,10 +4,10 @@ import { Button, Drawer, Flex, Select, Space } from 'antd'
 import { useEffect, useRef, useState } from 'react'
 import { formatMemoryString, namespaceName, namespaceNameKey } from '@/utils/k8s'
 import { Params } from 'react-router-dom'
-import { instances as labels } from "@/apis/sdks/ts/label/labels.gen"
-import { ResourceType } from '@/apis/types/group_version'
+import { instances as labels } from "@/clients/ts/label/labels.gen"
+import { ResourceType } from '@/clients/ts/types/resource_type'
 import { useListResources } from '@/hooks/use-resource'
-import { ListOptions } from '@/apis/types/list_options'
+import { ListOptions } from '@/clients/ts/types/list_options'
 import { fieldSelector } from '@/utils/search'
 import { emptyOptions } from '@/clients/clients'
 import type { ActionType, ProColumns } from '@ant-design/pro-components'

@@ -2,8 +2,8 @@ import { App } from 'antd'
 import { vpcYaml } from './crd-template'
 import { useNavigate } from 'react-router-dom'
 import { CreateCRDWithYaml } from '@/components/create-crd-with-yaml'
-import { clients, resourceTypeName } from '@/clients/clients'
-import { ResourceType } from '@/apis/types/group_version'
+import { clients, getResourceName } from '@/clients/clients'
+import { ResourceType } from '@/clients/ts/types/resource_type'
 import { getErrorMessage } from '@/utils/utils'
 import * as yaml from 'js-yaml'
 
@@ -18,7 +18,7 @@ export default () => {
             await clients.createResource(ResourceType.VPC, vpcObject)
             navigate('/network/vpcs')
         } catch (err: any) {
-            notification.error({ message: resourceTypeName.get(ResourceType.VPC), description: getErrorMessage(err) })
+            notification.error({ message: getResourceName(ResourceType.VPC), description: getErrorMessage(err) })
         }
     }
 

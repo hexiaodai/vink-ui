@@ -1,9 +1,9 @@
-// import { CustomResourceDefinition } from "@/apis/apiextensions/v1alpha1/custom_resource_definition"
+// import { CustomResourceDefinition } from "@/clients/ts/apiextensions/v1alpha1/custom_resource_definition"
 import { ColumnsState } from "@ant-design/pro-components"
 import { formatMemory, namespaceName, namespaceNameKey } from "./k8s"
-import { ListOptions } from "@/apis/types/list_options"
-import { NamespaceName } from "@/apis/types/namespace_name"
-import { ResourceType } from '@/apis/types/group_version'
+import { ListOptions } from "@/clients/ts/types/list_options"
+import { NamespaceName } from "@/clients/ts/types/namespace_name"
+import { ResourceType } from '@/clients/ts/types/resource_type'
 
 /**
  * Combines multiple class names into a single string.

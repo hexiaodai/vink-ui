@@ -1,8 +1,8 @@
 import { ProForm, ProFormCheckbox, ProFormItem, ProFormSelect, ProFormText } from '@ant-design/pro-components'
 import { App, Button, Drawer, Flex, Space } from 'antd'
 import { useEffect, useRef, useState } from 'react'
-import { clients, emptyOptions, resourceTypeName } from '@/clients/clients'
-import { ResourceType } from '@/apis/types/group_version'
+import { clients, emptyOptions, getResourceName } from '@/clients/clients'
+import { ResourceType } from '@/clients/ts/types/resource_type'
 import { PlusOutlined } from '@ant-design/icons'
 import { namespaceNameKey } from '@/utils/k8s'
 import { getErrorMessage, getProvider } from '@/utils/utils'
@@ -43,7 +43,7 @@ export const NetworkDrawer: React.FC<NetworkProps> = ({ open, onCanel, onConfirm
             setMultus(crds)
         }).catch(err => {
             notification.error({
-                message: resourceTypeName.get(ResourceType.MULTUS),
+                message: getResourceName(ResourceType.MULTUS),
                 description: getErrorMessage(err)
             })
         })
@@ -63,7 +63,7 @@ export const NetworkDrawer: React.FC<NetworkProps> = ({ open, onCanel, onConfirm
             setSubnets(crds)
         }).catch(err => {
             notification.error({
-                message: resourceTypeName.get(ResourceType.SUBNET),
+                message: getResourceName(ResourceType.SUBNET),
                 description: getErrorMessage(err)
             })
         })
@@ -79,7 +79,7 @@ export const NetworkDrawer: React.FC<NetworkProps> = ({ open, onCanel, onConfirm
             setIPPools(crds)
         }).catch(err => {
             notification.error({
-                message: resourceTypeName.get(ResourceType.IPPOOL),
+                message: getResourceName(ResourceType.IPPOOL),
                 description: getErrorMessage(err)
             })
         })

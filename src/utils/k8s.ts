@@ -1,5 +1,5 @@
-import type { DataVolume } from "@kubevm.io/vink/management/datavolume/v1alpha1/datavolume.pb"
-import { ObjectMeta } from "@/apis/types/object_meta"
+import type { DataVolume } from "@/clients/ts/management/datavolume/v1alpha1/datavolume.pb"
+import { ObjectMeta } from "@/clients/ts/types/object_meta"
 
 const group = 'vink.io'
 
