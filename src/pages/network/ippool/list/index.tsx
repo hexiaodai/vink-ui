@@ -5,14 +5,15 @@ import { useRef, useState } from 'react'
 import { extractNamespaceAndName, namespaceName } from '@/utils/k8s'
 import { NavLink, Params } from 'react-router-dom'
 import { calcScroll, classNames, formatTimestamp, generateMessage, getErrorMessage } from '@/utils/utils'
-import { clients, emptyOptions, getResourceName } from '@/clients/clients'
-import { ResourceType } from '@/clients/ts/types/resource'
+import { clients, getResourceName } from '@/clients/clients'
+import { ResourceType } from '@/clients/ts/types/types'
 import { fieldSelector } from '@/utils/search'
 import { NotificationInstance } from 'antd/lib/notification/interface'
 import { EllipsisOutlined } from '@ant-design/icons'
 import type { ActionType, ProColumns } from '@ant-design/pro-components'
 import tableStyles from '@/common/styles/table.module.less'
 import commonStyles from '@/common/styles/common.module.less'
+import { ListOptions } from '@/clients/ts/management/resource/v1alpha1/resource'
 
 export default () => {
     const { notification } = App.useApp()
@@ -76,7 +77,7 @@ export default () => {
             dataSource={ippools}
             request={async (params) => {
                 try {
-                    const ippools = await clients.listResources(ResourceType.IPPOOL, emptyOptions({ fieldSelector: fieldSelector(params) }))
+                    const ippools = await clients.listResources(ResourceType.IPPOOL, ListOptions.create({ fieldSelector: fieldSelector(params) }))
                     setIPPools(ippools)
                 } catch (err: any) {
                     notification.error({ message: err })

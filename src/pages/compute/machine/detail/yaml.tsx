@@ -1,6 +1,6 @@
 import { App, Button, Flex, Spin } from "antd"
 import { useEffect, useRef } from "react"
-import { ResourceType } from "@/clients/ts/types/resource"
+import { ResourceType } from "@/clients/ts/types/types"
 import { useWatchResourceInNamespaceName } from "@/hooks/use-resource"
 import { LoadingOutlined } from '@ant-design/icons'
 import { classNames, getErrorMessage } from "@/utils/utils"
@@ -35,7 +35,7 @@ export default () => {
     }
 
     return (
-        <Spin spinning={loading} indicator={<LoadingOutlined spin />} >
+        <Spin spinning={loading} delay={500} indicator={<LoadingOutlined spin />} >
             <CodeMirror
                 className={classNames(codeMirrorStyles["editor"], commonStyles["small-scrollbar"])}
                 value={yaml.dump(virtualMachine).trimStart()}

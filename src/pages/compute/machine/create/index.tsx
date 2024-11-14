@@ -7,7 +7,7 @@ import { DataDiskDrawer } from '@/pages/compute/machine/components/data-disk-dra
 import { useNavigate } from 'react-router-dom'
 import { useNamespace } from '@/common/context'
 import { yaml as langYaml } from "@codemirror/lang-yaml"
-import { ResourceType } from '@/clients/ts/types/resource'
+import { ResourceType } from '@/clients/ts/types/types'
 import { clients, getResourceName } from '@/clients/clients'
 import { PlusOutlined } from '@ant-design/icons'
 import { NetworkConfig, newVirtualMachine } from '../virtualmachine'

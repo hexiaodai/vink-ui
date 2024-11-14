@@ -3,7 +3,7 @@ import { ColumnsState } from "@ant-design/pro-components"
 import { formatMemory, namespaceName, namespaceNameKey } from "./k8s"
 import { ListOptions } from "@/clients/ts/types/list_options"
 import { NamespaceName } from "@/clients/ts/types/namespace_name"
-import { ResourceType } from '@/clients/ts/types/resource'
+import { ResourceType } from '@/clients/ts/types/types'
 
 /**
  * Combines multiple class names into a single string.
@@ -82,11 +82,14 @@ export const calcScroll = (obj: Record<string, ColumnsState>) => {
 }
 
 export const dataSource = (data: Map<string, any>): any[] | undefined => {
+    console.log(data, "====")
     let items = Array.from(data.values())
-    if (items.length > 0) {
-        return items
+    if (items.length == 0) {
+        return undefined
     }
-    return undefined
+    return items.sort((a: any, b: any) => {
+        return new Date(b.metadata.creationTimestamp).getTime() - new Date(a.metadata.creationTimestamp).getTime()
+    })
 }
 
 export const generateMessage = (items: any[] | NamespaceName[], successMessage: string, multipleMessage: string) => {

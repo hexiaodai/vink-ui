@@ -8,6 +8,8 @@ import type { Empty } from "../../../google/protobuf/empty";
 import type { DeleteRequest } from "./resource";
 import type { UpdateRequest } from "./resource";
 import type { CreateRequest } from "./resource";
+import type { ListResponse } from "./resource";
+import type { ListRequest } from "./resource";
 import { stackIntercept } from "@protobuf-ts/runtime-rpc";
 import type { Resource } from "./resource";
 import type { GetRequest } from "./resource";
@@ -21,6 +23,10 @@ export interface IResourceManagementClient {
      * @generated from protobuf rpc: Get(vink.kubevm.io.apis.management.resource.v1alpha1.GetRequest) returns (vink.kubevm.io.apis.management.resource.v1alpha1.Resource);
      */
     get(input: GetRequest, options?: RpcOptions): UnaryCall<GetRequest, Resource>;
+    /**
+     * @generated from protobuf rpc: List(vink.kubevm.io.apis.management.resource.v1alpha1.ListRequest) returns (vink.kubevm.io.apis.management.resource.v1alpha1.ListResponse);
+     */
+    list(input: ListRequest, options?: RpcOptions): UnaryCall<ListRequest, ListResponse>;
     /**
      * @generated from protobuf rpc: Create(vink.kubevm.io.apis.management.resource.v1alpha1.CreateRequest) returns (vink.kubevm.io.apis.management.resource.v1alpha1.Resource);
      */
@@ -51,24 +57,31 @@ export class ResourceManagementClient implements IResourceManagementClient, Serv
         return stackIntercept<GetRequest, Resource>("unary", this._transport, method, opt, input);
     }
     /**
+     * @generated from protobuf rpc: List(vink.kubevm.io.apis.management.resource.v1alpha1.ListRequest) returns (vink.kubevm.io.apis.management.resource.v1alpha1.ListResponse);
+     */
+    list(input: ListRequest, options?: RpcOptions): UnaryCall<ListRequest, ListResponse> {
+        const method = this.methods[1], opt = this._transport.mergeOptions(options);
+        return stackIntercept<ListRequest, ListResponse>("unary", this._transport, method, opt, input);
+    }
+    /**
      * @generated from protobuf rpc: Create(vink.kubevm.io.apis.management.resource.v1alpha1.CreateRequest) returns (vink.kubevm.io.apis.management.resource.v1alpha1.Resource);
      */
     create(input: CreateRequest, options?: RpcOptions): UnaryCall<CreateRequest, Resource> {
-        const method = this.methods[1], opt = this._transport.mergeOptions(options);
+        const method = this.methods[2], opt = this._transport.mergeOptions(options);
         return stackIntercept<CreateRequest, Resource>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: Update(vink.kubevm.io.apis.management.resource.v1alpha1.UpdateRequest) returns (vink.kubevm.io.apis.management.resource.v1alpha1.Resource);
      */
     update(input: UpdateRequest, options?: RpcOptions): UnaryCall<UpdateRequest, Resource> {
-        const method = this.methods[2], opt = this._transport.mergeOptions(options);
+        const method = this.methods[3], opt = this._transport.mergeOptions(options);
         return stackIntercept<UpdateRequest, Resource>("unary", this._transport, method, opt, input);
     }
     /**
      * @generated from protobuf rpc: Delete(vink.kubevm.io.apis.management.resource.v1alpha1.DeleteRequest) returns (google.protobuf.Empty);
      */
     delete(input: DeleteRequest, options?: RpcOptions): UnaryCall<DeleteRequest, Empty> {
-        const method = this.methods[3], opt = this._transport.mergeOptions(options);
+        const method = this.methods[4], opt = this._transport.mergeOptions(options);
         return stackIntercept<DeleteRequest, Empty>("unary", this._transport, method, opt, input);
     }
 }

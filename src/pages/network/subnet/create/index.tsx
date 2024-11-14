@@ -3,7 +3,7 @@ import { subnetYaml } from './crd-template'
 import { useNavigate } from 'react-router-dom'
 import { CreateCRDWithYaml } from '@/components/create-crd-with-yaml'
 import { clients, getResourceName } from '@/clients/clients'
-import { ResourceType } from '@/clients/ts/types/resource'
+import { ResourceType } from '@/clients/ts/types/types'
 import * as yaml from 'js-yaml'
 import { getErrorMessage } from '@/utils/utils'
 

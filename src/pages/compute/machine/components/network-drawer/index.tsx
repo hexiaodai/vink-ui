@@ -1,8 +1,8 @@
 import { ProForm, ProFormCheckbox, ProFormItem, ProFormSelect, ProFormText } from '@ant-design/pro-components'
 import { App, Button, Drawer, Flex, Space } from 'antd'
 import { useEffect, useRef, useState } from 'react'
-import { clients, emptyOptions, getResourceName } from '@/clients/clients'
-import { ResourceType } from '@/clients/ts/types/resource'
+import { clients, getResourceName } from '@/clients/clients'
+import { ResourceType } from '@/clients/ts/types/types'
 import { PlusOutlined } from '@ant-design/icons'
 import { namespaceNameKey } from '@/utils/k8s'
 import { getErrorMessage, getProvider } from '@/utils/utils'
@@ -10,6 +10,7 @@ import { NetworkConfig } from '../../virtualmachine'
 import type { ProFormInstance } from '@ant-design/pro-components'
 import React from 'react'
 import formStyles from "@/common/styles/form.module.less"
+import { ListOptions } from '@/clients/ts/management/resource/v1alpha1/resource'
 
 interface NetworkProps {
     open?: boolean
@@ -58,7 +59,7 @@ export const NetworkDrawer: React.FC<NetworkProps> = ({ open, onCanel, onConfirm
         if (!provider) {
             return
         }
-        const opts = emptyOptions({ customSelector: { fieldSelector: [`spec.provider=${provider}`], namespaceNames: [] } })
+        const opts = ListOptions.create({ arbitraryFieldSelectors: [`spec.provider=${provider}`] })
         clients.listResources(ResourceType.SUBNET, opts).then(crds => {
             setSubnets(crds)
         }).catch(err => {
@@ -74,7 +75,7 @@ export const NetworkDrawer: React.FC<NetworkProps> = ({ open, onCanel, onConfirm
         if (!open || !subnet) {
             return
         }
-        const opts = emptyOptions({ customSelector: { fieldSelector: [`spec.subnet=${subnet.metadata.name}`], namespaceNames: [] } })
+        const opts = ListOptions.create({ arbitraryFieldSelectors: [`spec.subnet=${subnet.metadata.name}`] })
         clients.listResources(ResourceType.IPPOOL, opts).then(crds => {
             setIPPools(crds)
         }).catch(err => {

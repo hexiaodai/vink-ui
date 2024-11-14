@@ -1,6 +1,6 @@
 import { App, Space, Spin } from "antd"
 import { useEffect, useRef, useState } from "react"
-import { ResourceType } from "@/clients/ts/types/resource"
+import { ResourceType } from "@/clients/ts/types/types"
 import { clients, getResourceName } from "@/clients/clients"
 import { ProCard, ProDescriptions } from "@ant-design/pro-components"
 import { useWatchResourceInNamespaceName } from "@/hooks/use-resource"
@@ -48,7 +48,7 @@ export default () => {
     }
 
     return (
-        <Spin spinning={loading} indicator={<LoadingOutlined spin />} >
+        <Spin spinning={loading} delay={500} indicator={<LoadingOutlined spin />} >
             <Space
                 direction="vertical"
                 size="middle"

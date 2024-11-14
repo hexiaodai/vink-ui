@@ -1,4 +1,4 @@
-import { ResourceType } from "@/clients/ts/types/resource"
+import { ResourceType } from "@/clients/ts/types/types"
 import { dataVolumeStatusMap } from "@/utils/resource-status"
 import { capacity, getErrorMessage } from "@/utils/utils"
 import { App, Badge, Modal, Space, Table, TableProps } from "antd"
@@ -27,7 +27,7 @@ export default () => {
     return (
         <Table
             size="middle"
-            loading={{ spinning: loading, indicator: <LoadingOutlined spin /> }}
+            loading={{ spinning: loading, delay: 500, indicator: <LoadingOutlined spin /> }}
             columns={columns}
             dataSource={simpleDataVolumes()}
             pagination={false}

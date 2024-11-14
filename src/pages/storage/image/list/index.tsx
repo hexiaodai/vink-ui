@@ -7,10 +7,9 @@ import { NavLink, Params } from 'react-router-dom'
 import { instances as labels } from "@/clients/ts/label/labels.gen"
 import { calcScroll, classNames, dataSource, formatTimestamp, generateMessage, getErrorMessage } from '@/utils/utils'
 import { useNamespace } from '@/common/context'
-import { clients, emptyOptions, getResourceName } from '@/clients/clients'
-import { ResourceType } from '@/clients/ts/types/resource'
+import { clients, getResourceName } from '@/clients/clients'
+import { ResourceType } from '@/clients/ts/types/types'
 import { useWatchResources } from '@/hooks/use-resource'
-import { ListOptions } from '@/clients/ts/types/list_options'
 import { NotificationInstance } from 'antd/lib/notification/interface'
 import { fieldSelector } from '@/utils/search'
 import { EllipsisOutlined } from '@ant-design/icons'
@@ -19,6 +18,7 @@ import type { ActionType, ProColumns } from '@ant-design/pro-components'
 import tableStyles from '@/common/styles/table.module.less'
 import commonStyles from '@/common/styles/common.module.less'
 import OperatingSystem from '@/components/operating-system'
+import { WatchOptions } from '@/clients/ts/management/resource/v1alpha1/watch'
 
 export default () => {
     const { notification } = App.useApp()
@@ -37,7 +37,10 @@ export default () => {
         actionRef.current?.reload()
     }, [namespace])
 
-    const [opts, setOpts] = useState<ListOptions>(emptyOptions({ namespace: namespace, labelSelector: `${labels.VinkDatavolumeType.name}=image` }))
+    const [opts, setOpts] = useState<WatchOptions>(WatchOptions.create({
+        fieldSelector: [`metadata.namespace=${namespace},${labels.VinkDatavolumeType.name}=image`]
+    }))
+    // const [opts, setOpts] = useState<WatchOptions>(WatchOptions.create({ namespace: namespace, labelSelector: `${labels.VinkDatavolumeType.name}=image` }))
 
     const { resources: images, loading } = useWatchResources(ResourceType.DATA_VOLUME, opts)
 
@@ -89,7 +92,12 @@ export default () => {
             loading={{ spinning: loading, indicator: <LoadingOutlined /> }}
             dataSource={dataSource(images)}
             request={async (params) => {
-                setOpts({ ...opts, fieldSelector: fieldSelector(params) })
+                // setOpts({ ...opts, fieldSelector: fieldSelector(params) })
+                setOpts((prevOpts) => ({
+                    ...prevOpts, fieldSelector: [...prevOpts.fieldSelector, fieldSelector(params)].filter(
+                        (value, index, self) => self.indexOf(value) === index
+                    )
+                }))
                 return { success: true }
             }}
             columnsState={{

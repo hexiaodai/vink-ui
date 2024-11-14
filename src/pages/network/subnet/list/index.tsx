@@ -5,10 +5,9 @@ import { useRef, useState } from 'react'
 import { extractNamespaceAndName, namespaceName } from '@/utils/k8s'
 import { NavLink, Params } from 'react-router-dom'
 import { calcScroll, classNames, dataSource, formatTimestamp, generateMessage, getErrorMessage } from '@/utils/utils'
-import { ResourceType } from '@/clients/ts/types/resource'
-import { clients, emptyOptions, getResourceName } from '@/clients/clients'
+import { ResourceType } from '@/clients/ts/types/types'
+import { clients, getResourceName } from '@/clients/clients'
 import { useWatchResources } from '@/hooks/use-resource'
-import { ListOptions } from '@/clients/ts/types/list_options'
 import { NotificationInstance } from 'antd/es/notification/interface'
 import { subnetStatus } from '@/utils/resource-status'
 import { EllipsisOutlined } from '@ant-design/icons'
@@ -16,6 +15,7 @@ import { fieldSelector } from '@/utils/search'
 import type { ActionType, ProColumns } from '@ant-design/pro-components'
 import tableStyles from '@/common/styles/table.module.less'
 import commonStyles from '@/common/styles/common.module.less'
+import { WatchOptions } from '@/clients/ts/management/resource/v1alpha1/watch'
 
 export default () => {
     const { notification } = App.useApp()
@@ -28,10 +28,9 @@ export default () => {
 
     const columns = columnsFunc(actionRef, notification)
 
-    const [opts, setOpts] = useState<ListOptions>(emptyOptions())
+    const [opts, setOpts] = useState<WatchOptions>(WatchOptions.create())
 
     const { resources: subnets, loading } = useWatchResources(ResourceType.SUBNET, opts)
-
 
     const handleBatchDeleteSubnet = async () => {
         const resourceName = getResourceName(ResourceType.SUBNET)
@@ -83,10 +82,15 @@ export default () => {
             loading={{ spinning: loading, indicator: <LoadingOutlined /> }}
             dataSource={dataSource(subnets)}
             request={async (params) => {
-                setOpts({
-                    ...opts,
-                    fieldSelector: fieldSelector(params)
-                })
+                // setOpts({
+                //     ...opts,
+                //     fieldSelector: fieldSelector(params)
+                // })
+                setOpts((prevOpts) => ({
+                    ...prevOpts, fieldSelector: [...prevOpts.fieldSelector, fieldSelector(params)].filter(
+                        (value, index, self) => self.indexOf(value) === index
+                    )
+                }))
                 return { success: true }
             }}
             columnsState={{
