@@ -71,7 +71,7 @@ export const simpleFieldSelector = (params?: { namespace?: string, keyword?: str
         selector.push(`metadata.namespace=${params.namespace}`)
     }
     if (params.keyword && params.keyword.length > 0) {
-        selector.push(`metadata.name=${params.keyword}`)
+        selector.push(`metadata.name*=${params.keyword}`)
     }
     if (selector.length == 0) {
         return []
