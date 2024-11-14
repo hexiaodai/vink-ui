@@ -1,4 +1,4 @@
-import { ResourceType } from "@/clients/ts/types/resource_type"
+import { ResourceType } from "@/clients/ts/types/resource"
 import { dataVolumeStatusMap } from "@/utils/resource-status"
 import { capacity, getErrorMessage } from "@/utils/utils"
 import { App, Badge, Modal, Space, Table, TableProps } from "antd"

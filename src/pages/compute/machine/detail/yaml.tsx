@@ -1,6 +1,6 @@
 import { App, Button, Flex, Spin } from "antd"
 import { useEffect, useRef } from "react"
-import { ResourceType } from "@/clients/ts/types/resource_type"
+import { ResourceType } from "@/clients/ts/types/resource"
 import { useWatchResourceInNamespaceName } from "@/hooks/use-resource"
 import { LoadingOutlined } from '@ant-design/icons'
 import { classNames, getErrorMessage } from "@/utils/utils"
