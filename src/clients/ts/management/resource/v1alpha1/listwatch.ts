@@ -13,7 +13,7 @@ import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
 import { NamespaceName } from "../../../types/namespace_name";
 import { ListOptions } from "../../../types/list_options";
-import { ResourceType } from "../../../types/resource_type";
+import { ResourceType } from "../../../types/resource";
 /**
  * @generated from protobuf message vink.kubevm.io.apis.management.resource.v1alpha1.ListWatchRequest
  */

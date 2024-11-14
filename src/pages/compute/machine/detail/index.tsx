@@ -6,6 +6,7 @@ import Overview from "./overview"
 import Volume from "./volume"
 import Network from "./network"
 import YAML from "./yaml"
+import Event from "./event"
 import styles from "./styles/index.module.less"
 import VirtualMachineManagement from "@/pages/compute/machine/components/management"
 
@@ -53,6 +54,7 @@ export default () => {
             {active === "存储" && <Volume />}
             {active === "网络" && <Network />}
             {active === "YAML" && <YAML />}
+            {active === "事件" && <Event />}
         </Space >
     )
 }

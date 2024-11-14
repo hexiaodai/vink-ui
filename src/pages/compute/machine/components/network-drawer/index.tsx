@@ -2,7 +2,7 @@ import { ProForm, ProFormCheckbox, ProFormItem, ProFormSelect, ProFormText } fro
 import { App, Button, Drawer, Flex, Space } from 'antd'
 import { useEffect, useRef, useState } from 'react'
 import { clients, emptyOptions, getResourceName } from '@/clients/clients'
-import { ResourceType } from '@/clients/ts/types/resource_type'
+import { ResourceType } from '@/clients/ts/types/resource'
 import { PlusOutlined } from '@ant-design/icons'
 import { namespaceNameKey } from '@/utils/k8s'
 import { getErrorMessage, getProvider } from '@/utils/utils'

@@ -8,7 +8,7 @@ import { instances as labels } from "@/clients/ts/label/labels.gen"
 import { calcScroll, classNames, dataSource, formatTimestamp, generateMessage, getErrorMessage } from '@/utils/utils'
 import { useNamespace } from '@/common/context'
 import { clients, emptyOptions, getResourceName } from '@/clients/clients'
-import { ResourceType } from '@/clients/ts/types/resource_type'
+import { ResourceType } from '@/clients/ts/types/resource'
 import { useWatchResources } from '@/hooks/use-resource'
 import { ListOptions } from '@/clients/ts/types/list_options'
 import { NotificationInstance } from 'antd/lib/notification/interface'

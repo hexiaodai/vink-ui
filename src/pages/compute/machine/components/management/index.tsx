@@ -1,5 +1,5 @@
 import { VirtualMachinePowerStateRequest_PowerState } from '@/clients/ts/management/virtualmachine/v1alpha1/virtualmachine'
-import { ResourceType } from '@/clients/ts/types/resource_type'
+import { ResourceType } from '@/clients/ts/types/resource'
 import { getErrorMessage, openConsole } from '@/utils/utils'
 import { App, Button, Dropdown, MenuProps, Modal, Spin } from 'antd'
 import { EllipsisOutlined } from '@ant-design/icons'

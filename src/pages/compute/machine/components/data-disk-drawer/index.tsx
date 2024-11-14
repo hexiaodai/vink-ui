@@ -6,7 +6,7 @@ import { formatMemoryString, namespaceNameKey } from '@/utils/k8s'
 import { Params } from 'react-router-dom'
 import { instances as annotations } from "@/clients/ts/annotation/annotations.gen"
 import { instances as labels } from "@/clients/ts/label/labels.gen"
-import { ResourceType } from '@/clients/ts/types/resource_type'
+import { ResourceType } from '@/clients/ts/types/resource'
 import { useListResources } from '@/hooks/use-resource'
 import { fieldSelector } from '@/utils/search'
 import { useNamespaceFromURL } from '@/hooks/use-namespace-from-url'

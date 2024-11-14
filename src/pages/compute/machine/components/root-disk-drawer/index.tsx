@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import { formatMemoryString, namespaceName, namespaceNameKey } from '@/utils/k8s'
 import { Params } from 'react-router-dom'
 import { instances as labels } from "@/clients/ts/label/labels.gen"
-import { ResourceType } from '@/clients/ts/types/resource_type'
+import { ResourceType } from '@/clients/ts/types/resource'
 import { useListResources } from '@/hooks/use-resource'
 import { ListOptions } from '@/clients/ts/types/list_options'
 import { fieldSelector } from '@/utils/search'

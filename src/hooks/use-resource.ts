@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { clients, emptyOptions } from "@/clients/clients"
-import { ResourceType } from "@/clients/ts/types/resource_type"
+import { ResourceType } from "@/clients/ts/types/resource"
 import { ListOptions } from "@/clients/ts/types/list_options"
 import { allowedError } from "@/utils/utils"
 import { EventType } from "@/clients/ts/management/resource/v1alpha1/listwatch"

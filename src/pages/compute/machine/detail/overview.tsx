@@ -1,6 +1,6 @@
 import { App, Space, Spin } from "antd"
 import { useEffect, useRef, useState } from "react"
-import { ResourceType } from "@/clients/ts/types/resource_type"
+import { ResourceType } from "@/clients/ts/types/resource"
 import { clients, getResourceName } from "@/clients/clients"
 import { ProCard, ProDescriptions } from "@ant-design/pro-components"
 import { useWatchResourceInNamespaceName } from "@/hooks/use-resource"
