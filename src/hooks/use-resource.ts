@@ -1,60 +1,42 @@
 import { useCallback, useEffect, useRef, useState } from "react"
-import { clients, emptyOptions } from "@/clients/clients"
-import { ResourceType } from "@/clients/ts/types/resource"
-import { ListOptions } from "@/clients/ts/types/list_options"
+import { clients } from "@/clients/clients"
+import { ResourceType } from "@/clients/ts/types/types"
 import { allowedError } from "@/utils/utils"
-import { EventType } from "@/clients/ts/management/resource/v1alpha1/listwatch"
+import { EventType, WatchOptions } from "@/clients/ts/management/resource/v1alpha1/watch"
 import { namespaceNameKey } from "@/utils/k8s"
 import { App } from "antd"
 import { useNamespaceFromURL } from "./use-namespace-from-url"
+import { ListOptions } from "@/clients/ts/management/resource/v1alpha1/resource"
 import useUnmount from "./use-unmount"
 
 export const useListResources = (resourceType: ResourceType, opts?: ListOptions) => {
-    const abortCtrl = new AbortController()
-
     const { notification } = App.useApp()
 
     const [resources, setResources] = useState<any[]>([])
     const [error, setError] = useState<string | null>(null)
 
     const fetchData = useCallback(async () => {
-        const call = clients.watch.listWatch({
-            resourceType: resourceType,
-            options: emptyOptions({ ...opts, watch: false })
-        }, { abort: abortCtrl.signal })
-
-        const handleResponse = (response: any) => {
-            let items: any[] = []
-            response.items.forEach((item: any) => {
-                items.push(JSON.parse(item))
-            })
-            setResources(items)
+        const call = clients.listResources(resourceType, ListOptions.create(opts))
+        call.then(crds => {
+            setResources(crds)
             setError(null)
-        }
-
-        const handleError = (err: Error) => {
+        }).catch(err => {
             notification.error({ message: "Data fetching failed", description: err.message })
             setError(err.message)
-        }
-
-        call.responses.onMessage(handleResponse)
-        call.responses.onError(handleError)
+        })
     }, [opts])
 
     useEffect(() => {
         fetchData()
     }, [fetchData])
 
-    useUnmount(() => {
-        console.log('useListResources: Component is unmounting and aborting operation')
-        abortCtrl.abort()
-    })
-
     return { resources, error }
 }
 
-export const useWatchResources = (resourceType: ResourceType, opts?: ListOptions) => {
+export const useWatchResources = (resourceType: ResourceType, opts?: WatchOptions) => {
     const abortCtrl = useRef<AbortController>()
+
+    const needClean = useRef(false)
 
     const { notification } = App.useApp()
 
@@ -64,32 +46,25 @@ export const useWatchResources = (resourceType: ResourceType, opts?: ListOptions
 
     const fetchData = useCallback(async () => {
         setLoading(true)
+        needClean.current = true
 
         abortCtrl.current?.abort()
         abortCtrl.current = new AbortController()
 
-        const call = clients.watch.listWatch(
-            {
-                resourceType: resourceType,
-                options: emptyOptions({ ...opts, watch: true }),
-            }, { abort: abortCtrl.current.signal })
+        const call = clients.watch.watch({
+            resourceType: resourceType,
+            options: WatchOptions.create(opts),
+        }, { abort: abortCtrl.current.signal })
 
         call.responses.onMessage((response) => {
             switch (response.eventType) {
-                case EventType.ADDED: {
-                    const temp = new Map<string, any>()
-                    response.items.forEach((data) => {
-                        const crd = JSON.parse(data)
-                        temp.set(namespaceNameKey(crd), crd)
-                    })
-                    setResources(temp)
-                    break
-                }
+                case EventType.ADDED:
                 case EventType.MODIFIED: {
                     response.items.forEach((data) => {
                         const crd = JSON.parse(data)
                         setResources((prevResources) => {
-                            const updatedResources = new Map(prevResources)
+                            const updatedResources = needClean.current ? new Map() : new Map(prevResources)
+                            needClean.current = false
                             updatedResources.set(namespaceNameKey(crd), crd)
                             return updatedResources
                         })
@@ -97,10 +72,13 @@ export const useWatchResources = (resourceType: ResourceType, opts?: ListOptions
                     break
                 }
                 case EventType.DELETED: {
-                    setResources((prevResources) => {
-                        const updatedResources = new Map(prevResources)
-                        updatedResources.delete(namespaceNameKey(response.deleted))
-                        return updatedResources
+                    response.items.forEach((data) => {
+                        const crd = JSON.parse(data)
+                        setResources((prevResources) => {
+                            const updatedResources = new Map(prevResources)
+                            updatedResources.delete(namespaceNameKey(crd))
+                            return updatedResources
+                        })
                     })
                     break
                 }
@@ -136,7 +114,7 @@ export const useWatchResourceInNamespaceName = (resourceType: ResourceType) => {
     const [resource, setResource] = useState<any>(null)
     const namespaceName = useNamespaceFromURL()
 
-    const opts = useRef<ListOptions>(emptyOptions({ fieldSelector: `metadata.namespace=${namespaceName.namespace},metadata.name=${namespaceName.name}` }))
+    const opts = useRef<WatchOptions>(WatchOptions.create({ fieldSelector: [`metadata.namespace=${namespaceName.namespace},metadata.name=${namespaceName.name}`] }))
 
     const { resources, loading } = useWatchResources(resourceType, opts.current)
 

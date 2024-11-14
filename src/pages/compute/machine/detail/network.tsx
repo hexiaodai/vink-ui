@@ -3,13 +3,14 @@ import { App, Modal, Space } from 'antd'
 import { EditableProTable } from '@ant-design/pro-components'
 import { classNames, generateKubeovnNetworkAnnon, getErrorMessage } from '@/utils/utils'
 import { useWatchResourceInNamespaceName } from '@/hooks/use-resource'
-import { ResourceType } from '@/clients/ts/types/resource'
+import { ResourceType } from '@/clients/ts/types/types'
 import { extractNamespaceAndName, namespaceNameKey } from '@/utils/k8s'
 import { LoadingOutlined } from '@ant-design/icons'
-import { clients, emptyOptions, getResourceName } from '@/clients/clients'
+import { clients, getResourceName } from '@/clients/clients'
 import { virtualMachine, virtualMachineIPs } from '@/utils/parse-summary'
 import { defaultNetworkAnno, deleteNetwork, updateNetwork } from '../virtualmachine'
 import { NotificationInstance } from 'antd/es/notification/interface'
+import { ListOptions } from '@/clients/ts/management/resource/v1alpha1/resource'
 import type { ProColumns } from '@ant-design/pro-components'
 import commonStyles from '@/common/styles/common.module.less'
 
@@ -61,7 +62,7 @@ export default () => {
             rowKey="name"
             scroll={{ x: 1500 }}
             recordCreatorProps={false}
-            loading={{ spinning: loading || dataSourceLoading, indicator: <LoadingOutlined spin /> }}
+            loading={{ spinning: loading || dataSourceLoading, delay: 500, indicator: <LoadingOutlined spin /> }}
             columns={columns}
             value={dataSource}
             editable={{
@@ -106,7 +107,7 @@ const useDataSource = (virtualMachineSummary: any) => {
             ipsMap.forEach(ipObj => {
                 subnetSelector.push(`metadata.name=${ipObj.spec.subnet}`)
             })
-            const subnets = await clients.listResources(ResourceType.SUBNET, emptyOptions({ customSelector: { fieldSelector: subnetSelector, namespaceNames: [] } }))
+            const subnets = await clients.listResources(ResourceType.SUBNET, ListOptions.create({ arbitraryFieldSelectors: subnetSelector }))
             const subnetMap = new Map<string, any>(
                 subnets.map((crd: any) => {
                     return [crd.metadata.name, crd]

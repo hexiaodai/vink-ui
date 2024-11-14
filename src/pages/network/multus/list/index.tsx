@@ -6,14 +6,15 @@ import { namespaceNameKey } from '@/utils/k8s'
 import { NavLink, Params } from 'react-router-dom'
 import { classNames, formatTimestamp, generateMessage, getErrorMessage, getProvider } from '@/utils/utils'
 import { useNamespace } from '@/common/context'
-import { clients, emptyOptions, getResourceName } from '@/clients/clients'
-import { ResourceType } from '@/clients/ts/types/resource'
+import { clients, getResourceName } from '@/clients/clients'
+import { ResourceType } from '@/clients/ts/types/types'
 import { NotificationInstance } from 'antd/lib/notification/interface'
 import { EllipsisOutlined } from '@ant-design/icons'
 import { fieldSelector } from '@/utils/search'
 import type { ActionType, ProColumns } from '@ant-design/pro-components'
 import tableStyles from '@/common/styles/table.module.less'
 import commonStyles from '@/common/styles/common.module.less'
+import { ListOptions } from '@/clients/ts/management/resource/v1alpha1/resource'
 
 export default () => {
     const { notification } = App.useApp()
@@ -82,7 +83,7 @@ export default () => {
             dataSource={multus}
             request={async (params) => {
                 try {
-                    const multus = await clients.listResources(ResourceType.MULTUS, emptyOptions({ fieldSelector: fieldSelector(params) }))
+                    const multus = await clients.listResources(ResourceType.MULTUS, ListOptions.create({ fieldSelector: fieldSelector(params) }))
                     setMultus(multus)
                 } catch (err: any) {
                     notification.error({ message: err })

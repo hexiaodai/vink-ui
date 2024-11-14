@@ -1,10 +1,10 @@
 import { instances as labels } from '@/clients/ts/label/labels.gen'
 import { instances as annotations } from '@/clients/ts/annotation/annotations.gen'
 import { generateKubeovnNetworkAnnon } from '@/utils/utils'
-import { NamespaceName } from '@/clients/ts/types/namespace_name'
 import { namespaceNameKey } from '@/utils/k8s'
 import { virtualmachineYaml } from './template'
 import * as yaml from 'js-yaml'
+import { NamespaceName } from '@/clients/ts/types/types'
 
 export const defaultNetworkAnno = "v1.multus-cni.io/default-network"
 

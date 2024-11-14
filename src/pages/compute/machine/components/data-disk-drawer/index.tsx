@@ -6,15 +6,14 @@ import { formatMemoryString, namespaceNameKey } from '@/utils/k8s'
 import { Params } from 'react-router-dom'
 import { instances as annotations } from "@/clients/ts/annotation/annotations.gen"
 import { instances as labels } from "@/clients/ts/label/labels.gen"
-import { ResourceType } from '@/clients/ts/types/resource'
+import { ResourceType } from '@/clients/ts/types/types'
 import { useListResources } from '@/hooks/use-resource'
 import { fieldSelector } from '@/utils/search'
 import { useNamespaceFromURL } from '@/hooks/use-namespace-from-url'
-import { ListOptions } from '@/clients/ts/types/list_options'
-import { emptyOptions } from '@/clients/clients'
 import type { ActionType, ProColumns } from '@ant-design/pro-components'
 import React from 'react'
 import tableStyles from '@/common/styles/table.module.less'
+import { ListOptions } from '@/clients/ts/management/resource/v1alpha1/resource'
 
 interface DataDiskDrawerProps {
     open?: boolean
@@ -34,7 +33,7 @@ export const DataDiskDrawer: React.FC<DataDiskDrawerProps> = ({ open, current, o
 
     const actionRef = useRef<ActionType>()
 
-    const [opts, setOpts] = useState<ListOptions>(emptyOptions({
+    const [opts, setOpts] = useState<ListOptions>(ListOptions.create({
         namespace: namespaceName.namespace, labelSelector: `${labels.VinkDatavolumeType.name}=data`
     }))
 

@@ -1,12 +1,5 @@
-import type { ListOptions as APIListOptions } from '@/clients/ts/common/common.pb'
 // import { osFamilyLabel, diskTypeLabel } from '@/utils/k8s.ts'
 import { instances } from "@/clients/ts/label/labels.gen.ts"
-
-
-export type ListOptions = {
-    namespace?: string
-    opts?: APIListOptions
-}
 
 export type Filter = {
     key: string
@@ -67,4 +60,21 @@ export const dataVolumeTypeLabelSelector = (name: string) => {
 
 export const fieldSelector = (params: { keyword?: string }) => {
     return (params.keyword && params.keyword.length > 0) ? `metadata.name=${params.keyword}` : ""
+}
+
+export const simpleFieldSelector = (params?: { namespace?: string, keyword?: string }) => {
+    if (!params) {
+        return []
+    }
+    let selector: string[] = []
+    if (params.namespace && params.namespace.length > 0) {
+        selector.push(`metadata.namespace=${params.namespace}`)
+    }
+    if (params.keyword && params.keyword.length > 0) {
+        selector.push(`metadata.name=${params.keyword}`)
+    }
+    if (selector.length == 0) {
+        return []
+    }
+    return [selector.join(",")]
 }

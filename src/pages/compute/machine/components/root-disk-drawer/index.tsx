@@ -5,15 +5,14 @@ import { useEffect, useRef, useState } from 'react'
 import { formatMemoryString, namespaceName, namespaceNameKey } from '@/utils/k8s'
 import { Params } from 'react-router-dom'
 import { instances as labels } from "@/clients/ts/label/labels.gen"
-import { ResourceType } from '@/clients/ts/types/resource'
+import { ResourceType } from '@/clients/ts/types/types'
 import { useListResources } from '@/hooks/use-resource'
-import { ListOptions } from '@/clients/ts/types/list_options'
 import { fieldSelector } from '@/utils/search'
-import { emptyOptions } from '@/clients/clients'
 import type { ActionType, ProColumns } from '@ant-design/pro-components'
 import React from 'react'
 import tableStyles from '@/common/styles/table.module.less'
 import OperatingSystem from '@/components/operating-system'
+import { ListOptions } from '@/clients/ts/management/resource/v1alpha1/resource'
 
 interface RootDiskDrawerProps {
     open?: boolean
@@ -31,7 +30,7 @@ export const RootDiskDrawer: React.FC<RootDiskDrawerProps> = ({ open, current, o
 
     const actionRef = useRef<ActionType>()
 
-    const [opts, setOpts] = useState<ListOptions>(emptyOptions({ labelSelector: `${labels.VinkDatavolumeType.name}=image` }))
+    const [opts, setOpts] = useState<ListOptions>(ListOptions.create({ labelSelector: `${labels.VinkDatavolumeType.name}=image` }))
 
     const { resources: images } = useListResources(ResourceType.DATA_VOLUME, opts)
 

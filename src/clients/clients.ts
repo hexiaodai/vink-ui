@@ -1,35 +1,11 @@
 import { GrpcWebFetchTransport } from "@protobuf-ts/grpcweb-transport"
-import { ResourceListWatchManagementClient } from "@/clients/ts/management/resource/v1alpha1/listwatch.client"
+import { ResourceWatchManagementClient } from "@/clients/ts/management/resource/v1alpha1/watch.client"
 import { VirtualMachineManagementClient } from "@/clients/ts/management/virtualmachine/v1alpha1/virtualmachine.client"
 import { ResourceManagementClient } from "@/clients/ts/management/resource/v1alpha1/resource.client"
-import { ResourceType } from "@/clients/ts/types/resource"
+import { ResourceType, NamespaceName } from "@/clients/ts/types/types"
 import { extractNamespaceAndName, namespaceNameKey } from "@/utils/k8s"
-import { ListOptions } from "@/clients/ts/types/list_options"
-import { NamespaceName } from "@/clients/ts/types/namespace_name"
 import { VirtualMachinePowerStateRequest_PowerState } from "@/clients/ts/management/virtualmachine/v1alpha1/virtualmachine"
-
-// export const resourceTypeName = new Map<ResourceType, string>([
-//     [ResourceType.VIRTUAL_MACHINE, "VirtualMachine"],
-//     [ResourceType.VIRTUAL_MACHINE_INSTANCE, "VirtualMachineInstance"],
-//     [ResourceType.VIRTUAL_MACHINE_SUMMARY, "VirtualMachineSummary"],
-//     [ResourceType.DATA_VOLUME, "DataVolume"],
-//     [ResourceType.NODE, "Node"],
-//     [ResourceType.NAMESPACE, "Namespace"],
-//     [ResourceType.MULTUS, "Multus"],
-//     [ResourceType.SUBNET, "Subnet"],
-//     [ResourceType.VPC, "VPC"],
-//     [ResourceType.IPPOOL, "IPPool"],
-//     [ResourceType.STORAGE_CLASS, "StorageClass"],
-//     [ResourceType.IPS, "IPs"]
-// ])
-
-// export const powerStateTypeName = new Map<VirtualMachinePowerStateRequest_PowerState, string>([
-//     [VirtualMachinePowerStateRequest_PowerState.OFF, "OFF"],
-//     [VirtualMachinePowerStateRequest_PowerState.ON, "ON"],
-//     [VirtualMachinePowerStateRequest_PowerState.REBOOT, "REBOOT"],
-//     [VirtualMachinePowerStateRequest_PowerState.FORCE_REBOOT, "FORCE REBOOT"],
-//     [VirtualMachinePowerStateRequest_PowerState.FORCE_OFF, "FORCE OFF"]
-// ])
+import { ListOptions } from "./ts/management/resource/v1alpha1/resource"
 
 export const getResourceName = (type: ResourceType) => {
     return ResourceType[type]
@@ -42,7 +18,7 @@ export const getPowerStateName = (state: VirtualMachinePowerStateRequest_PowerSt
 export class Clients {
     private static instance: Clients
 
-    readonly watch: ResourceListWatchManagementClient
+    readonly watch: ResourceWatchManagementClient
     readonly resource: ResourceManagementClient
     readonly virtualmachine: VirtualMachineManagementClient
 
@@ -51,7 +27,7 @@ export class Clients {
             baseUrl: window.location.origin
         })
 
-        this.watch = new ResourceListWatchManagementClient(transport)
+        this.watch = new ResourceWatchManagementClient(transport)
         this.resource = new ResourceManagementClient(transport)
         this.virtualmachine = new VirtualMachineManagementClient(transport)
     }
@@ -151,19 +127,18 @@ export class Clients {
 
     public listResources = async (resourceType: ResourceType, opts?: ListOptions): Promise<any> => {
         return new Promise((resolve, reject) => {
-            const call = this.watch.listWatch({
+            const call = this.resource.list({
                 resourceType: resourceType,
-                options: emptyOptions({ ...opts, watch: false })
+                options: ListOptions.create(opts)
             })
-
-            call.responses.onMessage((response) => {
+            call.then((result) => {
                 let items: any[] = []
-                response.items.forEach((item: any) => {
+                result.response.items.forEach((item: any) => {
                     items.push(JSON.parse(item))
                 })
                 resolve(items)
             })
-            call.responses.onError((err: Error) => {
+            call.response.catch((err: Error) => {
                 reject(new Error(`Failed to list ${getResourceName(resourceType)}: ${err.message}`))
             })
         })
@@ -217,21 +192,6 @@ export class Clients {
             })
         })
     }
-}
-
-export const emptyOptions = (overrides: Partial<ListOptions> = {}): ListOptions => {
-    return Object.assign({}, {
-        fieldSelector: "",
-        labelSelector: "",
-        limit: 0,
-        continue: "",
-        customSelector: {
-            namespaceNames: [],
-            fieldSelector: [],
-        },
-        namespace: "",
-        watch: false,
-    }, overrides)
 }
 
 export const clients = Clients.getInstance()

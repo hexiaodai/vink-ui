@@ -1,7 +1,7 @@
 import * as yaml from 'js-yaml'
 import { dataVolumYaml } from './template'
-import { NamespaceName } from '@/clients/ts/types/namespace_name'
 import { instances as labels } from "@/clients/ts/label/labels.gen"
+import { NamespaceName } from '@/clients/ts/types/types'
 
 const defaultAccessMode = "ReadWriteOnce"
 

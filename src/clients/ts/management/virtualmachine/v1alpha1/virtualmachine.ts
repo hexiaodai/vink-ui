@@ -12,7 +12,7 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
-import { NamespaceName } from "../../../types/namespace_name";
+import { NamespaceName } from "../../../types/types";
 /**
  * @generated from protobuf message vink.kubevm.io.apis.management.virtualmachine.v1alpha1.VirtualMachinePowerStateRequest
  */

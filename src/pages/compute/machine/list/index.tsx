@@ -7,13 +7,13 @@ import { Link, NavLink, Params } from 'react-router-dom'
 import { VirtualMachinePowerStateRequest_PowerState } from '@/clients/ts/management/virtualmachine/v1alpha1/virtualmachine'
 import { calcScroll, classNames, dataSource, formatTimestamp, generateMessage, getErrorMessage } from '@/utils/utils'
 import { useNamespace } from '@/common/context'
-import { ResourceType } from '@/clients/ts/types/resource'
-import { clients, emptyOptions, getPowerStateName, getResourceName } from '@/clients/clients'
+import { ResourceType } from '@/clients/ts/types/types'
+import { clients, getPowerStateName, getResourceName } from '@/clients/clients'
 import { useWatchResources } from '@/hooks/use-resource'
-import { ListOptions } from '@/clients/ts/types/list_options'
-import { fieldSelector } from '@/utils/search'
 import { instances as annotations } from '@/clients/ts/annotation/annotations.gen'
+import { WatchOptions } from '@/clients/ts/management/resource/v1alpha1/watch'
 import { rootDisk, virtualMachine, virtualMachineInstance, virtualMachineIPs } from '@/utils/parse-summary'
+import { simpleFieldSelector } from '@/utils/search'
 import type { ActionType, ProColumns } from '@ant-design/pro-components'
 import tableStyles from '@/common/styles/table.module.less'
 import commonStyles from '@/common/styles/common.module.less'
@@ -33,7 +33,7 @@ export default () => {
 
     const actionRef = useRef<ActionType>()
 
-    const [opts, setOpts] = useState<ListOptions>(emptyOptions({ namespace: namespace }))
+    const [opts, setOpts] = useState<WatchOptions>(WatchOptions.create({ fieldSelector: simpleFieldSelector({ namespace }) }))
 
     const { resources: virtualMachineSummarys, loading } = useWatchResources(ResourceType.VIRTUAL_MACHINE_SUMMARY, opts)
 
@@ -108,10 +108,10 @@ export default () => {
             }}
             columns={columns}
             actionRef={actionRef}
-            loading={{ spinning: loading, indicator: <LoadingOutlined /> }}
+            loading={{ spinning: loading, delay: 500, indicator: <LoadingOutlined /> }}
             dataSource={dataSource(virtualMachineSummarys)}
             request={async (params) => {
-                setOpts({ ...opts, fieldSelector: fieldSelector(params) })
+                setOpts((prevOpts) => ({ ...prevOpts, fieldSelector: simpleFieldSelector({ namespace: namespace, keyword: params.keyword }) }))
                 return { success: true }
             }}
             columnsState={{
