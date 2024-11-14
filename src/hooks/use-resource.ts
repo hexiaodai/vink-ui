@@ -60,6 +60,9 @@ export const useWatchResources = (resourceType: ResourceType, opts?: WatchOption
             switch (response.eventType) {
                 case EventType.ADDED:
                 case EventType.MODIFIED: {
+                    if (response.items.length === 0 && needClean.current && resources.size > 0) {
+                        setResources(new Map())
+                    }
                     response.items.forEach((data) => {
                         const crd = JSON.parse(data)
                         setResources((prevResources) => {
