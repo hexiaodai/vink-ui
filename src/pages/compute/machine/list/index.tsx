@@ -1,6 +1,6 @@
 import { PlusOutlined, LoadingOutlined } from '@ant-design/icons'
 import { ProTable } from '@ant-design/pro-components'
-import { App, Button, Flex, Modal, Popover, Select, Space, Tag } from 'antd'
+import { App, Button, Dropdown, Flex, MenuProps, Modal, Popover, Space, Tag } from 'antd'
 import { useEffect, useRef, useState } from 'react'
 import { extractNamespaceAndName, formatMemory, namespaceNameKey } from '@/utils/k8s'
 import { Link, NavLink, Params } from 'react-router-dom'
@@ -13,7 +13,7 @@ import { useWatchResources } from '@/hooks/use-resource'
 import { instances as annotations } from '@/clients/ts/annotation/annotations.gen'
 import { WatchOptions } from '@/clients/ts/management/resource/v1alpha1/watch'
 import { rootDisk, virtualMachine, virtualMachineInstance, virtualMachineIPs } from '@/utils/parse-summary'
-import { simpleFieldSelector } from '@/utils/search'
+import { getNamespaceFieldSelector, simpleFieldSelector } from '@/utils/search'
 import type { ActionType, ProColumns } from '@ant-design/pro-components'
 import tableStyles from '@/common/styles/table.module.less'
 import commonStyles from '@/common/styles/common.module.less'
@@ -33,13 +33,27 @@ export default () => {
 
     const actionRef = useRef<ActionType>()
 
-    const [opts, setOpts] = useState<WatchOptions>(WatchOptions.create({ fieldSelector: simpleFieldSelector({ namespace }) }))
+    const searchRef = useRef<HTMLInputElement>()
+
+    const [searchOption, setSearchOption] = useState<{ fieldPath: string, label: string, open: boolean }>(
+        { fieldPath: "metadata.name*=", label: "Name", open: false }
+    )
+    const [opts, setOpts] = useState<WatchOptions>(WatchOptions.create({
+        fieldSelector: simpleFieldSelector([getNamespaceFieldSelector(namespace)])
+    }))
 
     const { resources: virtualMachineSummarys, loading } = useWatchResources(ResourceType.VIRTUAL_MACHINE_SUMMARY, opts)
 
     useEffect(() => {
         actionRef.current?.reload()
     }, [namespace])
+
+    useEffect(() => {
+        const inputElement = document.querySelector('input[name="search"]')
+        if (inputElement) {
+            searchRef.current = inputElement as HTMLInputElement
+        }
+    }, [])
 
     const handleBatchManageVirtualMachinePowerState = async (state: VirtualMachinePowerStateRequest_PowerState) => {
         const statusText = getPowerStateName(state)
@@ -111,7 +125,13 @@ export default () => {
             loading={{ spinning: loading, delay: 500, indicator: <LoadingOutlined /> }}
             dataSource={dataSource(virtualMachineSummarys)}
             request={async (params) => {
-                setOpts((prevOpts) => ({ ...prevOpts, fieldSelector: simpleFieldSelector({ namespace: namespace, keyword: params.keyword }) }))
+                setOpts((prevOpts) => ({
+                    ...prevOpts,
+                    fieldSelector: simpleFieldSelector([
+                        getNamespaceFieldSelector(namespace),
+                        { fieldPath: searchOption.fieldPath, value: params.search || params.keyword }
+                    ])
+                }))
                 return { success: true }
             }}
             columnsState={{
@@ -123,10 +143,30 @@ export default () => {
             search={false}
             options={{
                 fullScreen: true,
+                density: false,
                 search: {
+                    name: "search",
+                    autoComplete: "off",
                     allowClear: true,
-                    style: { width: 280 },
-                    addonBefore: <Select defaultValue="metadata.name" options={[{ value: 'metadata.name', label: '名称' }]} />
+                    style: { width: 250 },
+                    placeholder: `Search by ${searchOption.label}`,
+                    onClick: () => setSearchOption((pre) => ({ ...pre, open: true })),
+                    onBlur: () => requestAnimationFrame(() => setSearchOption((pre) => ({ ...pre, open: false }))),
+                    onKeyDown: (_e) => setSearchOption((pre) => ({ ...pre, open: false })),
+                    prefix: <Dropdown
+                        align={{ offset: [-11, 5] }}
+                        open={searchOption.open}
+                        menu={{
+                            items,
+                            onClick: (e) => {
+                                const clickedItem: any = items?.find((item: any) => item.key === e.key)
+                                setSearchOption({ fieldPath: e.key, label: clickedItem.label, open: false })
+                                searchRef.current?.focus()
+                            }
+                        }}
+                    >
+                        <span>{searchOption.label}：</span>
+                    </Dropdown>
                 }
             }}
             pagination={false}
@@ -138,6 +178,15 @@ export default () => {
         />
     )
 }
+
+const items: MenuProps['items'] = [
+    { key: 'metadata.name*=', label: "Name" },
+    { key: 'status.virtualMachine.status.printableStatus=', label: 'Status' },
+    { key: 'status.network.ips[*].spec.ipAddress*=', label: 'IP' },
+    { key: 'status.virtualMachineInstance.status.nodeName*=', label: "Host" },
+    { key: 'status.dataVolumes[*].metadata.labels.vink\\.kubevm\\.io/virtualmachine\\.os=', label: "OS" },
+    { key: 'status.virtualMachineInstance.metadata.annotations.vink\\.kubevm\\.io/virtualmachineinstance\\.host*=', label: 'Host IP' }
+]
 
 const columns: ProColumns<any>[] = [
     {

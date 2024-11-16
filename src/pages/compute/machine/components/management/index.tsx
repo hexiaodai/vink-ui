@@ -86,7 +86,7 @@ const VirtualMachineManagement: React.FC<Props> = ({ vm, namespace, type }) => {
     }
 
     return (
-        <Spin spinning={loading} indicator={<LoadingOutlined spin />} delay={500}>
+        <Spin spinning={loading} indicator={<LoadingOutlined spin />} delay={200}>
             <Dropdown
                 menu={{ items }}
                 trigger={['click']}

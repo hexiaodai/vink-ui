@@ -82,7 +82,6 @@ export const calcScroll = (obj: Record<string, ColumnsState>) => {
 }
 
 export const dataSource = (data: Map<string, any>): any[] | undefined => {
-    console.log(data, "====")
     let items = Array.from(data.values())
     if (items.length == 0) {
         return undefined
