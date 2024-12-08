@@ -1,19 +1,16 @@
-import { LoadingOutlined } from '@ant-design/icons'
-import { ProTable } from '@ant-design/pro-components'
-import { Button, Drawer, Flex, Select, Space } from 'antd'
-import { useEffect, useRef, useState } from 'react'
-import { formatMemoryString, namespaceNameKey } from '@/utils/k8s'
-import { Params } from 'react-router-dom'
+import { Button, Drawer, Flex, MenuProps, Space } from 'antd'
+import { useEffect, useState } from 'react'
+import { formatMemoryString } from '@/utils/k8s'
 import { instances as annotations } from "@/clients/ts/annotation/annotations.gen"
 import { instances as labels } from "@/clients/ts/label/labels.gen"
 import { ResourceType } from '@/clients/ts/types/types'
-import { useListResources } from '@/hooks/use-resource'
-import { fieldSelector } from '@/utils/search'
+import { useWatchResources } from '@/hooks/use-resource'
+import { getNamespaceFieldSelector, replaceDots, simpleFieldSelector } from '@/utils/search'
 import { useNamespaceFromURL } from '@/hooks/use-namespace-from-url'
-import type { ActionType, ProColumns } from '@ant-design/pro-components'
-import React from 'react'
-import tableStyles from '@/common/styles/table.module.less'
-import { ListOptions } from '@/clients/ts/management/resource/v1alpha1/resource'
+import { CustomTable } from '@/components/custom-table'
+import { dataSource } from '@/utils/utils'
+import { WatchOptions } from '@/clients/ts/management/resource/v1alpha1/watch'
+import type { ProColumns } from '@ant-design/pro-components'
 
 interface DataDiskDrawerProps {
     open?: boolean
@@ -31,20 +28,14 @@ export const DataDiskDrawer: React.FC<DataDiskDrawerProps> = ({ open, current, o
         setSelectedRows(current || [])
     }, [open])
 
-    const actionRef = useRef<ActionType>()
-
-    const [opts, setOpts] = useState<ListOptions>(ListOptions.create({
-        namespace: namespaceName.namespace, labelSelector: `${labels.VinkDatavolumeType.name}=data`
+    const [opts, setOpts] = useState<WatchOptions>(WatchOptions.create({
+        fieldSelector: simpleFieldSelector([
+            getNamespaceFieldSelector(namespaceName.namespace),
+            { fieldPath: `metadata.labels.${replaceDots(labels.VinkDatavolumeType.name)}`, operator: "=", value: "data" }
+        ])
     }))
 
-    useEffect(() => {
-        if (!open) {
-            return
-        }
-        setOpts(prev => ({ ...prev, namespace: namespaceName.namespace }))
-    }, [namespaceName.namespace, open])
-
-    const { resources: dataDisks } = useListResources(ResourceType.DATA_VOLUME, opts)
+    const { resources, loading } = useWatchResources(ResourceType.DATA_VOLUME, opts, !open)
 
     const handleCheckboxProps = (dv: any) => {
         const binding = dv.metadata.annotations[annotations.VinkVirtualmachineBinding.name]
@@ -78,43 +69,28 @@ export const DataDiskDrawer: React.FC<DataDiskDrawerProps> = ({ open, current, o
                 </Flex>
             }
         >
-            <ProTable<any, Params>
-                className={tableStyles["table-padding"]}
+            <CustomTable
+                loading={loading}
+                storageKey="data-disk-drawer-table-columns"
+                searchOptions={searchOptions}
+                columns={columns}
+                updateWatchOptions={setOpts}
+                dataSource={dataSource(resources)}
                 rowSelection={{
-                    selectedRowKeys: selectedRows.map(dv => namespaceNameKey(dv)),
                     onChange: (_, selectedRows) => { setSelectedRows(selectedRows) },
                     getCheckboxProps: handleCheckboxProps
                 }}
-                columns={dataDiskDrawerColumns}
-                actionRef={actionRef}
-                loading={{ indicator: <LoadingOutlined /> }}
-                dataSource={dataDisks}
-                request={async (params) => {
-                    setOpts({
-                        ...opts, ...(fieldSelector(params) && { fieldSelector: fieldSelector(params) })
-                    })
-                    return { success: true }
-                }}
-                rowKey={(vm) => namespaceNameKey(vm)}
-                search={false}
-                options={{
-                    setting: false,
-                    density: false,
-                    search: {
-                        allowClear: true,
-                        style: { width: 280 },
-                        addonBefore: <Select defaultValue="metadata.name" options={[
-                            { value: 'metadata.name', label: '名称' }
-                        ]} />
-                    }
-                }}
-                pagination={false}
+                tableAlertOptionRender={() => <></>}
             />
         </Drawer>
     )
 }
 
-const dataDiskDrawerColumns: ProColumns<any>[] = [
+const searchOptions: MenuProps['items'] = [
+    { key: 'metadata.name*=', label: "Name" }
+]
+
+const columns: ProColumns<any>[] = [
     {
         title: '名称',
         key: 'name',

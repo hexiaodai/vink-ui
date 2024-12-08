@@ -21,7 +21,7 @@ export default () => {
 
     const params = new URLSearchParams(location.search)
 
-    const [active, setActive] = useState(params.get(activeKey) || "概览")
+    const [active, setActive] = useState(params.get(activeKey) || "Overview")
 
     useEffect(() => {
         const newActive = params.get(activeKey)
@@ -30,6 +30,23 @@ export default () => {
         }
         setActive(newActive)
     }, [history, location.search])
+
+    const renderComponent = () => {
+        switch (active.toLowerCase()) {
+            case "overview":
+                return <Overview />
+            case "storage":
+                return <Volume />
+            case "network":
+                return <Network />
+            case "yaml":
+                return <YAML />
+            case "event":
+                return <Event />
+            default:
+                return null
+        }
+    }
 
     return (
         <Space
@@ -44,17 +61,13 @@ export default () => {
                         params.set(activeKey, e)
                         navigate({ search: params.toString() }, { replace: true })
                     }}
-                    options={["YAML", "概览", "监控", "存储", "网络", "快照", "事件"]}
+                    options={["YAML", "Overview", "Monitor", "Storage", "Network", "Snapshot", "Event"]}
                 />
 
                 <VirtualMachineManagement type="detail" namespace={namespaceName} />
             </Flex>
 
-            {active === "概览" && <Overview />}
-            {active === "存储" && <Volume />}
-            {active === "网络" && <Network />}
-            {active === "YAML" && <YAML />}
-            {active === "事件" && <Event />}
+            {renderComponent()}
         </Space >
     )
 }

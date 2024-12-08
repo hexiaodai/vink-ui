@@ -1,48 +1,39 @@
-import { PlusOutlined, LoadingOutlined } from '@ant-design/icons'
-import { ProTable } from '@ant-design/pro-components'
-import { App, Badge, Button, Dropdown, MenuProps, Modal, Select, Space } from 'antd'
-import { useEffect, useRef, useState } from 'react'
-import { formatMemory, namespaceName } from '@/utils/k8s'
-import { NavLink, Params } from 'react-router-dom'
-import { calcScroll, classNames, dataSource, formatTimestamp, generateMessage, getErrorMessage } from '@/utils/utils'
+import { PlusOutlined } from '@ant-design/icons'
+import { App, Badge, Button, Dropdown, Flex, MenuProps, Modal, Popover, Space, Tag } from 'antd'
+import { useRef, useState } from 'react'
+import { formatMemory } from '@/utils/k8s'
+import { NavLink } from 'react-router-dom'
+import { dataSource, formatTimestamp, generateMessage, getErrorMessage } from '@/utils/utils'
 import { useNamespace } from '@/common/context'
 import { clients, getResourceName } from '@/clients/clients'
-import { ResourceType } from '@/clients/ts/types/types'
+import { FieldSelector, ResourceType } from '@/clients/ts/types/types'
 import { instances as labels } from "@/clients/ts/label/labels.gen"
 import { useWatchResources } from '@/hooks/use-resource'
-import { fieldSelector } from '@/utils/search'
+import { getNamespaceFieldSelector, replaceDots } from '@/utils/search'
 import { NotificationInstance } from 'antd/lib/notification/interface'
 import { dataVolumeStatusMap } from '@/utils/resource-status'
 import { instances as annotations } from "@/clients/ts/annotation/annotations.gen"
 import { EllipsisOutlined } from '@ant-design/icons'
-import type { ActionType, ProColumns } from '@ant-design/pro-components'
-import tableStyles from '@/common/styles/table.module.less'
-import commonStyles from '@/common/styles/common.module.less'
 import { WatchOptions } from '@/clients/ts/management/resource/v1alpha1/watch'
+import { CustomTable, SearchItem } from '@/components/custom-table'
+import type { ProColumns } from '@ant-design/pro-components'
+import commonStyles from '@/common/styles/common.module.less'
 
 export default () => {
     const { notification } = App.useApp()
 
     const { namespace } = useNamespace()
 
-    const [scroll, setScroll] = useState(150 * 9)
-
     const [selectedRows, setSelectedRows] = useState<any[]>([])
 
-    const actionRef = useRef<ActionType>()
-
+    const defaultFieldSelectors = useRef<FieldSelector[]>([getNamespaceFieldSelector(namespace), { fieldPath: `metadata.labels.${replaceDots(labels.VinkDatavolumeType.name)}`, operator: "!=", values: ["image"] }])
     const [opts, setOpts] = useState<WatchOptions>(WatchOptions.create({
-        fieldSelector: [`metadata.namespace=${namespace},${labels.VinkDatavolumeType.name}!=image`]
+        fieldSelectorGroup: { operator: "&&", fieldSelectors: defaultFieldSelectors.current }
     }))
-    // const [opts, setOpts] = useState<WatchOptions>(WatchOptions.create({ namespace: namespace, labelSelector: `${labels.VinkDatavolumeType.name}!=image` }))
 
-    const { resources: disks, loading } = useWatchResources(ResourceType.DATA_VOLUME, opts)
+    const { resources, loading } = useWatchResources(ResourceType.DATA_VOLUME, opts)
 
     const columns = columnsFunc(notification)
-
-    useEffect(() => {
-        actionRef.current?.reload()
-    }, [namespace])
 
     const handleBatchDeleteDataDisk = async () => {
         const resourceName = getResourceName(ResourceType.DATA_VOLUME)
@@ -65,23 +56,15 @@ export default () => {
     }
 
     return (
-        <ProTable<any, Params>
-            className={classNames(tableStyles["table-padding"], commonStyles["small-scrollbar"])}
-            scroll={{ x: scroll }}
-            rowSelection={{
-                defaultSelectedRowKeys: [],
-                onChange: (_, selectedRows) => {
-                    setSelectedRows(selectedRows)
-                }
-            }}
-            tableAlertRender={({ selectedRowKeys, onCleanSelected }) => {
-                return (
-                    <Space size={16}>
-                        <span>已选 {selectedRowKeys.length} 项</span>
-                        <a onClick={onCleanSelected}>取消选择</a>
-                    </Space>
-                )
-            }}
+        <CustomTable
+            searchItems={searchItems}
+            loading={loading}
+            updateWatchOptions={setOpts}
+            onSelectRows={(rows) => setSelectedRows(rows)}
+            defaultFieldSelectors={defaultFieldSelectors.current}
+            storageKey="disk-list-table-columns"
+            columns={columns}
+            dataSource={dataSource(resources)}
             tableAlertOptionRender={() => {
                 return (
                     <Space size={16}>
@@ -89,37 +72,6 @@ export default () => {
                     </Space>
                 )
             }}
-            columns={columns}
-            actionRef={actionRef}
-            loading={{ spinning: loading, indicator: <LoadingOutlined /> }}
-            dataSource={dataSource(disks)}
-            request={async (params) => {
-                // setOpts({ ...opts, fieldSelector: fieldSelector(params) })
-                setOpts((prevOpts) => ({
-                    ...prevOpts, fieldSelector: [...prevOpts.fieldSelector, fieldSelector(params)].filter(
-                        (value, index, self) => self.indexOf(value) === index
-                    )
-                }))
-                return { success: true }
-            }}
-            columnsState={{
-                persistenceKey: 'virtual-disk-list-table-columns',
-                persistenceType: 'localStorage',
-                onChange: (obj) => setScroll(calcScroll(obj))
-            }}
-            rowKey={(vm) => namespaceName(vm.metadata)}
-            search={false}
-            options={{
-                fullScreen: true,
-                search: {
-                    allowClear: true,
-                    style: { width: 280 },
-                    addonBefore: <Select defaultValue="metadata.name" options={[
-                        { value: 'metadata.name', label: '名称' }
-                    ]} />
-                }
-            }}
-            pagination={false}
             toolbar={{
                 actions: [
                     <NavLink to='/storage/disks/create'><Button icon={<PlusOutlined />}>添加磁盘</Button></NavLink>
@@ -128,6 +80,33 @@ export default () => {
         />
     )
 }
+
+const searchItems: SearchItem[] = [
+    { fieldPath: "metadata.name", name: "Name", operator: "*=" },
+    {
+        fieldPath: "status.phase", name: "Status",
+        items: [
+            { inputValue: "Succeeded", values: ["Succeeded"], operator: '=' },
+            { inputValue: "Failed", values: ["Failed"], operator: '=' },
+            { inputValue: 'Provisioning', values: ["ImportInProgress", "CloneInProgress", "CloneFromSnapshotSourceInProgress", "SmartClonePVCInProgress", "CSICloneInProgress", "ExpansionInProgress", "NamespaceTransferInProgress", "PrepClaimInProgress", "RebindInProgress"], operator: '~=' },
+        ]
+    },
+    {
+        fieldPath: `metadata.labels.${replaceDots("vink.kubevm.io/datavolume.type")}`, name: "Type",
+        items: [
+            { inputValue: "Root", values: ["Root"], operator: '=' },
+            { inputValue: "Data", values: ["Data"], operator: '=' },
+        ]
+    },
+    // {
+    //     fieldPath: `metadata.annotations.${replaceDots("vink.kubevm.io/virtualmachine.binding")}`, name: "Resource Usage",
+    //     items: [
+    //         { inputValue: "In Use", values: [""], operator: '!=' },
+    //         { inputValue: "Idle", values: [""], operator: '=' },
+    //     ]
+    // },
+    { fieldPath: `metadata.annotations.${replaceDots("vink.kubevm.io/virtualmachine.binding")}`, name: "Owner", operator: "*=" }
+]
 
 const columnsFunc = (notification: NotificationInstance) => {
     const columns: ProColumns<any>[] = [
@@ -147,17 +126,46 @@ const columnsFunc = (notification: NotificationInstance) => {
                 return <Badge status={dataVolumeStatusMap[dv.status.phase].badge} text={displayStatus} />
             }
         },
+        // {
+        //     key: 'binding',
+        //     title: '资源占用',
+        //     ellipsis: true,
+        //     render: (_, dv) => {
+        //         const binding = dv.metadata.annotations[annotations.VinkVirtualmachineBinding.name]
+        //         if (!binding) {
+        //             return "空闲"
+        //         }
+        //         const parse = JSON.parse(binding)
+        //         return parse && parse.length > 0 ? "使用中" : "空闲"
+        //     }
+        // },
         {
-            key: 'binding',
-            title: '资源占用',
+            key: 'owner',
+            title: 'Owner',
             ellipsis: true,
             render: (_, dv) => {
-                const binding = dv.metadata.annotations[annotations.VinkVirtualmachineBinding.name]
-                if (!binding) {
-                    return "空闲"
+                const owners = dv.metadata.annotations[annotations.VinkVirtualmachineBinding.name]
+                if (!owners) {
+                    return
                 }
-                const parse = JSON.parse(binding)
-                return parse && parse.length > 0 ? "使用中" : "空闲"
+                const parse: string[] = JSON.parse(owners)
+
+                const content = (
+                    <Flex wrap gap="4px 0" style={{ maxWidth: 250 }}>
+                        {parse.map((element: any, index: any) => (
+                            <Tag key={index} bordered={true}>
+                                {element}
+                            </Tag>
+                        ))}
+                    </Flex>
+                )
+
+                return (
+                    <Popover content={content}>
+                        <Tag bordered={true}>{parse[0]}</Tag>
+                        +{parse.length}
+                    </Popover>
+                )
             }
         },
         {

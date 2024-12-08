@@ -1,5 +1,6 @@
 // import { osFamilyLabel, diskTypeLabel } from '@/utils/k8s.ts'
 import { instances } from "@/clients/ts/label/labels.gen.ts"
+import { FieldSelector, FieldSelectorGroup } from "@/clients/ts/types/types"
 
 export type Filter = {
     key: string
@@ -82,13 +83,60 @@ export const simpleFieldSelector2 = (params?: { namespace?: string, keyword?: st
 
 export interface fieldSelector {
     fieldPath: string
-    value?: string
-    operator?: '=' | '!=' | '^=' | '$=' | '*='
+    values: string[]
+    operator: string
+}
+
+// export const mergeFieldSelectors = (newFields: fieldSelector[], group?: FieldSelectorGroup) => {
+//     if (!group) {
+//         group = {
+//             fieldSelectors: [],
+//             operator: "&&"
+//         }
+//     }
+
+//     const fieldMap = new Map(group.fieldSelectors.map(field => [field.fieldPath, field]))
+
+//     for (const field of newFields) {
+//         fieldMap.set(field.fieldPath, field)
+//     }
+
+//     console.log("fieldMap.values()", fieldMap.values())
+//     group.fieldSelectors = Array.from(fieldMap.values()).filter(
+//         field => field.fieldPath && field.values && field.values.length > 0 && (field.values[0] !== undefined || field.values[0] !== null)
+//         // field => field.fieldPath && field.values && field.values.length > 0 && field.values[0] && field.values[0].length > 0
+//     )
+
+//     return group
+// }
+
+
+export const mergeFieldSelectors = (newFields: fieldSelector[], oldFields: fieldSelector[]) => {
+    // if (!group) {
+    //     group = {
+    //         fieldSelectors: [],
+    //         operator: "&&"
+    //     }
+    // }
+
+    const fieldMap = new Map(oldFields.map(field => [field.fieldPath, field]))
+
+    for (const field of newFields) {
+        fieldMap.set(field.fieldPath, field)
+    }
+
+    newFields = Array.from(fieldMap.values()).filter(
+        field => field.fieldPath && field.values && field.values.length > 0 && (field.values[0] !== undefined || field.values[0] !== null)
+        // field => field.fieldPath && field.values && field.values.length > 0 && field.values[0] && field.values[0].length > 0
+    )
+
+    return newFields
 }
 
 export const simpleFieldSelector = (fields: fieldSelector[]) => {
     const uniqueFields = fields.reduce((acc, field) => {
-        acc[field.fieldPath] = field
+        const key = `${field.fieldPath}${field.operator || ''}`
+        acc[key] = field
         return acc
     }, {} as { [key: string]: fieldSelector })
 
@@ -100,12 +148,65 @@ export const simpleFieldSelector = (fields: fieldSelector[]) => {
         .filter(Boolean)
         .join(',')
 
-    if (result.length > 0) {
-        return [result]
+    if (result.length === 0) {
+        return []
     }
-    return []
+    return [result]
 }
 
-export const getNamespaceFieldSelector = (namespace: string): fieldSelector => {
-    return { fieldPath: 'metadata.namespace', value: namespace, operator: '=' }
+export const parseFieldSelector = (input?: string): fieldSelector[] => {
+    if (!input) {
+        return []
+    }
+
+    const operators = ['!=', '^=', '$=', '*=', '=', '~=', '!~=']
+
+    return input.split(',').map(pair => {
+        const operator = operators.find(op => pair.includes(op))
+
+        if (!operator) {
+            return null
+        }
+
+        const [fieldPath, value] = pair.split(operator)
+
+        return {
+            fieldPath: fieldPath.trim(),
+            value: value ? value.trim() : undefined,
+            operator: operator as '=' | '!=' | '^=' | '$=' | '*=' | '~=' | '!~='
+        }
+    }).filter((item) => item !== null)
+}
+
+// export const parseFieldSelector = (input: string): fieldSelector[] => {
+//     const operators = ['!=', '^=', '$=', '*=', '='];
+
+//     return input
+//         .split(',')
+//         .map(pair => {
+//             const operator = operators.find(op => pair.includes(op));
+
+//             if (!operator) {
+//                 // 忽略无效项
+//                 return null;
+//             }
+
+//             const [fieldPath, value] = pair.split(operator);
+
+//             return {
+//                 fieldPath: fieldPath.trim(),
+//                 value: value ? value.trim() : undefined,
+//                 operator: operator as '=' | '!=' | '^=' | '$=' | '*=',
+//             };
+//         })
+//         .filter((item): item is fieldSelector => item !== null)
+// }
+
+export const getNamespaceFieldSelector = (namespace: string): FieldSelector => {
+    return { fieldPath: 'metadata.namespace', values: [namespace], operator: '=' }
+    // return { fieldPath: 'metadata.namespace', value: namespace, operator: '=' }
+}
+
+export const replaceDots = (input: string): string => {
+    return input.replace(/\./g, '\\.')
 }
