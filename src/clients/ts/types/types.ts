@@ -24,6 +24,36 @@ export interface NamespaceName {
     name: string;
 }
 /**
+ * @generated from protobuf message vink.kubevm.io.apis.types.FieldSelector
+ */
+export interface FieldSelector {
+    /**
+     * @generated from protobuf field: string field_path = 1;
+     */
+    fieldPath: string;
+    /**
+     * @generated from protobuf field: string operator = 2;
+     */
+    operator: string;
+    /**
+     * @generated from protobuf field: repeated string values = 3;
+     */
+    values: string[];
+}
+/**
+ * @generated from protobuf message vink.kubevm.io.apis.types.FieldSelectorGroup
+ */
+export interface FieldSelectorGroup {
+    /**
+     * @generated from protobuf field: string operator = 1;
+     */
+    operator: string;
+    /**
+     * @generated from protobuf field: repeated vink.kubevm.io.apis.types.FieldSelector field_selectors = 2;
+     */
+    fieldSelectors: FieldSelector[];
+}
+/**
  * @generated from protobuf enum vink.kubevm.io.apis.types.ResourceType
  */
 export enum ResourceType {
@@ -139,3 +169,121 @@ class NamespaceName$Type extends MessageType<NamespaceName> {
  * @generated MessageType for protobuf message vink.kubevm.io.apis.types.NamespaceName
  */
 export const NamespaceName = new NamespaceName$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class FieldSelector$Type extends MessageType<FieldSelector> {
+    constructor() {
+        super("vink.kubevm.io.apis.types.FieldSelector", [
+            { no: 1, name: "field_path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "operator", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "values", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<FieldSelector>): FieldSelector {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.fieldPath = "";
+        message.operator = "";
+        message.values = [];
+        if (value !== undefined)
+            reflectionMergePartial<FieldSelector>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: FieldSelector): FieldSelector {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string field_path */ 1:
+                    message.fieldPath = reader.string();
+                    break;
+                case /* string operator */ 2:
+                    message.operator = reader.string();
+                    break;
+                case /* repeated string values */ 3:
+                    message.values.push(reader.string());
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: FieldSelector, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string field_path = 1; */
+        if (message.fieldPath !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.fieldPath);
+        /* string operator = 2; */
+        if (message.operator !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.operator);
+        /* repeated string values = 3; */
+        for (let i = 0; i < message.values.length; i++)
+            writer.tag(3, WireType.LengthDelimited).string(message.values[i]);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message vink.kubevm.io.apis.types.FieldSelector
+ */
+export const FieldSelector = new FieldSelector$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class FieldSelectorGroup$Type extends MessageType<FieldSelectorGroup> {
+    constructor() {
+        super("vink.kubevm.io.apis.types.FieldSelectorGroup", [
+            { no: 1, name: "operator", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "field_selectors", kind: "message", repeat: 1 /*RepeatType.PACKED*/, T: () => FieldSelector }
+        ]);
+    }
+    create(value?: PartialMessage<FieldSelectorGroup>): FieldSelectorGroup {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.operator = "";
+        message.fieldSelectors = [];
+        if (value !== undefined)
+            reflectionMergePartial<FieldSelectorGroup>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: FieldSelectorGroup): FieldSelectorGroup {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string operator */ 1:
+                    message.operator = reader.string();
+                    break;
+                case /* repeated vink.kubevm.io.apis.types.FieldSelector field_selectors */ 2:
+                    message.fieldSelectors.push(FieldSelector.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: FieldSelectorGroup, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string operator = 1; */
+        if (message.operator !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.operator);
+        /* repeated vink.kubevm.io.apis.types.FieldSelector field_selectors = 2; */
+        for (let i = 0; i < message.fieldSelectors.length; i++)
+            FieldSelector.internalBinaryWrite(message.fieldSelectors[i], writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message vink.kubevm.io.apis.types.FieldSelectorGroup
+ */
+export const FieldSelectorGroup = new FieldSelectorGroup$Type();

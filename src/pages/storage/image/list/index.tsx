@@ -1,48 +1,39 @@
-import { PlusOutlined, LoadingOutlined } from '@ant-design/icons'
-import { ProTable } from '@ant-design/pro-components'
-import { App, Badge, Button, Dropdown, MenuProps, Modal, Select, Space } from 'antd'
-import { useEffect, useRef, useState } from 'react'
-import { formatMemory, namespaceName, namespaceNameKey } from '@/utils/k8s'
-import { NavLink, Params } from 'react-router-dom'
+import { PlusOutlined } from '@ant-design/icons'
+import { App, Badge, Button, Dropdown, MenuProps, Modal, Space } from 'antd'
+import { useRef, useState } from 'react'
+import { formatMemory, namespaceNameKey } from '@/utils/k8s'
+import { NavLink } from 'react-router-dom'
 import { instances as labels } from "@/clients/ts/label/labels.gen"
-import { calcScroll, classNames, dataSource, formatTimestamp, generateMessage, getErrorMessage } from '@/utils/utils'
+import { dataSource, formatTimestamp, generateMessage, getErrorMessage } from '@/utils/utils'
 import { useNamespace } from '@/common/context'
 import { clients, getResourceName } from '@/clients/clients'
-import { ResourceType } from '@/clients/ts/types/types'
+import { FieldSelector, ResourceType } from '@/clients/ts/types/types'
 import { useWatchResources } from '@/hooks/use-resource'
 import { NotificationInstance } from 'antd/lib/notification/interface'
-import { fieldSelector } from '@/utils/search'
+import { getNamespaceFieldSelector, replaceDots } from '@/utils/search'
 import { EllipsisOutlined } from '@ant-design/icons'
 import { dataVolumeStatusMap } from '@/utils/resource-status'
-import type { ActionType, ProColumns } from '@ant-design/pro-components'
-import tableStyles from '@/common/styles/table.module.less'
-import commonStyles from '@/common/styles/common.module.less'
-import OperatingSystem from '@/components/operating-system'
 import { WatchOptions } from '@/clients/ts/management/resource/v1alpha1/watch'
+import { CustomTable, SearchItem } from '@/components/custom-table'
+import type { ProColumns } from '@ant-design/pro-components'
+import OperatingSystem from '@/components/operating-system'
+import commonStyles from '@/common/styles/common.module.less'
 
 export default () => {
     const { notification } = App.useApp()
 
     const { namespace } = useNamespace()
 
-    const [scroll, setScroll] = useState(150 * 6)
-
     const [selectedRows, setSelectedRows] = useState<any[]>([])
-
-    const actionRef = useRef<ActionType>()
 
     const columns = columnsFunc(notification)
 
-    useEffect(() => {
-        actionRef.current?.reload()
-    }, [namespace])
-
+    const defaultFieldSelectors = useRef<FieldSelector[]>([getNamespaceFieldSelector(namespace), { fieldPath: `metadata.labels.${replaceDots(labels.VinkDatavolumeType.name)}`, operator: "=", values: ["image"] }])
     const [opts, setOpts] = useState<WatchOptions>(WatchOptions.create({
-        fieldSelector: [`metadata.namespace=${namespace},${labels.VinkDatavolumeType.name}=image`]
+        fieldSelectorGroup: { operator: "&&", fieldSelectors: defaultFieldSelectors.current }
     }))
-    // const [opts, setOpts] = useState<WatchOptions>(WatchOptions.create({ namespace: namespace, labelSelector: `${labels.VinkDatavolumeType.name}=image` }))
 
-    const { resources: images, loading } = useWatchResources(ResourceType.DATA_VOLUME, opts)
+    const { resources, loading } = useWatchResources(ResourceType.DATA_VOLUME, opts)
 
     const handleBatchDeleteImage = async () => {
         const resourceName = getResourceName(ResourceType.DATA_VOLUME)
@@ -65,21 +56,15 @@ export default () => {
     }
 
     return (
-        <ProTable<any, Params>
-            className={classNames(tableStyles["table-padding"], commonStyles["small-scrollbar"])}
-            scroll={{ x: scroll }}
-            rowSelection={{
-                defaultSelectedRowKeys: [],
-                onChange: (_, selectedRows) => setSelectedRows(selectedRows)
-            }}
-            tableAlertRender={({ selectedRowKeys, onCleanSelected }) => {
-                return (
-                    <Space size={16}>
-                        <span>已选 {selectedRowKeys.length} 项</span>
-                        <a onClick={onCleanSelected}>取消选择</a>
-                    </Space>
-                )
-            }}
+        <CustomTable
+            searchItems={searchItems}
+            loading={loading}
+            updateWatchOptions={setOpts}
+            onSelectRows={(rows) => setSelectedRows(rows)}
+            defaultFieldSelectors={defaultFieldSelectors.current}
+            storageKey="image-list-table-columns"
+            columns={columns}
+            dataSource={dataSource(resources)}
             tableAlertOptionRender={() => {
                 return (
                     <Space size={16}>
@@ -87,37 +72,6 @@ export default () => {
                     </Space>
                 )
             }}
-            columns={columns}
-            actionRef={actionRef}
-            loading={{ spinning: loading, indicator: <LoadingOutlined /> }}
-            dataSource={dataSource(images)}
-            request={async (params) => {
-                // setOpts({ ...opts, fieldSelector: fieldSelector(params) })
-                setOpts((prevOpts) => ({
-                    ...prevOpts, fieldSelector: [...prevOpts.fieldSelector, fieldSelector(params)].filter(
-                        (value, index, self) => self.indexOf(value) === index
-                    )
-                }))
-                return { success: true }
-            }}
-            columnsState={{
-                persistenceKey: 'virtual-image-list-table-columns',
-                persistenceType: 'localStorage',
-                onChange: (obj) => setScroll(calcScroll(obj))
-            }}
-            rowKey={(vm) => namespaceName(vm.metadata)}
-            search={false}
-            options={{
-                fullScreen: true,
-                search: {
-                    allowClear: true,
-                    style: { width: 280 },
-                    addonBefore: <Select defaultValue="name" options={[
-                        { value: 'metadata.name', label: '名称' }
-                    ]} />
-                }
-            }}
-            pagination={false}
             toolbar={{
                 actions: [
                     <NavLink to='/storage/images/create'><Button icon={<PlusOutlined />}>添加镜像</Button></NavLink>
@@ -126,6 +80,28 @@ export default () => {
         />
     )
 }
+
+const searchItems: SearchItem[] = [
+    { fieldPath: "metadata.name", name: "Name", operator: "*=" },
+    {
+        fieldPath: "status.phase", name: "Status",
+        items: [
+            { inputValue: "Succeeded", values: ["Succeeded"], operator: '=' },
+            { inputValue: "Failed", values: ["Failed"], operator: '=' },
+            { inputValue: 'Provisioning', values: ["ImportInProgress", "CloneInProgress", "CloneFromSnapshotSourceInProgress", "SmartClonePVCInProgress", "CSICloneInProgress", "ExpansionInProgress", "NamespaceTransferInProgress", "PrepClaimInProgress", "RebindInProgress"], operator: '~=' },
+        ]
+    },
+    {
+        fieldPath: `metadata.labels.${replaceDots("vink.kubevm.io/virtualmachine.os")}`, name: "OS",
+        items: [
+            { inputValue: "Ubuntu", values: ["Ubuntu"], operator: '=' },
+            { inputValue: "CentOS", values: ["CentOS"], operator: '=' },
+            { inputValue: "Debian", values: ["Debian"], operator: '=' },
+            { inputValue: "Linux", values: ["Linux", "Ubuntu", "CentOS", "Debian"], operator: '~=' },
+            { inputValue: "Windows", values: ["Windows"], operator: '=' },
+        ]
+    },
+]
 
 const columnsFunc = (notification: NotificationInstance) => {
     const columns: ProColumns<any>[] = [

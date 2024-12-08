@@ -1,21 +1,20 @@
-import { PlusOutlined, LoadingOutlined } from '@ant-design/icons'
-import { ProTable } from '@ant-design/pro-components'
-import { App, Button, Dropdown, Flex, MenuProps, Modal, Popover, Space, Tag } from 'antd'
-import { useEffect, useRef, useState } from 'react'
-import { extractNamespaceAndName, formatMemory, namespaceNameKey } from '@/utils/k8s'
-import { Link, NavLink, Params } from 'react-router-dom'
+import { PlusOutlined } from '@ant-design/icons'
+import { App, Button, Flex, Modal, Popover, Space, Tag } from 'antd'
+import { useRef, useState } from 'react'
+import { extractNamespaceAndName, formatMemory } from '@/utils/k8s'
+import { Link, NavLink } from 'react-router-dom'
 import { VirtualMachinePowerStateRequest_PowerState } from '@/clients/ts/management/virtualmachine/v1alpha1/virtualmachine'
-import { calcScroll, classNames, dataSource, formatTimestamp, generateMessage, getErrorMessage } from '@/utils/utils'
+import { dataSource, formatTimestamp, generateMessage, getErrorMessage } from '@/utils/utils'
 import { useNamespace } from '@/common/context'
-import { ResourceType } from '@/clients/ts/types/types'
+import { FieldSelector, ResourceType } from '@/clients/ts/types/types'
 import { clients, getPowerStateName, getResourceName } from '@/clients/clients'
 import { useWatchResources } from '@/hooks/use-resource'
 import { instances as annotations } from '@/clients/ts/annotation/annotations.gen'
 import { WatchOptions } from '@/clients/ts/management/resource/v1alpha1/watch'
 import { rootDisk, virtualMachine, virtualMachineInstance, virtualMachineIPs } from '@/utils/parse-summary'
-import { getNamespaceFieldSelector, simpleFieldSelector } from '@/utils/search'
-import type { ActionType, ProColumns } from '@ant-design/pro-components'
-import tableStyles from '@/common/styles/table.module.less'
+import { getNamespaceFieldSelector, replaceDots } from '@/utils/search'
+import { CustomTable, SearchItem } from '@/components/custom-table'
+import type { ProColumns } from '@ant-design/pro-components'
 import commonStyles from '@/common/styles/common.module.less'
 import VirtualMachineStatus from '../components/status'
 import Terminal from '@/components/terminal'
@@ -27,33 +26,14 @@ export default () => {
 
     const { namespace } = useNamespace()
 
-    const [scroll, setScroll] = useState(150 * 11)
-
     const [selectedRows, setSelectedRows] = useState<any[]>([])
 
-    const actionRef = useRef<ActionType>()
-
-    const searchRef = useRef<HTMLInputElement>()
-
-    const [searchOption, setSearchOption] = useState<{ fieldPath: string, label: string, open: boolean }>(
-        { fieldPath: "metadata.name*=", label: "Name", open: false }
-    )
+    const defaultFieldSelectors = useRef<FieldSelector[]>([getNamespaceFieldSelector(namespace)])
     const [opts, setOpts] = useState<WatchOptions>(WatchOptions.create({
-        fieldSelector: simpleFieldSelector([getNamespaceFieldSelector(namespace)])
+        fieldSelectorGroup: { operator: "&&", fieldSelectors: defaultFieldSelectors.current }
     }))
 
-    const { resources: virtualMachineSummarys, loading } = useWatchResources(ResourceType.VIRTUAL_MACHINE_SUMMARY, opts)
-
-    useEffect(() => {
-        actionRef.current?.reload()
-    }, [namespace])
-
-    useEffect(() => {
-        const inputElement = document.querySelector('input[name="search"]')
-        if (inputElement) {
-            searchRef.current = inputElement as HTMLInputElement
-        }
-    }, [])
+    const { resources, loading } = useWatchResources(ResourceType.VIRTUAL_MACHINE_SUMMARY, opts)
 
     const handleBatchManageVirtualMachinePowerState = async (state: VirtualMachinePowerStateRequest_PowerState) => {
         const statusText = getPowerStateName(state)
@@ -96,19 +76,19 @@ export default () => {
     }
 
     return (
-        <ProTable<any, Params>
-            className={classNames(tableStyles["table-padding"], commonStyles["small-scrollbar"])}
-            scroll={{ x: scroll }}
-            rowSelection={{
-                onChange: (_, selectedRows) => setSelectedRows(selectedRows)
-            }}
-            tableAlertRender={({ selectedRowKeys, onCleanSelected }) => {
-                return (
-                    <Space size={16}>
-                        <span>已选 {selectedRowKeys.length} 项</span>
-                        <a onClick={onCleanSelected}>取消选择</a>
-                    </Space>
-                )
+        <CustomTable
+            searchItems={searchItems}
+            loading={loading}
+            updateWatchOptions={setOpts}
+            onSelectRows={(rows) => setSelectedRows(rows)}
+            defaultFieldSelectors={defaultFieldSelectors.current}
+            storageKey="virtual-machine-list-table-columns"
+            columns={columns}
+            dataSource={dataSource(resources)}
+            toolbar={{
+                actions: [
+                    <NavLink to='/compute/machines/create'><Button icon={<PlusOutlined />}>创建虚拟机</Button></NavLink>
+                ]
             }}
             tableAlertOptionRender={() => {
                 return (
@@ -120,72 +100,34 @@ export default () => {
                     </Space >
                 )
             }}
-            columns={columns}
-            actionRef={actionRef}
-            loading={{ spinning: loading, delay: 500, indicator: <LoadingOutlined /> }}
-            dataSource={dataSource(virtualMachineSummarys)}
-            request={async (params) => {
-                setOpts((prevOpts) => ({
-                    ...prevOpts,
-                    fieldSelector: simpleFieldSelector([
-                        getNamespaceFieldSelector(namespace),
-                        { fieldPath: searchOption.fieldPath, value: params.search || params.keyword }
-                    ])
-                }))
-                return { success: true }
-            }}
-            columnsState={{
-                persistenceKey: 'virtual-machine-list-table-columns',
-                persistenceType: 'localStorage',
-                onChange: (obj) => setScroll(calcScroll(obj))
-            }}
-            rowKey={(vm) => namespaceNameKey(vm)}
-            search={false}
-            options={{
-                fullScreen: true,
-                density: false,
-                search: {
-                    name: "search",
-                    autoComplete: "off",
-                    allowClear: true,
-                    style: { width: 250 },
-                    placeholder: `Search by ${searchOption.label}`,
-                    onClick: () => setSearchOption((pre) => ({ ...pre, open: true })),
-                    onBlur: () => requestAnimationFrame(() => setSearchOption((pre) => ({ ...pre, open: false }))),
-                    onKeyDown: (_e) => setSearchOption((pre) => ({ ...pre, open: false })),
-                    prefix: <Dropdown
-                        align={{ offset: [-11, 5] }}
-                        open={searchOption.open}
-                        menu={{
-                            items,
-                            onClick: (e) => {
-                                const clickedItem: any = items?.find((item: any) => item.key === e.key)
-                                setSearchOption({ fieldPath: e.key, label: clickedItem.label, open: false })
-                                searchRef.current?.focus()
-                            }
-                        }}
-                    >
-                        <span>{searchOption.label}：</span>
-                    </Dropdown>
-                }
-            }}
-            pagination={false}
-            toolbar={{
-                actions: [
-                    <NavLink to='/compute/machines/create'><Button icon={<PlusOutlined />}>创建虚拟机</Button></NavLink>
-                ]
-            }}
         />
     )
 }
 
-const items: MenuProps['items'] = [
-    { key: 'metadata.name*=', label: "Name" },
-    { key: 'status.virtualMachine.status.printableStatus=', label: 'Status' },
-    { key: 'status.network.ips[*].spec.ipAddress*=', label: 'IP' },
-    { key: 'status.virtualMachineInstance.status.nodeName*=', label: "Host" },
-    { key: 'status.dataVolumes[*].metadata.labels.vink\\.kubevm\\.io/virtualmachine\\.os=', label: "OS" },
-    { key: 'status.virtualMachineInstance.metadata.annotations.vink\\.kubevm\\.io/virtualmachineinstance\\.host*=', label: 'Host IP' }
+const searchItems: SearchItem[] = [
+    { fieldPath: "metadata.name", name: "Name", operator: "*=" },
+    {
+        fieldPath: "status.virtualMachine.status.printableStatus", name: "Status",
+        items: [
+            { inputValue: "Running", values: ["Running"], operator: '=' },
+            { inputValue: "Stopped", values: ["Stopped", "Paused"], operator: '~=' },
+            { inputValue: "Failed", values: ["CrashLoopBackOff", "ErrorUnschedulable", "ErrImagePull", "ImagePullBackOff", "ErrorPvcNotFound", "Unknown"], operator: '~=' },
+            { inputValue: 'Provisioning', values: ["Provisioning", "Starting", "Stopping", "Terminating", "Migrating", "WaitingForVolumeBinding"], operator: '~=' },
+        ]
+    },
+    {
+        fieldPath: `status.dataVolumes[*].metadata.labels.${replaceDots("vink.kubevm.io/virtualmachine.os")}`, name: "OS",
+        items: [
+            { inputValue: "Ubuntu", values: ["Ubuntu"], operator: '=' },
+            { inputValue: "CentOS", values: ["CentOS"], operator: '=' },
+            { inputValue: "Debian", values: ["Debian"], operator: '=' },
+            { inputValue: "Linux", values: ["Linux", "Ubuntu", "CentOS", "Debian"], operator: '~=' },
+            { inputValue: "Windows", values: ["Windows"], operator: '=' },
+        ]
+    },
+    { fieldPath: "status.network.ips[*].spec.ipAddress", name: "IP", operator: "*=" },
+    { fieldPath: "status.virtualMachineInstance.status.nodeName", name: "Host Name", operator: "*=" },
+    { fieldPath: `status.virtualMachineInstance.metadata.annotations.${replaceDots("vink.kubevm.io/virtualmachineinstance.host")}`, name: "Host IP", operator: "*=" }
 ]
 
 const columns: ProColumns<any>[] = [
@@ -194,7 +136,7 @@ const columns: ProColumns<any>[] = [
         title: '名称',
         fixed: 'left',
         ellipsis: true,
-        render: (_, summary) => <Link to={{ pathname: "/compute/machines/detail", search: `namespace=${summary.metadata.namespace}&name=${summary.metadata.name}` }}>{summary.metadata.name}</Link>
+        render: (_, summary) => <Link to={{ pathname: "/compute/machines/detail", search: `namespace=${summary.metadata.namespace}&name=${summary.metadata.name}` }}>{summary?.metadata.name}</Link>
     },
     {
         key: 'status',

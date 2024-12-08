@@ -218,3 +218,9 @@ export const resourceTypeName = new Map<ResourceType, string>([
     [ResourceType.STORAGE_CLASS, "StorageClass"],
     [ResourceType.IPS, "IPs"]
 ])
+
+export const arraysAreEqual = (a: any[], b: any[]) => {
+    const sortedA = [...a].sort((x, y) => JSON.stringify(x).localeCompare(JSON.stringify(y)))
+    const sortedB = [...b].sort((x, y) => JSON.stringify(x).localeCompare(JSON.stringify(y)))
+    return JSON.stringify(sortedA) === JSON.stringify(sortedB)
+}

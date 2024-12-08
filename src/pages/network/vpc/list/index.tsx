@@ -1,19 +1,18 @@
-import { PlusOutlined, LoadingOutlined } from '@ant-design/icons'
-import { ProTable } from '@ant-design/pro-components'
-import { App, Button, Dropdown, Flex, MenuProps, Modal, Popover, Select, Space, Tag } from 'antd'
+import { PlusOutlined } from '@ant-design/icons'
+import { App, Button, Dropdown, Flex, MenuProps, Modal, Popover, Space, Tag } from 'antd'
 import { useRef, useState } from 'react'
-import { extractNamespaceAndName, namespaceName } from '@/utils/k8s'
-import { NavLink, Params } from 'react-router-dom'
-import { classNames, formatTimestamp, generateMessage, getErrorMessage } from '@/utils/utils'
+import { extractNamespaceAndName } from '@/utils/k8s'
+import { NavLink } from 'react-router-dom'
+import { dataSource, formatTimestamp, generateMessage, getErrorMessage } from '@/utils/utils'
 import { clients, getResourceName } from '@/clients/clients'
 import { ResourceType } from '@/clients/ts/types/types'
 import { NotificationInstance } from 'antd/lib/notification/interface'
 import { EllipsisOutlined } from '@ant-design/icons'
-import { fieldSelector } from '@/utils/search'
+import { CustomTable, SearchItem } from '@/components/custom-table'
+import { WatchOptions } from '@/clients/ts/management/resource/v1alpha1/watch'
+import { useWatchResources } from '@/hooks/use-resource'
 import type { ActionType, ProColumns } from '@ant-design/pro-components'
-import tableStyles from '@/common/styles/table.module.less'
 import commonStyles from '@/common/styles/common.module.less'
-import { ListOptions } from '@/clients/ts/management/resource/v1alpha1/resource'
 
 export default () => {
     const { notification } = App.useApp()
@@ -22,9 +21,11 @@ export default () => {
 
     const actionRef = useRef<ActionType>()
 
-    const [vpcs, setVpcs] = useState<any[]>([])
-
     const columns = columnsFunc(actionRef, notification)
+
+    const [opts, setOpts] = useState<WatchOptions>(WatchOptions.create())
+
+    const { resources, loading } = useWatchResources(ResourceType.VPC, opts)
 
     const handleBatchDeleteVPC = async () => {
         const resourceName = getResourceName(ResourceType.VPC)
@@ -47,22 +48,14 @@ export default () => {
     }
 
     return (
-        <ProTable<any, Params>
-            className={classNames(tableStyles["table-padding"], commonStyles["small-scrollbar"])}
-            rowSelection={{
-                defaultSelectedRowKeys: [],
-                onChange: (_, selectedRows) => {
-                    setSelectedRows(selectedRows)
-                }
-            }}
-            tableAlertRender={({ selectedRowKeys, onCleanSelected }) => {
-                return (
-                    <Space size={16}>
-                        <span>已选 {selectedRowKeys.length} 项</span>
-                        <a onClick={onCleanSelected}>取消选择</a>
-                    </Space>
-                )
-            }}
+        <CustomTable
+            searchItems={searchItems}
+            loading={loading}
+            updateWatchOptions={setOpts}
+            onSelectRows={(rows) => setSelectedRows(rows)}
+            storageKey="vpcs-list-table-columns"
+            columns={columns}
+            dataSource={dataSource(resources)}
             tableAlertOptionRender={() => {
                 return (
                     <Space size={16}>
@@ -70,36 +63,6 @@ export default () => {
                     </Space>
                 )
             }}
-            columns={columns}
-            actionRef={actionRef}
-            loading={{ indicator: <LoadingOutlined /> }}
-            dataSource={vpcs}
-            request={async (params) => {
-                try {
-                    const vpcs = await clients.listResources(ResourceType.VPC, ListOptions.create({ fieldSelector: fieldSelector(params) }))
-                    setVpcs(vpcs)
-                } catch (err: any) {
-                    notification.error({ message: err })
-                }
-                return { success: true }
-            }}
-            columnsState={{
-                persistenceKey: 'vpc-list-table-columns',
-                persistenceType: 'localStorage',
-            }}
-            rowKey={(vm) => namespaceName(vm.metadata)}
-            search={false}
-            options={{
-                fullScreen: true,
-                search: {
-                    allowClear: true,
-                    style: { width: 280 },
-                    addonBefore: <Select defaultValue="metadata.name" options={[
-                        { value: 'metadata.name', label: '名称' },
-                    ]} />
-                }
-            }}
-            pagination={false}
             toolbar={{
                 actions: [
                     <NavLink to='/network/vpcs/create'><Button icon={<PlusOutlined />}>创建 VPC</Button></NavLink>
@@ -108,6 +71,12 @@ export default () => {
         />
     )
 }
+
+const searchItems: SearchItem[] = [
+    { fieldPath: "metadata.name", name: "Name", operator: "*=" },
+    { fieldPath: "spec.namespaces[*]", name: "Namespace", operator: "*=" },
+    { fieldPath: "status.subnets[*]", name: "Subnet", operator: "*=" }
+]
 
 const columnsFunc = (actionRef: any, notification: NotificationInstance) => {
     const columns: ProColumns<any>[] = [

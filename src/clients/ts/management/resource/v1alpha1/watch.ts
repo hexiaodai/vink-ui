@@ -11,6 +11,7 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
+import { FieldSelectorGroup } from "../../../types/types";
 import { ResourceType } from "../../../types/types";
 /**
  * @generated from protobuf message vink.kubevm.io.apis.management.resource.v1alpha1.WatchRequest
@@ -37,19 +38,15 @@ export interface WatchResponse {
      * @generated from protobuf field: repeated string items = 2;
      */
     items: string[];
-    /**
-     * @generated from protobuf field: vink.kubevm.io.apis.management.resource.v1alpha1.WatchOptions options = 3;
-     */
-    options?: WatchOptions;
 }
 /**
  * @generated from protobuf message vink.kubevm.io.apis.management.resource.v1alpha1.WatchOptions
  */
 export interface WatchOptions {
     /**
-     * @generated from protobuf field: repeated string field_selector = 1;
+     * @generated from protobuf field: vink.kubevm.io.apis.types.FieldSelectorGroup field_selector_group = 1;
      */
-    fieldSelector: string[];
+    fieldSelectorGroup?: FieldSelectorGroup; // repeated string field_selector = 1;
 }
 /**
  * @generated from protobuf enum vink.kubevm.io.apis.management.resource.v1alpha1.EventType
@@ -127,8 +124,7 @@ class WatchResponse$Type extends MessageType<WatchResponse> {
     constructor() {
         super("vink.kubevm.io.apis.management.resource.v1alpha1.WatchResponse", [
             { no: 1, name: "event_type", kind: "enum", T: () => ["vink.kubevm.io.apis.management.resource.v1alpha1.EventType", EventType] },
-            { no: 2, name: "items", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "options", kind: "message", T: () => WatchOptions }
+            { no: 2, name: "items", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<WatchResponse>): WatchResponse {
@@ -150,9 +146,6 @@ class WatchResponse$Type extends MessageType<WatchResponse> {
                 case /* repeated string items */ 2:
                     message.items.push(reader.string());
                     break;
-                case /* vink.kubevm.io.apis.management.resource.v1alpha1.WatchOptions options */ 3:
-                    message.options = WatchOptions.internalBinaryRead(reader, reader.uint32(), options, message.options);
-                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -171,9 +164,6 @@ class WatchResponse$Type extends MessageType<WatchResponse> {
         /* repeated string items = 2; */
         for (let i = 0; i < message.items.length; i++)
             writer.tag(2, WireType.LengthDelimited).string(message.items[i]);
-        /* vink.kubevm.io.apis.management.resource.v1alpha1.WatchOptions options = 3; */
-        if (message.options)
-            WatchOptions.internalBinaryWrite(message.options, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -188,12 +178,11 @@ export const WatchResponse = new WatchResponse$Type();
 class WatchOptions$Type extends MessageType<WatchOptions> {
     constructor() {
         super("vink.kubevm.io.apis.management.resource.v1alpha1.WatchOptions", [
-            { no: 1, name: "field_selector", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+            { no: 1, name: "field_selector_group", kind: "message", T: () => FieldSelectorGroup }
         ]);
     }
     create(value?: PartialMessage<WatchOptions>): WatchOptions {
         const message = globalThis.Object.create((this.messagePrototype!));
-        message.fieldSelector = [];
         if (value !== undefined)
             reflectionMergePartial<WatchOptions>(this, message, value);
         return message;
@@ -203,8 +192,8 @@ class WatchOptions$Type extends MessageType<WatchOptions> {
         while (reader.pos < end) {
             let [fieldNo, wireType] = reader.tag();
             switch (fieldNo) {
-                case /* repeated string field_selector */ 1:
-                    message.fieldSelector.push(reader.string());
+                case /* vink.kubevm.io.apis.types.FieldSelectorGroup field_selector_group */ 1:
+                    message.fieldSelectorGroup = FieldSelectorGroup.internalBinaryRead(reader, reader.uint32(), options, message.fieldSelectorGroup);
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -218,9 +207,9 @@ class WatchOptions$Type extends MessageType<WatchOptions> {
         return message;
     }
     internalBinaryWrite(message: WatchOptions, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* repeated string field_selector = 1; */
-        for (let i = 0; i < message.fieldSelector.length; i++)
-            writer.tag(1, WireType.LengthDelimited).string(message.fieldSelector[i]);
+        /* vink.kubevm.io.apis.types.FieldSelectorGroup field_selector_group = 1; */
+        if (message.fieldSelectorGroup)
+            FieldSelectorGroup.internalBinaryWrite(message.fieldSelectorGroup, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

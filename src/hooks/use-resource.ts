@@ -33,7 +33,7 @@ export const useListResources = (resourceType: ResourceType, opts?: ListOptions)
     return { resources, error }
 }
 
-export const useWatchResources = (resourceType: ResourceType, opts?: WatchOptions) => {
+export const useWatchResources = (resourceType: ResourceType, opts?: WatchOptions, pause?: boolean) => {
     const abortCtrl = useRef<AbortController>()
 
     const needClean = useRef(false)
@@ -50,6 +50,8 @@ export const useWatchResources = (resourceType: ResourceType, opts?: WatchOption
 
         abortCtrl.current?.abort()
         abortCtrl.current = new AbortController()
+
+        console.log("fetchDatafetchDatafetchDatafetchDatafetchData", opts)
 
         const call = clients.watch.watch({
             resourceType: resourceType,
@@ -102,8 +104,11 @@ export const useWatchResources = (resourceType: ResourceType, opts?: WatchOption
     }, [opts])
 
     useEffect(() => {
+        if (pause) {
+            return
+        }
         fetchData()
-    }, [fetchData])
+    }, [fetchData, pause])
 
     useUnmount(() => {
         setLoading(false)

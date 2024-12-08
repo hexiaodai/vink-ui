@@ -1,20 +1,18 @@
-import { PlusOutlined, LoadingOutlined } from '@ant-design/icons'
-import { ProTable } from '@ant-design/pro-components'
-import { App, Button, Dropdown, MenuProps, Modal, Select, Space } from 'antd'
+import { PlusOutlined } from '@ant-design/icons'
+import { App, Button, Dropdown, MenuProps, Modal, Space } from 'antd'
 import { useEffect, useRef, useState } from 'react'
-import { namespaceNameKey } from '@/utils/k8s'
-import { NavLink, Params } from 'react-router-dom'
-import { classNames, formatTimestamp, generateMessage, getErrorMessage, getProvider } from '@/utils/utils'
+import { NavLink } from 'react-router-dom'
+import { dataSource, formatTimestamp, generateMessage, getErrorMessage, getProvider } from '@/utils/utils'
 import { useNamespace } from '@/common/context'
 import { clients, getResourceName } from '@/clients/clients'
 import { ResourceType } from '@/clients/ts/types/types'
 import { NotificationInstance } from 'antd/lib/notification/interface'
 import { EllipsisOutlined } from '@ant-design/icons'
-import { fieldSelector } from '@/utils/search'
+import { CustomTable, SearchItem } from '@/components/custom-table'
+import { WatchOptions } from '@/clients/ts/management/resource/v1alpha1/watch'
+import { useWatchResources } from '@/hooks/use-resource'
 import type { ActionType, ProColumns } from '@ant-design/pro-components'
-import tableStyles from '@/common/styles/table.module.less'
 import commonStyles from '@/common/styles/common.module.less'
-import { ListOptions } from '@/clients/ts/management/resource/v1alpha1/resource'
 
 export default () => {
     const { notification } = App.useApp()
@@ -25,9 +23,11 @@ export default () => {
 
     const actionRef = useRef<ActionType>()
 
-    const [multus, setMultus] = useState<any[]>([])
-
     const columns = columnsFunc(actionRef, notification)
+
+    const [opts, setOpts] = useState<WatchOptions>(WatchOptions.create())
+
+    const { resources, loading } = useWatchResources(ResourceType.MULTUS, opts)
 
     const handleBatchDeleteMultus = async () => {
         const resourceName = getResourceName(ResourceType.MULTUS)
@@ -54,22 +54,14 @@ export default () => {
     }, [namespace])
 
     return (
-        <ProTable<any, Params>
-            className={classNames(tableStyles["table-padding"], commonStyles["small-scrollbar"])}
-            rowSelection={{
-                defaultSelectedRowKeys: [],
-                onChange: (_, selectedRows) => {
-                    setSelectedRows(selectedRows)
-                }
-            }}
-            tableAlertRender={({ selectedRowKeys, onCleanSelected }) => {
-                return (
-                    <Space size={16}>
-                        <span>已选 {selectedRowKeys.length} 项</span>
-                        <a onClick={onCleanSelected}>取消选择</a>
-                    </Space>
-                )
-            }}
+        <CustomTable
+            searchItems={searchItems}
+            loading={loading}
+            updateWatchOptions={setOpts}
+            onSelectRows={(rows) => setSelectedRows(rows)}
+            storageKey="multus-list-table-columns"
+            columns={columns}
+            dataSource={dataSource(resources)}
             tableAlertOptionRender={() => {
                 return (
                     <Space size={16}>
@@ -77,36 +69,6 @@ export default () => {
                     </Space>
                 )
             }}
-            columns={columns}
-            actionRef={actionRef}
-            loading={{ indicator: <LoadingOutlined /> }}
-            dataSource={multus}
-            request={async (params) => {
-                try {
-                    const multus = await clients.listResources(ResourceType.MULTUS, ListOptions.create({ fieldSelector: fieldSelector(params) }))
-                    setMultus(multus)
-                } catch (err: any) {
-                    notification.error({ message: err })
-                }
-                return { success: true }
-            }}
-            columnsState={{
-                persistenceKey: 'multus-list-table-columns',
-                persistenceType: 'localStorage',
-            }}
-            rowKey={(vm) => namespaceNameKey(vm)}
-            search={false}
-            options={{
-                fullScreen: true,
-                search: {
-                    allowClear: true,
-                    style: { width: 280 },
-                    addonBefore: <Select defaultValue="metadata.name" options={[
-                        { value: 'metadata.name', label: '名称' },
-                    ]} />
-                }
-            }}
-            pagination={false}
             toolbar={{
                 actions: [
                     <NavLink to='/network/multus/create'><Button icon={<PlusOutlined />}>创建 Multus</Button></NavLink>
@@ -115,6 +77,10 @@ export default () => {
         />
     )
 }
+
+const searchItems: SearchItem[] = [
+    { fieldPath: "metadata.name", name: "Name", operator: "*=" }
+]
 
 const columnsFunc = (actionRef: any, notification: NotificationInstance) => {
     const columns: ProColumns<any>[] = [
