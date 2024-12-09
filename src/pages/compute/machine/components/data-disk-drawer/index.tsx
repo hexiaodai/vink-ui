@@ -3,12 +3,12 @@ import { useEffect, useState } from 'react'
 import { formatMemoryString } from '@/utils/k8s'
 import { instances as annotations } from "@/clients/ts/annotation/annotations.gen"
 import { instances as labels } from "@/clients/ts/label/labels.gen"
-import { ResourceType } from '@/clients/ts/types/types'
+import { FieldSelector, ResourceType } from '@/clients/ts/types/types'
 import { useWatchResources } from '@/hooks/use-resource'
-import { getNamespaceFieldSelector, replaceDots, simpleFieldSelector } from '@/utils/search'
+import { getNamespaceFieldSelector, replaceDots } from '@/utils/search'
 import { useNamespaceFromURL } from '@/hooks/use-namespace-from-url'
 import { CustomTable } from '@/components/custom-table'
-import { dataSource } from '@/utils/utils'
+import { dataSource, filterNullish } from '@/utils/utils'
 import { WatchOptions } from '@/clients/ts/management/resource/v1alpha1/watch'
 import type { ProColumns } from '@ant-design/pro-components'
 
@@ -19,6 +19,8 @@ interface DataDiskDrawerProps {
     onConfirm?: (dataDisks: any[]) => void
 }
 
+const dvTypeSelector: FieldSelector = { fieldPath: `metadata.labels.${replaceDots(labels.VinkDatavolumeType.name)}`, operator: "=", values: ["data"] }
+
 export const DataDiskDrawer: React.FC<DataDiskDrawerProps> = ({ open, current, onCanel, onConfirm }) => {
     const namespaceName = useNamespaceFromURL()
 
@@ -28,12 +30,14 @@ export const DataDiskDrawer: React.FC<DataDiskDrawerProps> = ({ open, current, o
         setSelectedRows(current || [])
     }, [open])
 
+    const [defaultFieldSelectors, setDefaultFieldSelectors] = useState<FieldSelector[]>(filterNullish([getNamespaceFieldSelector(namespaceName.namespace), dvTypeSelector]))
     const [opts, setOpts] = useState<WatchOptions>(WatchOptions.create({
-        fieldSelector: simpleFieldSelector([
-            getNamespaceFieldSelector(namespaceName.namespace),
-            { fieldPath: `metadata.labels.${replaceDots(labels.VinkDatavolumeType.name)}`, operator: "=", value: "data" }
-        ])
+        fieldSelectorGroup: { operator: "&&", fieldSelectors: defaultFieldSelectors }
     }))
+
+    useEffect(() => {
+        setDefaultFieldSelectors(filterNullish([getNamespaceFieldSelector(namespaceName.namespace), dvTypeSelector]))
+    }, [namespaceName.namespace])
 
     const { resources, loading } = useWatchResources(ResourceType.DATA_VOLUME, opts, !open)
 
@@ -72,7 +76,7 @@ export const DataDiskDrawer: React.FC<DataDiskDrawerProps> = ({ open, current, o
             <CustomTable
                 loading={loading}
                 storageKey="data-disk-drawer-table-columns"
-                searchOptions={searchOptions}
+                defaultFieldSelectors={defaultFieldSelectors}
                 columns={columns}
                 updateWatchOptions={setOpts}
                 dataSource={dataSource(resources)}

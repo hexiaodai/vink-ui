@@ -1,9 +1,9 @@
 import { PlusOutlined } from '@ant-design/icons'
 import { App, Badge, Button, Dropdown, Flex, MenuProps, Modal, Popover, Space, Tag } from 'antd'
-import { useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { formatMemory } from '@/utils/k8s'
 import { NavLink } from 'react-router-dom'
-import { dataSource, formatTimestamp, generateMessage, getErrorMessage } from '@/utils/utils'
+import { dataSource, filterNullish, formatTimestamp, generateMessage, getErrorMessage } from '@/utils/utils'
 import { useNamespace } from '@/common/context'
 import { clients, getResourceName } from '@/clients/clients'
 import { FieldSelector, ResourceType } from '@/clients/ts/types/types'
@@ -19,6 +19,8 @@ import { CustomTable, SearchItem } from '@/components/custom-table'
 import type { ProColumns } from '@ant-design/pro-components'
 import commonStyles from '@/common/styles/common.module.less'
 
+const dvDataTypeSelector = { fieldPath: `metadata.labels.${replaceDots(labels.VinkDatavolumeType.name)}`, operator: "!=", values: ["image"] }
+
 export default () => {
     const { notification } = App.useApp()
 
@@ -26,10 +28,14 @@ export default () => {
 
     const [selectedRows, setSelectedRows] = useState<any[]>([])
 
-    const defaultFieldSelectors = useRef<FieldSelector[]>([getNamespaceFieldSelector(namespace), { fieldPath: `metadata.labels.${replaceDots(labels.VinkDatavolumeType.name)}`, operator: "!=", values: ["image"] }])
+    const [defaultFieldSelectors, setDefaultFieldSelectors] = useState<FieldSelector[]>(filterNullish([getNamespaceFieldSelector(namespace), dvDataTypeSelector]))
     const [opts, setOpts] = useState<WatchOptions>(WatchOptions.create({
-        fieldSelectorGroup: { operator: "&&", fieldSelectors: defaultFieldSelectors.current }
+        fieldSelectorGroup: { operator: "&&", fieldSelectors: defaultFieldSelectors }
     }))
+
+    useEffect(() => {
+        setDefaultFieldSelectors(filterNullish([getNamespaceFieldSelector(namespace), dvDataTypeSelector]))
+    }, [namespace])
 
     const { resources, loading } = useWatchResources(ResourceType.DATA_VOLUME, opts)
 
@@ -61,7 +67,7 @@ export default () => {
             loading={loading}
             updateWatchOptions={setOpts}
             onSelectRows={(rows) => setSelectedRows(rows)}
-            defaultFieldSelectors={defaultFieldSelectors.current}
+            defaultFieldSelectors={defaultFieldSelectors}
             storageKey="disk-list-table-columns"
             columns={columns}
             dataSource={dataSource(resources)}

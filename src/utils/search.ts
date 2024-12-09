@@ -202,10 +202,19 @@ export const parseFieldSelector = (input?: string): fieldSelector[] => {
 //         .filter((item): item is fieldSelector => item !== null)
 // }
 
-export const getNamespaceFieldSelector = (namespace: string): FieldSelector => {
-    return { fieldPath: 'metadata.namespace', values: [namespace], operator: '=' }
-    // return { fieldPath: 'metadata.namespace', value: namespace, operator: '=' }
+export const getNamespaceFieldSelector = (namespace: string): FieldSelector | undefined => {
+    if (namespace && namespace.length > 0) {
+        return { fieldPath: 'metadata.namespace', values: [namespace], operator: '=' }
+    }
+    return undefined
 }
+
+// export const getNamespaceFieldSelectors = (namespace: string): FieldSelector[] => {
+//     if (namespace && namespace.length > 0) {
+//         return [{ fieldPath: 'metadata.namespace', values: [namespace], operator: '=' }]
+//     }
+//     return []
+// }
 
 export const replaceDots = (input: string): string => {
     return input.replace(/\./g, '\\.')

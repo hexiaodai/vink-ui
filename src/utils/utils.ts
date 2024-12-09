@@ -224,3 +224,7 @@ export const arraysAreEqual = (a: any[], b: any[]) => {
     const sortedB = [...b].sort((x, y) => JSON.stringify(x).localeCompare(JSON.stringify(y)))
     return JSON.stringify(sortedA) === JSON.stringify(sortedB)
 }
+
+export const filterNullish = <T>(array: (T | null | undefined)[]): T[] => {
+    return array.filter((item): item is T => item != null)
+}
