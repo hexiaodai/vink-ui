@@ -1,10 +1,10 @@
 import { PlusOutlined } from '@ant-design/icons'
 import { App, Button, Flex, Modal, Popover, Space, Tag } from 'antd'
-import { useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { extractNamespaceAndName, formatMemory } from '@/utils/k8s'
 import { Link, NavLink } from 'react-router-dom'
 import { VirtualMachinePowerStateRequest_PowerState } from '@/clients/ts/management/virtualmachine/v1alpha1/virtualmachine'
-import { dataSource, formatTimestamp, generateMessage, getErrorMessage } from '@/utils/utils'
+import { dataSource, filterNullish, formatTimestamp, generateMessage, getErrorMessage } from '@/utils/utils'
 import { useNamespace } from '@/common/context'
 import { FieldSelector, ResourceType } from '@/clients/ts/types/types'
 import { clients, getPowerStateName, getResourceName } from '@/clients/clients'
@@ -28,10 +28,14 @@ export default () => {
 
     const [selectedRows, setSelectedRows] = useState<any[]>([])
 
-    const defaultFieldSelectors = useRef<FieldSelector[]>([getNamespaceFieldSelector(namespace)])
+    const [defaultFieldSelectors, setDefaultFieldSelectors] = useState<FieldSelector[]>(filterNullish([getNamespaceFieldSelector(namespace)]))
     const [opts, setOpts] = useState<WatchOptions>(WatchOptions.create({
-        fieldSelectorGroup: { operator: "&&", fieldSelectors: defaultFieldSelectors.current }
+        fieldSelectorGroup: { operator: "&&", fieldSelectors: defaultFieldSelectors }
     }))
+
+    useEffect(() => {
+        setDefaultFieldSelectors(filterNullish([getNamespaceFieldSelector(namespace)]))
+    }, [namespace])
 
     const { resources, loading } = useWatchResources(ResourceType.VIRTUAL_MACHINE_SUMMARY, opts)
 
@@ -81,7 +85,7 @@ export default () => {
             loading={loading}
             updateWatchOptions={setOpts}
             onSelectRows={(rows) => setSelectedRows(rows)}
-            defaultFieldSelectors={defaultFieldSelectors.current}
+            defaultFieldSelectors={defaultFieldSelectors}
             storageKey="virtual-machine-list-table-columns"
             columns={columns}
             dataSource={dataSource(resources)}

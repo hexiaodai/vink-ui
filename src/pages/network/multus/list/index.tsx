@@ -2,10 +2,10 @@ import { PlusOutlined } from '@ant-design/icons'
 import { App, Button, Dropdown, MenuProps, Modal, Space } from 'antd'
 import { useEffect, useRef, useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import { dataSource, formatTimestamp, generateMessage, getErrorMessage, getProvider } from '@/utils/utils'
+import { dataSource, filterNullish, formatTimestamp, generateMessage, getErrorMessage, getProvider } from '@/utils/utils'
 import { useNamespace } from '@/common/context'
 import { clients, getResourceName } from '@/clients/clients'
-import { ResourceType } from '@/clients/ts/types/types'
+import { FieldSelector, ResourceType } from '@/clients/ts/types/types'
 import { NotificationInstance } from 'antd/lib/notification/interface'
 import { EllipsisOutlined } from '@ant-design/icons'
 import { CustomTable, SearchItem } from '@/components/custom-table'
@@ -13,6 +13,7 @@ import { WatchOptions } from '@/clients/ts/management/resource/v1alpha1/watch'
 import { useWatchResources } from '@/hooks/use-resource'
 import type { ActionType, ProColumns } from '@ant-design/pro-components'
 import commonStyles from '@/common/styles/common.module.less'
+import { getNamespaceFieldSelector } from '@/utils/search'
 
 export default () => {
     const { notification } = App.useApp()
@@ -25,7 +26,14 @@ export default () => {
 
     const columns = columnsFunc(actionRef, notification)
 
-    const [opts, setOpts] = useState<WatchOptions>(WatchOptions.create())
+    const [defaultFieldSelectors, setDefaultFieldSelectors] = useState<FieldSelector[]>(filterNullish([getNamespaceFieldSelector(namespace)]))
+    const [opts, setOpts] = useState<WatchOptions>(WatchOptions.create({
+        fieldSelectorGroup: { operator: "&&", fieldSelectors: defaultFieldSelectors }
+    }))
+
+    useEffect(() => {
+        setDefaultFieldSelectors(filterNullish([getNamespaceFieldSelector(namespace)]))
+    }, [namespace])
 
     const { resources, loading } = useWatchResources(ResourceType.MULTUS, opts)
 
@@ -59,6 +67,7 @@ export default () => {
             loading={loading}
             updateWatchOptions={setOpts}
             onSelectRows={(rows) => setSelectedRows(rows)}
+            defaultFieldSelectors={defaultFieldSelectors}
             storageKey="multus-list-table-columns"
             columns={columns}
             dataSource={dataSource(resources)}
