@@ -56,13 +56,13 @@ const VirtualMachineManagement: React.FC<Props> = ({ vm, namespace, type }) => {
         })
     }
 
-    const handleConfirmDisk = (disks: any[]) => {
+    const handleConfirmDisk = async (disks: any[]) => {
         if (disks.length == 0) {
             return
         }
         try {
             updateDataDisks(virtualMachine, disks)
-            clients.updateResource(ResourceType.VIRTUAL_MACHINE, disks)
+            await clients.updateResource(ResourceType.VIRTUAL_MACHINE, virtualMachine)
             setOpenDrawer((prevState) => ({ ...prevState, dataDisk: false }))
         } catch (err) {
             notification.error({
