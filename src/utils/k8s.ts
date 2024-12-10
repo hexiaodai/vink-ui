@@ -64,16 +64,17 @@ export const namespaceName = <T extends ObjectMeta>(obj?: T) => {
 }
 
 export const namespaceNameKey = (obj: any) => {
+    let output = ""
     if (obj.metadata && typeof obj.metadata.namespace === 'string' && typeof obj.metadata.name === 'string') {
-        return `${obj.metadata.namespace}/${obj.metadata.name}`
+        output = `${obj.metadata.namespace}/${obj.metadata.name}`
     } else if (typeof obj.namespace === 'string' && typeof obj.name === 'string') {
-        return `${obj.namespace}/${obj.name}`
+        output = `${obj.namespace}/${obj.name}`
     } else if (typeof obj.name === 'string') {
-        return obj.name
+        output = obj.name
     } else if (obj.metadata && typeof obj.metadata.name === 'string') {
-        return obj.metadata.name
+        output = obj.metadata.name
     }
-    return ""
+    return output.startsWith("/") ? output.slice(1) : output
 }
 
 export const extractNamespaceAndName = (crd: any) => {

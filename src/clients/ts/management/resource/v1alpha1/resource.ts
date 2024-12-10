@@ -12,6 +12,7 @@ import { UnknownFieldHandler } from "@protobuf-ts/runtime";
 import type { PartialMessage } from "@protobuf-ts/runtime";
 import { reflectionMergePartial } from "@protobuf-ts/runtime";
 import { MessageType } from "@protobuf-ts/runtime";
+import { FieldSelectorGroup } from "../../../types/types";
 import { NamespaceName } from "../../../types/types";
 import { ResourceType } from "../../../types/types";
 /**
@@ -110,9 +111,11 @@ export interface ListOptions {
      */
     fieldSelector: string;
     /**
-     * @generated from protobuf field: repeated string arbitrary_field_selectors = 3;
+     * repeated string arbitrary_field_selectors = 3;
+     *
+     * @generated from protobuf field: vink.kubevm.io.apis.types.FieldSelectorGroup field_selector_group = 3;
      */
-    arbitraryFieldSelectors: string[];
+    fieldSelectorGroup?: FieldSelectorGroup;
     /**
      * @generated from protobuf field: int32 limit = 4;
      */
@@ -498,7 +501,7 @@ class ListOptions$Type extends MessageType<ListOptions> {
         super("vink.kubevm.io.apis.management.resource.v1alpha1.ListOptions", [
             { no: 1, name: "label_selector", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "field_selector", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "arbitrary_field_selectors", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "field_selector_group", kind: "message", T: () => FieldSelectorGroup },
             { no: 4, name: "limit", kind: "scalar", T: 5 /*ScalarType.INT32*/, options: { "validate.rules": { int32: { gte: 0 } } } },
             { no: 5, name: "continue", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "namespace", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
@@ -508,7 +511,6 @@ class ListOptions$Type extends MessageType<ListOptions> {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.labelSelector = "";
         message.fieldSelector = "";
-        message.arbitraryFieldSelectors = [];
         message.limit = 0;
         message.continue = "";
         message.namespace = "";
@@ -527,8 +529,8 @@ class ListOptions$Type extends MessageType<ListOptions> {
                 case /* string field_selector */ 2:
                     message.fieldSelector = reader.string();
                     break;
-                case /* repeated string arbitrary_field_selectors */ 3:
-                    message.arbitraryFieldSelectors.push(reader.string());
+                case /* vink.kubevm.io.apis.types.FieldSelectorGroup field_selector_group */ 3:
+                    message.fieldSelectorGroup = FieldSelectorGroup.internalBinaryRead(reader, reader.uint32(), options, message.fieldSelectorGroup);
                     break;
                 case /* int32 limit */ 4:
                     message.limit = reader.int32();
@@ -557,9 +559,9 @@ class ListOptions$Type extends MessageType<ListOptions> {
         /* string field_selector = 2; */
         if (message.fieldSelector !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.fieldSelector);
-        /* repeated string arbitrary_field_selectors = 3; */
-        for (let i = 0; i < message.arbitraryFieldSelectors.length; i++)
-            writer.tag(3, WireType.LengthDelimited).string(message.arbitraryFieldSelectors[i]);
+        /* vink.kubevm.io.apis.types.FieldSelectorGroup field_selector_group = 3; */
+        if (message.fieldSelectorGroup)
+            FieldSelectorGroup.internalBinaryWrite(message.fieldSelectorGroup, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         /* int32 limit = 4; */
         if (message.limit !== 0)
             writer.tag(4, WireType.Varint).int32(message.limit);

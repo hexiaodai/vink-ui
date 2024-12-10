@@ -2,7 +2,7 @@ import { PlusOutlined } from '@ant-design/icons'
 import { App, Badge, Button, Dropdown, Flex, MenuProps, Modal, Popover, Space, Tag } from 'antd'
 import { useEffect, useState } from 'react'
 import { formatMemory } from '@/utils/k8s'
-import { NavLink } from 'react-router-dom'
+import { Link, NavLink } from 'react-router-dom'
 import { dataSource, filterNullish, formatTimestamp, generateMessage, getErrorMessage } from '@/utils/utils'
 import { useNamespace } from '@/common/context'
 import { clients, getResourceName } from '@/clients/clients'
@@ -121,7 +121,7 @@ const columnsFunc = (notification: NotificationInstance) => {
             title: '名称',
             fixed: 'left',
             ellipsis: true,
-            render: (_, dv) => <>{dv.metadata.name}</>
+            render: (_, dv) => <Link to={{ pathname: "/storage/disks/detail", search: `namespace=${dv.metadata.namespace}&name=${dv.metadata.name}` }}>{dv.metadata.name}</Link>
         },
         {
             key: 'status',

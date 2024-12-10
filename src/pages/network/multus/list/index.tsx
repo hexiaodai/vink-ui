@@ -1,7 +1,7 @@
 import { PlusOutlined } from '@ant-design/icons'
 import { App, Button, Dropdown, MenuProps, Modal, Space } from 'antd'
 import { useEffect, useRef, useState } from 'react'
-import { NavLink } from 'react-router-dom'
+import { Link, NavLink } from 'react-router-dom'
 import { dataSource, filterNullish, formatTimestamp, generateMessage, getErrorMessage, getProvider } from '@/utils/utils'
 import { useNamespace } from '@/common/context'
 import { clients, getResourceName } from '@/clients/clients'
@@ -98,7 +98,7 @@ const columnsFunc = (actionRef: any, notification: NotificationInstance) => {
             title: '名称',
             fixed: 'left',
             ellipsis: true,
-            render: (_, mc) => mc.metadata.name
+            render: (_, mc) => <Link to={{ pathname: "/network/multus/detail", search: `namespace=${mc.metadata.namespace}&name=${mc.metadata.name}` }}>{mc.metadata.name}</Link>
         },
         {
             key: 'provider',
