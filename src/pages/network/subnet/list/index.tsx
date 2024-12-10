@@ -2,7 +2,7 @@ import { PlusOutlined } from '@ant-design/icons'
 import { App, Badge, Button, Dropdown, Flex, MenuProps, Modal, Popover, Space, Tag } from 'antd'
 import { useRef, useState } from 'react'
 import { extractNamespaceAndName } from '@/utils/k8s'
-import { NavLink } from 'react-router-dom'
+import { Link, NavLink } from 'react-router-dom'
 import { dataSource, formatTimestamp, generateMessage, getErrorMessage } from '@/utils/utils'
 import { ResourceType } from '@/clients/ts/types/types'
 import { clients, getResourceName } from '@/clients/clients'
@@ -97,7 +97,7 @@ const columnsFunc = (actionRef: any, notification: NotificationInstance) => {
             title: '名称',
             fixed: 'left',
             ellipsis: true,
-            render: (_, subnet) => subnet.metadata.name
+            render: (_, subnet) => <Link to={{ pathname: "/network/subnets/detail", search: `name=${subnet.metadata.name}` }}>{subnet.metadata.name}</Link>
         },
         {
             key: 'status',

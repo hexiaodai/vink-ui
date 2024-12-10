@@ -1,18 +1,16 @@
-import { LoadingOutlined } from '@ant-design/icons'
-import { ProTable } from '@ant-design/pro-components'
-import { Button, Drawer, Flex, Select, Space } from 'antd'
+import { Badge, Button, Drawer, Flex, Space } from 'antd'
 import { useEffect, useRef, useState } from 'react'
-import { formatMemoryString, namespaceName, namespaceNameKey } from '@/utils/k8s'
-import { Params } from 'react-router-dom'
+import { formatMemoryString, namespaceName } from '@/utils/k8s'
 import { instances as labels } from "@/clients/ts/label/labels.gen"
-import { ResourceType } from '@/clients/ts/types/types'
-import { useListResources } from '@/hooks/use-resource'
-import { fieldSelector } from '@/utils/search'
-import type { ActionType, ProColumns } from '@ant-design/pro-components'
-import React from 'react'
-import tableStyles from '@/common/styles/table.module.less'
+import { FieldSelector, ResourceType } from '@/clients/ts/types/types'
+import { useWatchResources } from '@/hooks/use-resource'
+import { replaceDots } from '@/utils/search'
+import { CustomTable, SearchItem } from '@/components/custom-table'
+import { dataSource, filterNullish } from '@/utils/utils'
+import { WatchOptions } from '@/clients/ts/management/resource/v1alpha1/watch'
+import { dataVolumeStatusMap } from '@/utils/resource-status'
+import type { ProColumns } from '@ant-design/pro-components'
 import OperatingSystem from '@/components/operating-system'
-import { ListOptions } from '@/clients/ts/management/resource/v1alpha1/resource'
 
 interface RootDiskDrawerProps {
     open?: boolean
@@ -21,6 +19,8 @@ interface RootDiskDrawerProps {
     onConfirm?: (rootDisk?: any) => void
 }
 
+const dvTypeSelector: FieldSelector = { fieldPath: `metadata.labels.${replaceDots(labels.VinkDatavolumeType.name)}`, operator: "=", values: ["image"] }
+
 export const RootDiskDrawer: React.FC<RootDiskDrawerProps> = ({ open, current, onCanel, onConfirm }) => {
     const [selectedRows, setSelectedRows] = useState<any[]>([])
 
@@ -28,11 +28,10 @@ export const RootDiskDrawer: React.FC<RootDiskDrawerProps> = ({ open, current, o
         setSelectedRows(current ? [current] : [])
     }, [open])
 
-    const actionRef = useRef<ActionType>()
+    const defaultFieldSelectors = useRef<FieldSelector[]>(filterNullish([dvTypeSelector]))
+    const [opts, setOpts] = useState<WatchOptions>(WatchOptions.create({ fieldSelectorGroup: { fieldSelectors: defaultFieldSelectors.current } }))
 
-    const [opts, setOpts] = useState<ListOptions>(ListOptions.create({ labelSelector: `${labels.VinkDatavolumeType.name}=image` }))
-
-    const { resources: images } = useListResources(ResourceType.DATA_VOLUME, opts)
+    const { resources, loading } = useWatchResources(ResourceType.DATA_VOLUME, opts, !open)
 
     return (
         <Drawer
@@ -56,43 +55,46 @@ export const RootDiskDrawer: React.FC<RootDiskDrawerProps> = ({ open, current, o
                 </Flex>
             }
         >
-            <ProTable<any, Params>
-                className={tableStyles["table-padding"]}
+            <CustomTable
+                loading={loading}
+                storageKey="root-disk-drawer-table-columns"
+                defaultFieldSelectors={defaultFieldSelectors.current}
+                searchItems={searchItems}
+                columns={rootDiskDrawerColumns}
+                updateWatchOptions={setOpts}
+                dataSource={dataSource(resources)}
                 rowSelection={{
                     type: 'radio',
                     selectedRowKeys: selectedRows.length > 0 ? [namespaceName(selectedRows[0].metadata)] : [],
                     onChange: (_, selectedRows) => setSelectedRows(selectedRows)
                 }}
-                tableAlertRender={false}
-                columns={rootDiskDrawerColumns}
-                actionRef={actionRef}
-                loading={{ indicator: <LoadingOutlined /> }}
-                dataSource={images}
-                request={async (params) => {
-                    setOpts({
-                        ...opts, ...(fieldSelector(params) && { fieldSelector: fieldSelector(params) })
-                    })
-                    return { success: true }
-                }}
-                rowKey={(vm) => namespaceNameKey(vm)}
-                search={false}
-                options={{
-                    setting: false,
-                    density: false,
-                    search: {
-                        allowClear: true,
-                        style: { width: 280 },
-                        addonBefore: <Select defaultValue="metadata.name" options={[
-                            { value: 'metadata.name', label: '名称' }
-                        ]} />
-                    }
-                }}
-                pagination={false}
+                tableAlertOptionRender={() => <></>}
             />
         </Drawer>
     )
 }
 
+const searchItems: SearchItem[] = [
+    { fieldPath: "metadata.name", name: "Name", operator: "*=" },
+    {
+        fieldPath: "status.phase", name: "Status",
+        items: [
+            { inputValue: "Succeeded", values: ["Succeeded"], operator: '=' },
+            { inputValue: "Failed", values: ["Failed"], operator: '=' },
+            { inputValue: 'Provisioning', values: ["ImportInProgress", "CloneInProgress", "CloneFromSnapshotSourceInProgress", "SmartClonePVCInProgress", "CSICloneInProgress", "ExpansionInProgress", "NamespaceTransferInProgress", "PrepClaimInProgress", "RebindInProgress"], operator: '~=' },
+        ]
+    },
+    {
+        fieldPath: `metadata.labels.${replaceDots("vink.kubevm.io/virtualmachine.os")}`, name: "OS",
+        items: [
+            { inputValue: "Ubuntu", values: ["Ubuntu"], operator: '=' },
+            { inputValue: "CentOS", values: ["CentOS"], operator: '=' },
+            { inputValue: "Debian", values: ["Debian"], operator: '=' },
+            { inputValue: "Linux", values: ["Linux", "Ubuntu", "CentOS", "Debian"], operator: '~=' },
+            { inputValue: "Windows", values: ["Windows"], operator: '=' },
+        ]
+    },
+]
 
 export const rootDiskDrawerColumns: ProColumns<any>[] = [
     {
@@ -100,6 +102,15 @@ export const rootDiskDrawerColumns: ProColumns<any>[] = [
         key: 'name',
         ellipsis: true,
         render: (_, dv) => dv.metadata.name
+    },
+    {
+        key: 'status',
+        title: '状态',
+        ellipsis: true,
+        render: (_, dv) => {
+            const displayStatus = parseFloat(dv.status.progress) === 100 ? dataVolumeStatusMap[dv.status.phase].text : dv.status.progress
+            return <Badge status={dataVolumeStatusMap[dv.status.phase].badge} text={displayStatus} />
+        }
     },
     {
         title: '操作系统',

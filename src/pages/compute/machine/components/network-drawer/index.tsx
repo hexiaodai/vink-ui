@@ -7,10 +7,10 @@ import { PlusOutlined } from '@ant-design/icons'
 import { namespaceNameKey } from '@/utils/k8s'
 import { getErrorMessage, getProvider } from '@/utils/utils'
 import { NetworkConfig } from '../../virtualmachine'
+import { ListOptions } from '@/clients/ts/management/resource/v1alpha1/resource'
 import type { ProFormInstance } from '@ant-design/pro-components'
 import React from 'react'
 import formStyles from "@/common/styles/form.module.less"
-import { ListOptions } from '@/clients/ts/management/resource/v1alpha1/resource'
 
 interface NetworkProps {
     open?: boolean
@@ -59,7 +59,7 @@ export const NetworkDrawer: React.FC<NetworkProps> = ({ open, onCanel, onConfirm
         if (!provider) {
             return
         }
-        const opts = ListOptions.create({ arbitraryFieldSelectors: [`spec.provider=${provider}`] })
+        const opts = ListOptions.create({ fieldSelectorGroup: { fieldSelectors: [{ fieldPath: "spec.provider", operator: "=", values: [provider] }] } })
         clients.listResources(ResourceType.SUBNET, opts).then(crds => {
             setSubnets(crds)
         }).catch(err => {
@@ -75,7 +75,7 @@ export const NetworkDrawer: React.FC<NetworkProps> = ({ open, onCanel, onConfirm
         if (!open || !subnet) {
             return
         }
-        const opts = ListOptions.create({ arbitraryFieldSelectors: [`spec.subnet=${subnet.metadata.name}`] })
+        const opts = ListOptions.create({ fieldSelectorGroup: { fieldSelectors: [{ fieldPath: "spec.subnet", operator: "=", values: [subnet.metadata.name] }] } })
         clients.listResources(ResourceType.IPPOOL, opts).then(crds => {
             setIPPools(crds)
         }).catch(err => {

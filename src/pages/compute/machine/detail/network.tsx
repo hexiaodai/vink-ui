@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { App, Modal, Space } from 'antd'
 import { EditableProTable } from '@ant-design/pro-components'
 import { classNames, generateKubeovnNetworkAnnon, getErrorMessage } from '@/utils/utils'
 import { useWatchResourceInNamespaceName } from '@/hooks/use-resource'
-import { ResourceType } from '@/clients/ts/types/types'
+import { FieldSelector, ResourceType } from '@/clients/ts/types/types'
 import { extractNamespaceAndName, namespaceNameKey } from '@/utils/k8s'
 import { LoadingOutlined } from '@ant-design/icons'
 import { clients, getResourceName } from '@/clients/clients'
@@ -33,6 +33,8 @@ export default () => {
     const { resource: virtualMachineSummary, loading } = useWatchResourceInNamespaceName(ResourceType.VIRTUAL_MACHINE_SUMMARY)
 
     const [editableKeys, setEditableRowKeys] = useState<React.Key[]>([])
+
+    const activeTempData = useRef<{ multus?: any, subnet?: any }>()
 
     const { dataSource, loading: dataSourceLoading } = useDataSource(virtualMachineSummary)
 
@@ -103,11 +105,12 @@ const useDataSource = (virtualMachineSummary: any) => {
 
         const fetchData = async () => {
             setLoading(true)
-            const subnetSelector: string[] = []
+            const subnetSelectors: FieldSelector[] = []
             ipsMap.forEach(ipObj => {
-                subnetSelector.push(`metadata.name=${ipObj.spec.subnet}`)
+                subnetSelectors.push({ fieldPath: "metadata.name", operator: "=", values: [ipObj.spec.subnet] })
             })
-            const subnets = await clients.listResources(ResourceType.SUBNET, ListOptions.create({ arbitraryFieldSelectors: subnetSelector }))
+
+            const subnets = await clients.listResources(ResourceType.SUBNET, ListOptions.create({ fieldSelectorGroup: { operator: "||", fieldSelectors: subnetSelectors } }))
             const subnetMap = new Map<string, any>(
                 subnets.map((crd: any) => {
                     return [crd.metadata.name, crd]

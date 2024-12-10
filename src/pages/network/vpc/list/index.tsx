@@ -2,7 +2,7 @@ import { PlusOutlined } from '@ant-design/icons'
 import { App, Button, Dropdown, Flex, MenuProps, Modal, Popover, Space, Tag } from 'antd'
 import { useRef, useState } from 'react'
 import { extractNamespaceAndName } from '@/utils/k8s'
-import { NavLink } from 'react-router-dom'
+import { Link, NavLink } from 'react-router-dom'
 import { dataSource, formatTimestamp, generateMessage, getErrorMessage } from '@/utils/utils'
 import { clients, getResourceName } from '@/clients/clients'
 import { ResourceType } from '@/clients/ts/types/types'
@@ -85,7 +85,7 @@ const columnsFunc = (actionRef: any, notification: NotificationInstance) => {
             title: '名称',
             fixed: 'left',
             ellipsis: true,
-            render: (_, vpc) => vpc.metadata?.name
+            render: (_, vpc) => <Link to={{ pathname: "/network/vpcs/detail", search: `name=${vpc.metadata.name}` }}>{vpc.metadata.name}</Link>
         },
         {
             key: 'namespace',

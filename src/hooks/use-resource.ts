@@ -122,7 +122,50 @@ export const useWatchResourceInNamespaceName = (resourceType: ResourceType) => {
     const [resource, setResource] = useState<any>(null)
     const namespaceName = useNamespaceFromURL()
 
-    const opts = useRef<WatchOptions>(WatchOptions.create({ fieldSelector: [`metadata.namespace=${namespaceName.namespace},metadata.name=${namespaceName.name}`] }))
+    const opts = useRef<WatchOptions>(WatchOptions.create({
+        fieldSelectorGroup: {
+            operator: "&&",
+            fieldSelectors: [
+                {
+                    fieldPath: 'metadata.namespace',
+                    operator: '=',
+                    values: [namespaceName.namespace]
+                },
+                {
+                    fieldPath: 'metadata.name',
+                    operator: '=',
+                    values: [namespaceName.name]
+                }
+            ]
+        }
+    }))
+
+    const { resources, loading } = useWatchResources(resourceType, opts.current)
+
+    useEffect(() => {
+        const resourceData = resources.get(namespaceNameKey(namespaceName))
+        setResource(resourceData)
+    }, [resources])
+
+    return { resource, loading }
+}
+
+
+export const useWatchResourceInName = (resourceType: ResourceType) => {
+    const [resource, setResource] = useState<any>(null)
+    const namespaceName = useNamespaceFromURL()
+
+    const opts = useRef<WatchOptions>(WatchOptions.create({
+        fieldSelectorGroup: {
+            fieldSelectors: [
+                {
+                    fieldPath: 'metadata.name',
+                    operator: '=',
+                    values: [namespaceName.name]
+                }
+            ]
+        }
+    }))
 
     const { resources, loading } = useWatchResources(resourceType, opts.current)
 
