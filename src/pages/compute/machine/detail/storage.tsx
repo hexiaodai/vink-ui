@@ -10,6 +10,7 @@ import { clients, getResourceName } from "@/clients/clients"
 import { NotificationInstance } from "antd/es/notification/interface"
 import { extractNamespaceAndName } from "@/utils/k8s"
 import commonStyles from "@/common/styles/common.module.less"
+import { VirtualMachinePowerStateRequest_PowerState } from "@/clients/ts/management/virtualmachine/v1alpha1/virtualmachine"
 
 export default () => {
     const { notification } = App.useApp()
@@ -52,6 +53,7 @@ const columnsFunc = (virtualMachineSummary: any, notification: NotificationInsta
                 }
             })
             await clients.updateResource(ResourceType.VIRTUAL_MACHINE, vm)
+            await clients.manageVirtualMachinePowerState(extractNamespaceAndName(vm), VirtualMachinePowerStateRequest_PowerState.REBOOT)
         } catch (err: any) {
             notification.error({
                 message: getResourceName(ResourceType.VIRTUAL_MACHINE),
@@ -73,6 +75,7 @@ const columnsFunc = (virtualMachineSummary: any, notification: NotificationInsta
                     const vm: any = await clients.getResource(ResourceType.VIRTUAL_MACHINE, namespaceName)
                     vm.spec.template.spec.domain.devices.disks = vm.spec.template.spec.domain.devices.disks.filter((disk: any) => disk.name !== name)
                     await clients.updateResource(ResourceType.VIRTUAL_MACHINE, vm)
+                    await clients.manageVirtualMachinePowerState(extractNamespaceAndName(vm), VirtualMachinePowerStateRequest_PowerState.REBOOT)
                 } catch (err: any) {
                     notification.error({
                         message: getResourceName(ResourceType.VIRTUAL_MACHINE),
@@ -97,6 +100,7 @@ const columnsFunc = (virtualMachineSummary: any, notification: NotificationInsta
                     vm.spec.template.spec.domain.devices.disks = vm.spec.template.spec.domain.devices.disks.filter((disk: any) => disk.name !== name)
                     vm.spec.template.spec.volumes = vm.spec.template.spec.volumes.filter((disk: any) => disk.name !== name)
                     await clients.updateResource(ResourceType.VIRTUAL_MACHINE, vm)
+                    await clients.manageVirtualMachinePowerState(extractNamespaceAndName(vm), VirtualMachinePowerStateRequest_PowerState.REBOOT)
                 } catch (err: any) {
                     notification.error({
                         message: getResourceName(ResourceType.VIRTUAL_MACHINE),

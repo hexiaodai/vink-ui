@@ -2,7 +2,6 @@
 import { ColumnsState } from "@ant-design/pro-components"
 import { formatMemory, namespaceName, namespaceNameKey } from "./k8s"
 import { ListOptions } from "@/clients/ts/types/list_options"
-import { NamespaceName } from "@/clients/ts/types/namespace_name"
 import { ResourceType } from '@/clients/ts/types/types'
 
 /**

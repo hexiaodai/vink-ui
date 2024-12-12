@@ -1,6 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
-import { App, Modal, Space } from 'antd'
-import { EditableProTable } from '@ant-design/pro-components'
+import { useEffect, useState } from 'react'
+import { App, Modal, Space, Table, TableProps } from 'antd'
 import { classNames, generateKubeovnNetworkAnnon, getErrorMessage } from '@/utils/utils'
 import { useWatchResourceInNamespaceName } from '@/hooks/use-resource'
 import { FieldSelector, ResourceType } from '@/clients/ts/types/types'
@@ -8,10 +7,11 @@ import { extractNamespaceAndName, namespaceNameKey } from '@/utils/k8s'
 import { LoadingOutlined } from '@ant-design/icons'
 import { clients, getResourceName } from '@/clients/clients'
 import { virtualMachine, virtualMachineIPs } from '@/utils/parse-summary'
-import { defaultNetworkAnno, deleteNetwork, updateNetwork } from '../virtualmachine'
+import { defaultNetworkAnno, deleteNetwork, NetworkConfig, updateNetwork } from '../virtualmachine'
 import { NotificationInstance } from 'antd/es/notification/interface'
 import { ListOptions } from '@/clients/ts/management/resource/v1alpha1/resource'
-import type { ProColumns } from '@ant-design/pro-components'
+import { NetworkDrawer } from '../components/network-drawer'
+import { VirtualMachinePowerStateRequest_PowerState } from '@/clients/ts/management/virtualmachine/v1alpha1/virtualmachine'
 import commonStyles from '@/common/styles/common.module.less'
 
 type DataSourceType = {
@@ -30,51 +30,47 @@ type DataSourceType = {
 export default () => {
     const { notification } = App.useApp()
 
+    const [open, setOpen] = useState(false)
+
+    const [networkConfig, setNetworkConfig] = useState<NetworkConfig>()
+
     const { resource: virtualMachineSummary, loading } = useWatchResourceInNamespaceName(ResourceType.VIRTUAL_MACHINE_SUMMARY)
-
-    const [editableKeys, setEditableRowKeys] = useState<React.Key[]>([])
-
-    const activeTempData = useRef<{ multus?: any, subnet?: any }>()
 
     const { dataSource, loading: dataSourceLoading } = useDataSource(virtualMachineSummary)
 
-    const columns = columnsFunc(virtualMachineSummary, notification)
+    const columns = columnsFunc(virtualMachineSummary, setOpen, setNetworkConfig, notification)
 
-    const handleUpdateNetwork = async (data: any) => {
+    const handleConfirmNetwork = async (networkConfig: NetworkConfig) => {
         try {
             const vm = await clients.getResource(ResourceType.VIRTUAL_MACHINE, extractNamespaceAndName(virtualMachineSummary))
-            const part = data.multus.split("/")
-            if (part.length !== 2) {
-                throw new Error("Multus CR format error")
-            }
-            updateNetwork(vm, {
-                ...data,
-                multus: { namespace: part[0], name: part[1] }
-            })
+            updateNetwork(vm, networkConfig)
             await clients.updateResource(ResourceType.VIRTUAL_MACHINE, vm)
+            await clients.manageVirtualMachinePowerState(extractNamespaceAndName(vm), VirtualMachinePowerStateRequest_PowerState.REBOOT)
+            setOpen(false)
         } catch (err: any) {
             notification.error({ message: getResourceName(ResourceType.VIRTUAL_MACHINE), description: getErrorMessage(err) })
         }
     }
 
     return (
-        <EditableProTable<any>
-            size="middle"
-            className={classNames(commonStyles["small-scrollbar"])}
-            rowKey="name"
-            scroll={{ x: 1500 }}
-            recordCreatorProps={false}
-            loading={{ spinning: loading || dataSourceLoading, delay: 500, indicator: <LoadingOutlined spin /> }}
-            columns={columns}
-            value={dataSource}
-            editable={{
-                type: 'single',
-                editableKeys,
-                onSave: async (_rowKey, data, _row) => handleUpdateNetwork(data),
-                onChange: setEditableRowKeys,
-                actionRender: (_row, _config, defaultDom) => [defaultDom.save, defaultDom.cancel]
-            }}
-        />
+        <>
+            <Table
+                className={classNames(commonStyles["small-scrollbar"])}
+                size="middle"
+                scroll={{ x: 150 * 10 }}
+                loading={{ spinning: loading || dataSourceLoading, delay: 500, indicator: <LoadingOutlined spin /> }}
+                columns={columns}
+                dataSource={dataSource}
+                pagination={false}
+            />
+
+            <NetworkDrawer
+                open={open}
+                networkConfig={networkConfig}
+                onCanel={() => setOpen(false)}
+                onConfirm={handleConfirmNetwork}
+            />
+        </>
     )
 }
 
@@ -158,7 +154,7 @@ const useDataSource = (virtualMachineSummary: any) => {
     return { dataSource, loading }
 }
 
-const columnsFunc = (virtualMachineSummary: any, notification: NotificationInstance) => {
+const columnsFunc = (virtualMachineSummary: any, setOpen: any, setNetworkConfig: any, notification: NotificationInstance) => {
     if (!virtualMachineSummary) {
         return
     }
@@ -176,6 +172,7 @@ const columnsFunc = (virtualMachineSummary: any, notification: NotificationInsta
                     const vm = await clients.getResource(ResourceType.VIRTUAL_MACHINE, extractNamespaceAndName(virtualMachineSummary))
                     deleteNetwork(vm, netName)
                     await clients.updateResource(ResourceType.VIRTUAL_MACHINE, vm)
+                    await clients.manageVirtualMachinePowerState(extractNamespaceAndName(vm), VirtualMachinePowerStateRequest_PowerState.REBOOT)
                 } catch (err: any) {
                     notification.error({ message: getResourceName(ResourceType.VIRTUAL_MACHINE), description: getErrorMessage(err) })
                 }
@@ -183,32 +180,27 @@ const columnsFunc = (virtualMachineSummary: any, notification: NotificationInsta
         })
     }
 
-    const columns: ProColumns<DataSourceType>[] = [
+    const columns: TableProps<any>['columns'] = [
         {
             title: 'Network',
             dataIndex: "network",
-            ellipsis: true,
-            request: async () => [{ value: "pod", label: 'pod' }, { value: "multus", label: 'multus' }]
+            ellipsis: true
         },
         {
             title: 'Interface',
             dataIndex: "interface",
-            ellipsis: true,
-            request: async () => [{ value: "masquerade", label: "masquerade" }, { value: "bridge", label: "bridge" }, { value: "slirp", label: "slirp" }, { value: "sriov", label: "sriov" }]
+            ellipsis: true
         },
         {
             title: '默认网络',
             dataIndex: "default",
             ellipsis: true,
-            valueType: "select",
-            request: async () => [{ value: true, label: '是' }, { value: false, label: '否' }],
             render: (_, record) => record.default ? "是" : "否"
         },
         {
             title: 'IP 地址',
             dataIndex: 'ipAddress',
-            ellipsis: true,
-            copyable: true
+            ellipsis: true
         },
         {
             title: 'MAC 地址',
@@ -218,52 +210,37 @@ const columnsFunc = (virtualMachineSummary: any, notification: NotificationInsta
         {
             title: 'Multus CR',
             dataIndex: 'multus',
-            ellipsis: true,
-            request: async () => {
-                const items = await clients.listResources(ResourceType.MULTUS)
-                return items.map((item: any) => ({ value: namespaceNameKey(item), label: namespaceNameKey(item) }))
-            }
+            ellipsis: true
         },
         {
             title: 'VPC',
             dataIndex: 'vpc',
-            ellipsis: true,
-            editable: false
+            ellipsis: true
         },
         {
             title: '子网',
             dataIndex: 'subnet',
-            ellipsis: true,
-            request: async () => {
-                const items = await clients.listResources(ResourceType.SUBNET)
-                return items.map((item: any) => ({ value: item.metadata.name, label: item.metadata.name }))
-            }
+            ellipsis: true
         },
         {
             title: 'IP 地址池',
             dataIndex: 'ippool',
-            ellipsis: true,
-            request: async () => {
-                const items = await clients.listResources(ResourceType.IPPOOL)
-                return items.map((item: any) => ({ value: item.metadata.name, label: item.metadata.name }))
-            }
+            ellipsis: true
         },
         {
             title: '操作',
-            valueType: 'option',
             fixed: 'right',
             align: 'center',
             width: 150,
-            render: (_text, netcfg, _index, action) => {
+            render: (_, record) => {
                 return (
                     <Space>
-                        <a onClick={() => { action?.startEditable?.(netcfg.name) }}>编辑</a>
-                        <a
-                            className={commonStyles["warning-color"]}
-                            onClick={() => handleRemoveNetwork(netcfg.name)}
-                        >
-                            删除
-                        </a>
+                        <a onClick={() => {
+                            console.log(record)
+                            setNetworkConfig(record)
+                            setOpen(true)
+                        }}>编辑</a>
+                        <a className={commonStyles["warning-color"]} onClick={() => handleRemoveNetwork(record.name)}>删除</a>
                     </Space>
                 )
             }
