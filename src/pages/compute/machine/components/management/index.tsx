@@ -222,7 +222,7 @@ const itemsFunc = (virtualMachine: any, setOpenDrawer: any, notification: Notifi
                 },
                 {
                     key: 'disk-remove',
-                    label: <Link to={{ pathname: "/compute/machines/detail", search: `namespace=${virtualMachine.metadata.namespace}&name=${virtualMachine.metadata.name}&active=存储` }}>移除磁盘</Link>
+                    label: <Link to={{ pathname: "/compute/machines/detail", search: `namespace=${virtualMachine.metadata.namespace}&name=${virtualMachine.metadata.name}&active=Storage` }}>移除磁盘</Link>
                 }
             ]
         },
@@ -241,7 +241,7 @@ const itemsFunc = (virtualMachine: any, setOpenDrawer: any, notification: Notifi
                 },
                 {
                     key: 'network-remove',
-                    label: <Link to={{ pathname: "/compute/machines/detail", search: `namespace=${virtualMachine.metadata.namespace}&name=${virtualMachine.metadata.name}&active=网络` }}>移除网络</Link>
+                    label: <Link to={{ pathname: "/compute/machines/detail", search: `namespace=${virtualMachine.metadata.namespace}&name=${virtualMachine.metadata.name}&active=Network` }}>移除网络</Link>
                 }
             ]
         },
