@@ -72,10 +72,11 @@ const VirtualMachineManagement: React.FC<Props> = ({ vm, namespace, type }) => {
         }
     }
 
-    const handleConfirmNetwork = (net: NetworkConfig) => {
+    const handleConfirmNetwork = async (net: NetworkConfig) => {
         try {
             updateNetwork(virtualMachine, net)
-            clients.updateResource(ResourceType.VIRTUAL_MACHINE, virtualMachine)
+            await clients.updateResource(ResourceType.VIRTUAL_MACHINE, virtualMachine)
+            await clients.manageVirtualMachinePowerState(extractNamespaceAndName(virtualMachine), VirtualMachinePowerStateRequest_PowerState.REBOOT)
             setOpenDrawer((prevState) => ({ ...prevState, network: false }))
         } catch (err) {
             notification.error({

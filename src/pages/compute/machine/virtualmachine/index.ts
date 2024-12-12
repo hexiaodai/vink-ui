@@ -1,10 +1,10 @@
 import { instances as labels } from '@/clients/ts/label/labels.gen'
 import { instances as annotations } from '@/clients/ts/annotation/annotations.gen'
 import { generateKubeovnNetworkAnnon } from '@/utils/utils'
-import { namespaceNameKey } from '@/utils/k8s'
+import { namespaceNameKey, parseNamespaceNameKey } from '@/utils/k8s'
 import { virtualmachineYaml } from './template'
-import * as yaml from 'js-yaml'
 import { NamespaceName } from '@/clients/ts/types/types'
+import * as yaml from 'js-yaml'
 
 export const defaultNetworkAnno = "v1.multus-cni.io/default-network"
 
@@ -121,12 +121,28 @@ export interface NetworkConfig {
 }
 
 export const updateNetwork = (vm: any, netcfg: NetworkConfig) => {
+    const isAddAction = (!netcfg.name || netcfg.name.length === 0)
+
+    const multusNameMap = new Map<string, boolean>()
     const networkNameMap = new Map<string, boolean>()
     for (const element of vm.spec.template.spec.networks) {
+        if (element.multus) {
+            multusNameMap.set(element.multus.networkName, true)
+        }
         networkNameMap.set(element.name, true)
     }
 
-    if (!netcfg.name || netcfg.name.length === 0) {
+    if (vm.spec.template.metadata.annotations?.[defaultNetworkAnno]) {
+        multusNameMap.set(vm.spec.template.metadata.annotations[defaultNetworkAnno], true)
+    }
+
+    if (isAddAction && multusNameMap.has(namespaceNameKey(netcfg.multus))) {
+        throw new Error(
+            `Invalid network configuration: 'name' is required but missing or empty. Additionally, a configuration with the same key (${namespaceNameKey(netcfg.multus)}) already exists in multusNameMap.`
+        )
+    }
+
+    if (isAddAction) {
         for (let number = 1; ; number++) {
             const element = `net-${number}`
             if (networkNameMap.has(element)) {
@@ -153,6 +169,9 @@ export const updateNetwork = (vm: any, netcfg: NetworkConfig) => {
         vm.spec.template.metadata.annotations[defaultNetworkAnno] = multusName
     } else {
         net.multus = { default: netcfg.default, networkName: multusName }
+        if (vm.spec.template.metadata.annotations?.[defaultNetworkAnno] === multusName) {
+            delete vm.spec.template.metadata.annotations[defaultNetworkAnno]
+        }
     }
     vm.spec.template.spec.networks.push(net)
 
@@ -195,14 +214,24 @@ export const updateNetwork = (vm: any, netcfg: NetworkConfig) => {
 export const deleteNetwork = (vm: any, netName: string) => {
     const net = vm.spec.template.spec.networks.find((net: any) => net.name === netName)
     if (net && vm.spec.template.metadata.annotations) {
+        let ns: NamespaceName | undefined = undefined
         if (net.multus) {
             const part = net.multus.networkName.split("/")
             if (part && part.length === 2) {
-                const ns = { namespace: part[0], name: part[1] }
-                delete vm.spec.template.metadata.annotations[generateKubeovnNetworkAnnon(ns, "logical_switch")]
+                ns = { namespace: part[0], name: part[1] }
             }
         } else if (net.pod) {
-            delete vm.spec.template.metadata.annotations[defaultNetworkAnno]
+            const value = vm.spec.template.metadata.annotations[defaultNetworkAnno]
+            if (value && value.length > 0) {
+                ns = parseNamespaceNameKey(vm.spec.template.metadata.annotations[defaultNetworkAnno])
+                delete vm.spec.template.metadata.annotations[defaultNetworkAnno]
+            }
+        }
+        if (ns) {
+            delete vm.spec.template.metadata.annotations[generateKubeovnNetworkAnnon(ns, "ip_address")]
+            delete vm.spec.template.metadata.annotations[generateKubeovnNetworkAnnon(ns, "mac_address")]
+            delete vm.spec.template.metadata.annotations[generateKubeovnNetworkAnnon(ns, "ip_pool")]
+            delete vm.spec.template.metadata.annotations[generateKubeovnNetworkAnnon(ns, "logical_switch")]
         }
     }
     vm.spec.template.spec.domain.devices.interfaces = vm.spec.template.spec.domain.devices.interfaces.filter((net: any) => {

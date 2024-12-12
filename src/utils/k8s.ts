@@ -1,5 +1,6 @@
 import type { DataVolume } from "@/clients/ts/management/datavolume/v1alpha1/datavolume.pb"
 import { ObjectMeta } from "@/clients/ts/types/object_meta"
+import { NamespaceName } from "@/clients/ts/types/types"
 
 const group = 'vink.io'
 
@@ -79,4 +80,14 @@ export const namespaceNameKey = (obj: any) => {
 
 export const extractNamespaceAndName = (crd: any) => {
     return { namespace: crd.metadata.namespace, name: crd.metadata.name }
+}
+
+export const parseNamespaceNameKey = (input: string): NamespaceName => {
+    const parts = input.split("/")
+    if (parts.length !== 2) {
+        return { namespace: "", name: input }
+    }
+
+    const [namespace, name] = parts
+    return { namespace, name }
 }
