@@ -7,6 +7,7 @@ import Volume from "./volume"
 import Network from "./network"
 import YAML from "./yaml"
 import Event from "./event"
+import Monitor from "./monitor"
 import styles from "./styles/index.module.less"
 import VirtualMachineManagement from "@/pages/compute/machine/components/management"
 
@@ -37,6 +38,8 @@ export default () => {
                 return <Overview />
             case "storage":
                 return <Volume />
+            case "monitor":
+                return <Monitor />
             case "network":
                 return <Network />
             case "yaml":
