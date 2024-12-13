@@ -6,6 +6,7 @@ import { ResourceType, NamespaceName } from "@/clients/ts/types/types"
 import { extractNamespaceAndName, namespaceNameKey } from "@/utils/k8s"
 import { VirtualMachinePowerStateRequest_PowerState } from "@/clients/ts/management/virtualmachine/v1alpha1/virtualmachine"
 import { ListOptions } from "./ts/management/resource/v1alpha1/resource"
+import { virtualMachine } from "@/utils/parse-summary"
 
 export const getResourceName = (type: ResourceType) => {
     return ResourceType[type]
@@ -80,7 +81,8 @@ export class Clients {
     public deleteResource = async (resourceType: ResourceType, namespaceName: NamespaceName): Promise<void> => {
         return new Promise((resolve, reject) => {
             const call = this.resource.delete({
-                resourceType: resourceType
+                resourceType: resourceType,
+                namespaceName: namespaceName
             })
 
             call.then(() => {
@@ -150,7 +152,7 @@ export class Clients {
 
         await Promise.all(vms.map(async (vm) => {
             const namespaceName = extractNamespaceAndName(vm)
-            const isRunning = vm.status.printableStatus as string === "Running"
+            const isRunning = virtualMachine(vm)?.status.printableStatus as string === "Running"
 
             if (state === VirtualMachinePowerStateRequest_PowerState.OFF && !isRunning) {
                 return
@@ -168,13 +170,14 @@ export class Clients {
                 }).response
                 completed.push(namespaceName)
             } catch (err: any) {
+                console.log(err)
                 failed.push(namespaceName)
             }
             return
         }))
 
         if (failed.length > 0) {
-            Promise.reject(new Error(`Failed to updated power state ${getResourceName(ResourceType.VIRTUAL_MACHINE)}: ${failed.map((vm) => namespaceNameKey(vm)).join(", ")}`))
+            return Promise.reject(new Error(`Failed to updated power state ${getResourceName(ResourceType.VIRTUAL_MACHINE)}: ${failed.map((vm) => namespaceNameKey(vm)).join(", ")}`))
         }
     }
 

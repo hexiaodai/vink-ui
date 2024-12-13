@@ -42,9 +42,9 @@ export const updateRootDisk = (vm: any, image: any, capacity: number) => {
 
     vm.spec.dataVolumeTemplates[0].metadata.name = rootDiskName
     vm.spec.dataVolumeTemplates[0].metadata.labels[labels.VinkDatavolumeType.name] = "root"
-    vm.spec.dataVolumeTemplates[0].metadata.labels[labels.VinkVirtualmachineOs.name] = image.metadata.labels[labels.VinkVirtualmachineOs.name]
-    vm.spec.dataVolumeTemplates[0].metadata.labels[labels.VinkVirtualmachineVersion.name] = image.metadata.labels[labels.VinkVirtualmachineVersion.name]
-    vm.spec.dataVolumeTemplates[0].metadata.annotations[annotations.VinkVirtualmachineBinding.name] = vm.metadata.name
+    vm.spec.dataVolumeTemplates[0].metadata.labels[labels.VinkOperatingSystem.name] = image.metadata.labels[labels.VinkOperatingSystem.name]
+    vm.spec.dataVolumeTemplates[0].metadata.labels[labels.VinkOperatingSystemVersion.name] = image.metadata.labels[labels.VinkOperatingSystemVersion.name]
+    vm.spec.dataVolumeTemplates[0].metadata.annotations[annotations.VinkDatavolumeOwner.name] = vm.metadata.name
     vm.spec.dataVolumeTemplates[0].spec.pvc.resources.requests.storage = `${capacity}Gi`
     vm.spec.dataVolumeTemplates[0].spec.source.pvc.name = image.metadata.name
     vm.spec.dataVolumeTemplates[0].spec.source.pvc.namespace = image.metadata.namespace

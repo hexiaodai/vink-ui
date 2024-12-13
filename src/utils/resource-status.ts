@@ -1,6 +1,3 @@
-// import { CustomResourceDefinition } from "@/clients/ts/apiextensions/v1alpha1/custom_resource_definition"
-// import { parseStatus } from "./utils"
-
 interface Status { badge: 'default' | 'processing' | 'success' | 'warning' | 'error', text: string }
 
 export const virtualMachineStatusMap: { [key: string]: Status } = {
@@ -64,49 +61,3 @@ export const subnetStatus = (subnet: any): Status => {
     output = { badge: "success", text: "就绪" }
     return output
 }
-
-// export const virtualMachineStatusMap: { [key: string]: 'default' | 'processing' | 'success' | 'warning' | 'error' } = {
-//     '': 'default',
-//     'Stopped': 'default',
-//     'Provisioning': 'processing',
-//     'Starting': 'processing',
-//     'Running': 'success',
-//     'Paused': 'warning',
-//     'Stopping': 'processing',
-//     'Terminating': 'processing',
-//     'CrashLoopBackOff': 'error',
-//     'Migrating': 'processing',
-//     'Unknown': 'default',
-//     'ErrorUnschedulable': 'error',
-//     'ErrImagePull': 'error',
-//     'ImagePullBackOff': 'error',
-//     'ErrorPvcNotFound': 'error',
-//     'DataVolumeError': 'error',
-//     'WaitingForVolumeBinding': 'processing',
-// }
-
-// export const dataVolumeStatusMap: { [key: string]: 'default' | 'processing' | 'success' | 'warning' | 'error' } = {
-//     '': 'default',
-//     'Pending': 'processing',
-//     'PVCBound': 'processing',
-//     'ImportScheduled': 'processing',
-//     'ImportInProgress': 'processing',
-//     'CloneScheduled': 'processing',
-//     'CloneInProgress': 'processing',
-//     'SnapshotForSmartCloneInProgress': 'processing',
-//     'CloneFromSnapshotSourceInProgress': 'processing',
-//     'SmartClonePVCInProgress': 'processing',
-//     'CSICloneInProgress': 'processing',
-//     'ExpansionInProgress': 'processing',
-//     'NamespaceTransferInProgress': 'processing',
-//     'UploadScheduled': 'processing',
-//     'UploadReady': 'processing',
-//     'WaitForFirstConsumer': 'processing',
-//     'PendingPopulation': 'processing',
-//     'Succeeded': 'success',
-//     'Failed': 'error',
-//     'Unknown': 'default',
-//     'Paused': 'warning',
-//     'PrepClaimInProgress': 'processing',
-//     'RebindInProgress': 'processing',
-// }

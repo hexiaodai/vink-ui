@@ -43,7 +43,7 @@ export const DataDiskDrawer: React.FC<DataDiskDrawerProps> = ({ open, current, o
     const { resources, loading } = useWatchResources(ResourceType.DATA_VOLUME, opts, !open)
 
     const handleCheckboxProps = (dv: any) => {
-        const binding = dv.metadata.annotations[annotations.VinkVirtualmachineBinding.name]
+        const binding = dv.metadata.annotations[annotations.VinkDatavolumeOwner.name]
         if (!binding || binding.length == 0) {
             return { disabled: false }
         }
@@ -137,7 +137,7 @@ const columns: ProColumns<any>[] = [
     //     title: '资源占用',
     //     ellipsis: true,
     //     render: (_, dv) => {
-    //         const binding = dv.metadata?.annotations[annotations.VinkVirtualmachineBinding.name]
+    //         const binding = dv.metadata?.annotations[annotations.VinkDatavolumeOwner.name]
     //         if (!binding) {
     //             return "空闲"
     //         }
@@ -150,7 +150,7 @@ const columns: ProColumns<any>[] = [
         title: 'Owner',
         ellipsis: true,
         render: (_, dv) => {
-            const owners = dv.metadata.annotations[annotations.VinkVirtualmachineBinding.name]
+            const owners = dv.metadata.annotations[annotations.VinkDatavolumeOwner.name]
             if (!owners) {
                 return
             }

@@ -137,7 +137,7 @@ const columnsFunc = (notification: NotificationInstance) => {
         //     title: '资源占用',
         //     ellipsis: true,
         //     render: (_, dv) => {
-        //         const binding = dv.metadata.annotations[annotations.VinkVirtualmachineBinding.name]
+        //         const binding = dv.metadata.annotations[annotations.VinkDatavolumeOwner.name]
         //         if (!binding) {
         //             return "空闲"
         //         }
@@ -150,7 +150,7 @@ const columnsFunc = (notification: NotificationInstance) => {
             title: 'Owner',
             ellipsis: true,
             render: (_, dv) => {
-                const owners = dv.metadata.annotations[annotations.VinkVirtualmachineBinding.name]
+                const owners = dv.metadata.annotations[annotations.VinkDatavolumeOwner.name]
                 if (!owners) {
                     return
                 }
@@ -179,7 +179,7 @@ const columnsFunc = (notification: NotificationInstance) => {
             title: '类型',
             ellipsis: true,
             render: (_, dv) => {
-                const osname = dv.metadata?.labels[labels.VinkVirtualmachineOs.name]
+                const osname = dv.metadata?.labels[labels.VinkOperatingSystem.name]
                 return osname && osname.length > 0 ? "系统盘" : "数据盘"
             }
         },
