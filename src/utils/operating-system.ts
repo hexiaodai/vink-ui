@@ -5,11 +5,11 @@ export const getOperatingSystemFromDataVolume = (metadata?: any): { family: stri
     if (!metadata) {
         return info
     }
-    if (metadata.labels[instances.VinkVirtualmachineOs.name]) {
-        info.family = metadata.labels[instances.VinkVirtualmachineOs.name].toLowerCase()
+    if (metadata.labels[instances.VinkOperatingSystem.name]) {
+        info.family = metadata.labels[instances.VinkOperatingSystem.name].toLowerCase()
     }
-    if (metadata.labels[instances.VinkVirtualmachineVersion.name]) {
-        info.version = metadata.labels[instances.VinkVirtualmachineVersion.name].toLowerCase()
+    if (metadata.labels[instances.VinkOperatingSystemVersion.name]) {
+        info.version = metadata.labels[instances.VinkOperatingSystemVersion.name].toLowerCase()
     }
     return info
 }

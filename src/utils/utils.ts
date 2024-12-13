@@ -1,8 +1,7 @@
 // import { CustomResourceDefinition } from "@/clients/ts/apiextensions/v1alpha1/custom_resource_definition"
 import { ColumnsState } from "@ant-design/pro-components"
-import { formatMemory, namespaceName, namespaceNameKey } from "./k8s"
-import { ListOptions } from "@/clients/ts/types/list_options"
-import { ResourceType } from '@/clients/ts/types/types'
+import { formatMemory, namespaceNameKey } from "./k8s"
+import { NamespaceName, ResourceType } from '@/clients/ts/types/types'
 
 /**
  * Combines multiple class names into a single string.
@@ -12,20 +11,6 @@ import { ResourceType } from '@/clients/ts/types/types'
 export function classNames(...classes: (string | undefined | null)[]): string {
     return classes.filter(Boolean).join(' ')
 }
-
-export function jsonParse(str?: string) {
-    if (!str) return {}
-    const result = JSON.parse(str || "{}")
-    return result || {}
-}
-
-// export function parseSpec(crd: CustomResourceDefinition) {
-//     return jsonParse(crd.spec)
-// }
-
-// export function parseStatus(crd: CustomResourceDefinition) {
-//     return jsonParse(crd.status)
-// }
 
 /**
  * Converts a timestamp (bigint or ISO string) to a string representation in "YYYY-MM-DD HH:mm:ss" format.
@@ -147,19 +132,6 @@ export const updateNestedValue = (keypath: string[], newInfo: any, oriInfo: any,
     }, oriInfo)
 }
 
-// export const namespaceNameKey = (obj: any) => {
-//     if (obj.metadata && typeof obj.metadata.namespace === 'string' && typeof obj.metadata.name === 'string') {
-//         return `${obj.metadata.namespace}/${obj.metadata.name}`
-//     } else if (typeof obj.namespace === 'string' && typeof obj.name === 'string') {
-//         return `${obj.namespace}/${obj.name}`
-//     } else if (typeof obj.metadata.name === 'string') {
-//         return obj.metadata.name
-//     } else if (typeof obj.name === 'string') {
-//         return obj.name
-//     }
-//     return ""
-// }
-
 export const generateKubeovnNetworkAnnon = (multus: NamespaceName | any, name: string) => {
     let prefix = ""
     if (multus.metadata && typeof multus.metadata.namespace === 'string' && typeof multus.metadata.name === 'string') {
@@ -169,11 +141,6 @@ export const generateKubeovnNetworkAnnon = (multus: NamespaceName | any, name: s
     }
     return `${prefix}.ovn.kubernetes.io/${name}`
 }
-
-// export const generateKubeovnNetworkAnnonByNs = (ns: NamespaceName, name: string) => {
-//     const prefix = `${ns.name}.${ns.namespace}.ovn.kubernetes.io`
-//     return `${prefix}/${name}`
-// }
 
 export const getProvider = (multusCR: any) => {
     const kubeovn = "kube-ovn"

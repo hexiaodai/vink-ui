@@ -106,6 +106,18 @@ const columnsFunc = (actionRef: any, notification: NotificationInstance) => {
             render: (_, subnet) => <Badge status={subnetStatus(subnet).badge} text={subnetStatus(subnet).text} />
         },
         {
+            key: 'gateway',
+            title: 'Gateway',
+            ellipsis: true,
+            render: (_, subnet) => subnet.spec.gateway
+        },
+        {
+            key: 'cidr',
+            title: 'CIDR',
+            ellipsis: true,
+            render: (_, subnet) => subnet.spec.cidrBlock
+        },
+        {
             key: 'provider',
             title: 'Provider',
             ellipsis: true,
@@ -150,18 +162,6 @@ const columnsFunc = (actionRef: any, notification: NotificationInstance) => {
             title: 'Protocol',
             ellipsis: true,
             render: (_, subnet) => subnet.spec.protocol
-        },
-        {
-            key: 'gateway',
-            title: 'Gateway',
-            ellipsis: true,
-            render: (_, subnet) => subnet.spec.gateway
-        },
-        {
-            key: 'cidr',
-            title: 'CIDR',
-            ellipsis: true,
-            render: (_, subnet) => subnet.spec.cidrBlock
         },
         {
             key: 'nat',

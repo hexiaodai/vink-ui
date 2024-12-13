@@ -232,7 +232,7 @@ const columns: ProColumns<any>[] = [
                 return
             }
 
-            const ipsAnnoVale = vmi.metadata.annotations[annotations.VinkVirtualmachineinstanceHost.name]
+            const ipsAnnoVale = vmi.metadata.annotations[annotations.VinkHost.name]
             if (!ipsAnnoVale || ipsAnnoVale.length == 0) {
                 return
             }

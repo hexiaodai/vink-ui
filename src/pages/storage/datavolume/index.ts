@@ -16,8 +16,8 @@ export const newSystemImage = (namespaceName: NamespaceName, imageSource: string
     instance.spec.source = { registry: { url: imageSource } }
 
     instance.metadata.labels[labels.VinkDatavolumeType.name] = "image"
-    instance.metadata.labels[labels.VinkVirtualmachineOs.name] = family
-    instance.metadata.labels[labels.VinkVirtualmachineVersion.name] = version
+    instance.metadata.labels[labels.VinkOperatingSystem.name] = family
+    instance.metadata.labels[labels.VinkOperatingSystemVersion.name] = version
 
     return instance
 }

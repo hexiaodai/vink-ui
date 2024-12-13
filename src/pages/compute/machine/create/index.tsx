@@ -1,7 +1,7 @@
 import { FooterToolbar, ProCard, ProForm, ProFormItem, ProFormSelect, ProFormText } from '@ant-design/pro-components'
 import { App, Button, Divider, Flex, InputNumber, Space, Table, TableProps } from 'antd'
 import { useEffect, useRef, useState } from 'react'
-import { formatMemory, namespaceName, namespaceNameKey } from '@/utils/k8s'
+import { formatMemory, namespaceNameKey } from '@/utils/k8s'
 import { capacity, classNames, getErrorMessage } from '@/utils/utils'
 import { DataDiskDrawer } from '@/pages/compute/machine/components/data-disk-drawer'
 import { useNavigate } from 'react-router-dom'
@@ -345,7 +345,7 @@ export default () => {
                                         size="small"
                                         style={{ marginBottom: 24 }}
                                         columns={dataDiskcolumns} dataSource={formRef.current?.getFieldValue("dataDisks")} pagination={false}
-                                        rowKey={(dv) => namespaceName(dv.metadata)}
+                                        rowKey={(dv) => namespaceNameKey(dv.metadata)}
                                     />
                                 )
                             }

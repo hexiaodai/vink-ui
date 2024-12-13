@@ -143,7 +143,7 @@ const columnsFunc = (virtualMachineSummary: any, notification: NotificationInsta
                 if (!dv) {
                     return
                 }
-                const osname = dv.metadata?.labels[labels.VinkVirtualmachineOs.name]
+                const osname = dv.metadata?.labels[labels.VinkOperatingSystem.name]
                 return osname && osname.length > 0 ? "系统盘" : "数据盘"
             }
         },
@@ -193,7 +193,7 @@ const columnsFunc = (virtualMachineSummary: any, notification: NotificationInsta
                 if (!dv) {
                     return
                 }
-                if (dv.metadata.labels && dv.metadata.labels[labels.VinkVirtualmachineOs.name]) {
+                if (dv.metadata.labels && dv.metadata.labels[labels.VinkOperatingSystem.name]) {
                     return <StopOutlined className={commonStyles["disable-color"]} />
                 }
 

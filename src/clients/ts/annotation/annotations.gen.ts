@@ -41,7 +41,6 @@ export interface Instance {
   name: string;
   description: string;
   featureStatus: FeatureStatus;
-  hidden: boolean;
   deprecated: boolean;
   resources: ResourceTypes[];
 }
@@ -52,28 +51,26 @@ export const instances: { [key: string]: Instance } = {
     name: "cdi.kubevirt.io/storage.bind.immediate.requested",
     description: "CDI executes binding requests immediately.",
     featureStatus: FeatureStatus.Alpha,
-    hidden: true,
     deprecated: false,
     resources: [
       ResourceTypes.DataVolume,
     ]
   },
-  VinkVirtualmachineBinding: {
-    name: "vink.kubevm.io/virtualmachine.binding",
+  VinkDatavolumeOwner: {
+    name: "vink.kubevm.io/datavolume.owner",
     description: "Indicates that this DataVolume is being used by a "+
                         "specific virtual machine.",
     featureStatus: FeatureStatus.Alpha,
-    hidden: true,
     deprecated: false,
     resources: [
       ResourceTypes.DataVolume,
     ]
   },
-  VinkVirtualmachineinstanceHost: {
-    name: "vink.kubevm.io/virtualmachineinstance.host",
-    description: "",
+  VinkHost: {
+    name: "vink.kubevm.io/host",
+    description: "Specifies the host machine where the virtual machine "+
+                        "instance is scheduled to run.",
     featureStatus: FeatureStatus.Alpha,
-    hidden: true,
     deprecated: false,
     resources: [
       ResourceTypes.VirtualMachineInstance,
@@ -83,7 +80,7 @@ export const instances: { [key: string]: Instance } = {
 
 export function allResourceAnnotations(): Instance[] {
   return [
-    instances.IoKubevirtCdiStorageBindImmediateRequested,instances.VinkVirtualmachineBinding,instances.VinkVirtualmachineinstanceHost,
+    instances.IoKubevirtCdiStorageBindImmediateRequested,instances.VinkDatavolumeOwner,instances.VinkHost,
   ];
 }
 

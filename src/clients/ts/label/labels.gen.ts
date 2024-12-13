@@ -39,7 +39,6 @@ export interface Instance {
   name: string;
   description: string;
   featureStatus: FeatureStatus;
-  hidden: boolean;
   deprecated: boolean;
   resources: ResourceTypes[];
 }
@@ -48,34 +47,30 @@ export const instances: { [key: string]: Instance } = {
   
   VinkDatavolumeType: {
     name: "vink.kubevm.io/datavolume.type",
-    description: "Defines the type of datavolume, such as root for the "+
-                        "system datavolume, image for the system image, and data "+
-                        "for the data datavolume.",
+    description: "Specifies the type of data volume associated with the "+
+                        "virtual machine.",
     featureStatus: FeatureStatus.Alpha,
-    hidden: true,
     deprecated: false,
     resources: [
       ResourceTypes.DataVolume,
     ]
   },
-  VinkVirtualmachineOs: {
-    name: "vink.kubevm.io/virtualmachine.os",
+  VinkOperatingSystem: {
+    name: "vink.kubevm.io/operating-system",
     description: "Defines the operating system of the virtual machine, "+
                         "where 'windows' represents the Windows operating system, "+
                         "and 'linux' represents the Linux operating system.",
     featureStatus: FeatureStatus.Alpha,
-    hidden: true,
     deprecated: false,
     resources: [
       ResourceTypes.DataVolume,
     ]
   },
-  VinkVirtualmachineVersion: {
-    name: "vink.kubevm.io/virtualmachine.version",
+  VinkOperatingSystemVersion: {
+    name: "vink.kubevm.io/operating-system.version",
     description: "Defines the operating system version of the virtual "+
                         "machine.",
     featureStatus: FeatureStatus.Alpha,
-    hidden: true,
     deprecated: false,
     resources: [
       ResourceTypes.DataVolume,
@@ -85,7 +80,7 @@ export const instances: { [key: string]: Instance } = {
 
 export function allResourceLabels(): Instance[] {
   return [
-    instances.VinkDatavolumeType,instances.VinkVirtualmachineOs,instances.VinkVirtualmachineVersion,
+    instances.VinkDatavolumeType,instances.VinkOperatingSystem,instances.VinkOperatingSystemVersion,
   ];
 }
 
