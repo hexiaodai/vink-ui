@@ -1,6 +1,6 @@
 import { Badge, Button, Drawer, Flex, Space } from 'antd'
 import { useEffect, useRef, useState } from 'react'
-import { formatMemoryString, namespaceName } from '@/utils/k8s'
+import { formatMemoryString, namespaceNameKey } from '@/utils/k8s'
 import { instances as labels } from "@/clients/ts/label/labels.gen"
 import { FieldSelector, ResourceType } from '@/clients/ts/types/types'
 import { useWatchResources } from '@/hooks/use-resource'
@@ -65,7 +65,7 @@ export const RootDiskDrawer: React.FC<RootDiskDrawerProps> = ({ open, current, o
                 dataSource={dataSource(resources)}
                 rowSelection={{
                     type: 'radio',
-                    selectedRowKeys: selectedRows.length > 0 ? [namespaceName(selectedRows[0].metadata)] : [],
+                    selectedRowKeys: selectedRows.length > 0 ? [namespaceNameKey(selectedRows[0].metadata)] : [],
                     onChange: (_, selectedRows) => setSelectedRows(selectedRows)
                 }}
                 tableAlertOptionRender={() => <></>}
