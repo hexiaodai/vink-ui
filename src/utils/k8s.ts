@@ -1,6 +1,5 @@
 import { NamespaceName } from "@/clients/ts/types/types"
 
-
 export const formatOSFamily = (family?: string): string => {
     if (!family) {
         return ''

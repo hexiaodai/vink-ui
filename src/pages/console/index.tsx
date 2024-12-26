@@ -104,17 +104,17 @@ const SerialConsole: React.FC = () => {
 
 export default SerialConsole
 
-const fit = (fitAddon: FitAddon, ws: WebSocket) => {
-    fitAddon.fit()
+// const fit = (fitAddon: FitAddon, ws: WebSocket) => {
+//     fitAddon.fit()
 
-    const dimensions = fitAddon.proposeDimensions()
-    const rows = dimensions?.rows ?? 100
-    const cols = dimensions?.cols ?? 100
+//     const dimensions = fitAddon.proposeDimensions()
+//     const rows = dimensions?.rows ?? 100
+//     const cols = dimensions?.cols ?? 100
 
-    const message = JSON.stringify({
-        Width: cols,
-        Height: rows
-    })
+//     const message = JSON.stringify({
+//         Width: cols,
+//         Height: rows
+//     })
 
-    ws.send(str2ab(message))
-}
+//     ws.send(str2ab(message))
+// }
