@@ -11,6 +11,7 @@ import { WatchOptions } from '@/clients/ts/management/resource/v1alpha1/watch'
 import { dataVolumeStatusMap } from '@/utils/resource-status'
 import type { ProColumns } from '@ant-design/pro-components'
 import OperatingSystem from '@/components/operating-system'
+import DataVolumeStatus from '@/components/datavolume-status'
 
 interface RootDiskDrawerProps {
     open?: boolean
@@ -107,10 +108,7 @@ export const rootDiskDrawerColumns: ProColumns<any>[] = [
         key: 'status',
         title: '状态',
         ellipsis: true,
-        render: (_, dv) => {
-            const displayStatus = parseFloat(dv.status.progress) === 100 ? dataVolumeStatusMap[dv.status.phase].text : dv.status.progress
-            return <Badge status={dataVolumeStatusMap[dv.status.phase].badge} text={displayStatus} />
-        }
+        render: (_, dv) => <DataVolumeStatus dv={dv} />
     },
     {
         title: '操作系统',
@@ -122,6 +120,12 @@ export const rootDiskDrawerColumns: ProColumns<any>[] = [
         title: '容量',
         key: 'capacity',
         ellipsis: true,
-        render: (_, dv) => formatMemoryString(dv.spec.pvc.resources.requests.storage)
+        render: (_, dv) => {
+            const storage = dv.spec.pvc?.resources?.requests?.storage
+            if (!storage) {
+                return
+            }
+            return formatMemoryString(storage)
+        }
     }
 ]

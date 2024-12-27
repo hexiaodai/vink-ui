@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react"
-import { clients } from "@/clients/clients"
+import { clients, getResourceName } from "@/clients/clients"
 import { ResourceType } from "@/clients/ts/types/types"
-import { allowedError } from "@/utils/utils"
+import { isAbortedError } from "@/utils/utils"
 import { EventType, WatchOptions } from "@/clients/ts/management/resource/v1alpha1/watch"
 import { namespaceNameKey } from "@/utils/k8s"
 import { App } from "antd"
@@ -34,24 +34,20 @@ export const useListResources = (resourceType: ResourceType, opts?: ListOptions)
 }
 
 export const useWatchResources = (resourceType: ResourceType, opts?: WatchOptions, pause?: boolean) => {
-    const abortCtrl = useRef<AbortController>()
-
-    const needClean = useRef(false)
-
+    console.log("Watching resources", getResourceName(resourceType), opts)
+    const abortCtrl = useRef<AbortController>(new AbortController())
+    const initResourceRef = useRef(false)
     const { notification } = App.useApp()
 
     const [loading, setLoading] = useState(true)
-
     const [resources, setResources] = useState<Map<string, any>>(new Map())
 
     const fetchData = useCallback(async () => {
+        console.log("Fetching data", getResourceName(resourceType), opts)
         setLoading(true)
-        needClean.current = true
-
-        abortCtrl.current?.abort()
+        initResourceRef.current = true
+        abortCtrl.current.abort()
         abortCtrl.current = new AbortController()
-
-        console.log("fetchDatafetchDatafetchDatafetchDatafetchData", opts)
 
         const call = clients.watch.watch({
             resourceType: resourceType,
@@ -62,14 +58,14 @@ export const useWatchResources = (resourceType: ResourceType, opts?: WatchOption
             switch (response.eventType) {
                 case EventType.ADDED:
                 case EventType.MODIFIED: {
-                    if (response.items.length === 0 && needClean.current && resources.size > 0) {
+                    if (response.items.length === 0 && initResourceRef.current && resources.size > 0) {
                         setResources(new Map())
                     }
                     response.items.forEach((data) => {
                         const crd = JSON.parse(data)
                         setResources((prevResources) => {
-                            const updatedResources = needClean.current ? new Map() : new Map(prevResources)
-                            needClean.current = false
+                            const updatedResources = initResourceRef.current ? new Map() : new Map(prevResources)
+                            initResourceRef.current = false
                             updatedResources.set(namespaceNameKey(crd), crd)
                             return updatedResources
                         })
@@ -92,14 +88,14 @@ export const useWatchResources = (resourceType: ResourceType, opts?: WatchOption
         })
 
         call.responses.onError((err: Error) => {
-            if (allowedError(err)) {
+            setLoading(false)
+            if (isAbortedError(err)) {
                 return
             }
             notification.error({
                 message: "Failed to watcher resources",
                 description: err.message
             })
-            setLoading(false)
         })
     }, [opts])
 
@@ -111,6 +107,7 @@ export const useWatchResources = (resourceType: ResourceType, opts?: WatchOption
     }, [fetchData, pause])
 
     useUnmount(() => {
+        console.log("Unmounting watcher", getResourceName(resourceType))
         setLoading(false)
         abortCtrl.current?.abort()
     })
@@ -122,50 +119,27 @@ export const useWatchResourceInNamespaceName = (resourceType: ResourceType) => {
     const [resource, setResource] = useState<any>(null)
     const namespaceName = useNamespaceFromURL()
 
-    const opts = useRef<WatchOptions>(WatchOptions.create({
+    const selector = {
         fieldSelectorGroup: {
             operator: "&&",
             fieldSelectors: [
                 {
-                    fieldPath: 'metadata.namespace',
-                    operator: '=',
-                    values: [namespaceName.namespace]
-                },
-                {
                     fieldPath: 'metadata.name',
                     operator: '=',
                     values: [namespaceName.name]
                 }
             ]
         }
-    }))
+    }
+    if (namespaceName.namespace.length > 0) {
+        selector.fieldSelectorGroup.fieldSelectors.unshift({
+            fieldPath: 'metadata.namespace',
+            operator: '=',
+            values: [namespaceName.namespace]
+        })
+    }
 
-    const { resources, loading } = useWatchResources(resourceType, opts.current)
-
-    useEffect(() => {
-        const resourceData = resources.get(namespaceNameKey(namespaceName))
-        setResource(resourceData)
-    }, [resources])
-
-    return { resource, loading }
-}
-
-
-export const useWatchResourceInName = (resourceType: ResourceType) => {
-    const [resource, setResource] = useState<any>(null)
-    const namespaceName = useNamespaceFromURL()
-
-    const opts = useRef<WatchOptions>(WatchOptions.create({
-        fieldSelectorGroup: {
-            fieldSelectors: [
-                {
-                    fieldPath: 'metadata.name',
-                    operator: '=',
-                    values: [namespaceName.name]
-                }
-            ]
-        }
-    }))
+    const opts = useRef<WatchOptions>(WatchOptions.create(selector))
 
     const { resources, loading } = useWatchResources(resourceType, opts.current)
 

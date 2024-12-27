@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import { fileURLToPath, URL } from 'node:url'
+import { resolve } from 'path'
 import react from '@vitejs/plugin-react'
 // import { viteCommonjs } from '@originjs/vite-plugin-commonjs'
 
@@ -14,6 +15,12 @@ export default defineConfig({
     preserveSymlinks: true
   },
   build: {
+    rollupOptions: {
+      input: {
+        main: resolve(__dirname, 'index.html'),
+        console: resolve(__dirname, 'console.html')
+      }
+    }
   },
   server: {
     proxy: {

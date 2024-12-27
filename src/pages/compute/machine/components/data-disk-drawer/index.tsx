@@ -1,5 +1,5 @@
 import { Badge, Button, Drawer, Flex, Popover, Space, Tag } from 'antd'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { formatMemoryString } from '@/utils/k8s'
 import { instances as annotations } from "@/clients/ts/annotation/annotations.gen"
 import { instances as labels } from "@/clients/ts/label/labels.gen"
@@ -10,8 +10,8 @@ import { useNamespaceFromURL } from '@/hooks/use-namespace-from-url'
 import { CustomTable, SearchItem } from '@/components/custom-table'
 import { dataSource, filterNullish } from '@/utils/utils'
 import { WatchOptions } from '@/clients/ts/management/resource/v1alpha1/watch'
-import { dataVolumeStatusMap } from '@/utils/resource-status'
 import type { ProColumns } from '@ant-design/pro-components'
+import DataVolumeStatus from '@/components/datavolume-status'
 
 interface DataDiskDrawerProps {
     open?: boolean
@@ -115,10 +115,7 @@ const columns: ProColumns<any>[] = [
         key: 'status',
         title: '状态',
         ellipsis: true,
-        render: (_, dv) => {
-            const displayStatus = parseFloat(dv.status.progress) === 100 ? dataVolumeStatusMap[dv.status.phase].text : dv.status.progress
-            return <Badge status={dataVolumeStatusMap[dv.status.phase].badge} text={displayStatus} />
-        }
+        render: (_, dv) => <DataVolumeStatus dv={dv} />
     },
     {
         title: '容量',
@@ -150,7 +147,7 @@ const columns: ProColumns<any>[] = [
         title: 'Owner',
         ellipsis: true,
         render: (_, dv) => {
-            const owners = dv.metadata.annotations[annotations.VinkDatavolumeOwner.name]
+            const owners = dv.metadata.annotations?.[annotations.VinkDatavolumeOwner.name]
             if (!owners) {
                 return
             }

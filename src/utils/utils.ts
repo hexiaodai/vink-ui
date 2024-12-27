@@ -45,11 +45,8 @@ export const removeTrailingDot = (message: string) => {
     return message
 }
 
-export const allowedError = (err: Error) => {
-    if (err.message === "BodyStreamBuffer was aborted") {
-        return true
-    }
-    if (err.message === "signal is aborted without reason") {
+export const isAbortedError = (err: Error) => {
+    if (err.message.toLowerCase().includes("aborted")) {
         return true
     }
     return false

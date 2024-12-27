@@ -6,14 +6,14 @@ import styles from "./index.module.less"
 
 interface OperatingSystemProps {
     dv?: any
-    family?: "ubuntu" | "centos" | "debian" | "linux" | "windows"
+    family?: string
     version?: string
 }
 
 const OperatingSystem: React.FC<OperatingSystemProps> = ({ dv, family, version }) => {
     if (dv) {
-        const info = getOperatingSystemFromDataVolume(dv.metadata)
-        family = info.family as OperatingSystemProps["family"]
+        const info = getOperatingSystemFromDataVolume(dv)
+        family = info.family
         version = info.version
     }
     return (
