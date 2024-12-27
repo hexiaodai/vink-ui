@@ -477,7 +477,7 @@ const getDataDiskColumns = (formRef: React.MutableRefObject<ProFormInstance | un
             title: '访问模式',
             key: 'capacity',
             ellipsis: true,
-            render: (_, dv) => dv.spec.pvc.accessModes[0]
+            render: (_, dv) => dv.spec.pvc.accessModes?.[0]
         },
         {
             title: '容量',
@@ -495,7 +495,7 @@ const getDataDiskColumns = (formRef: React.MutableRefObject<ProFormInstance | un
                     return
                 }
                 const dataDisks = formRef.current.getFieldValue('dataDisks')
-                const newDisks = dataDisks.filter((item: any) => !(namespaceNameKey(item.metadata) === namespaceNameKey(dv.metadata)))
+                const newDisks = dataDisks.filter((item: any) => !(namespaceNameKey(item) === namespaceNameKey(dv)))
                 formRef.current.setFieldValue('dataDisks', newDisks)
             }}>移除</a>)
         }

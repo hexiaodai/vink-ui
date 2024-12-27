@@ -1,7 +1,10 @@
 interface Status { badge: 'default' | 'processing' | 'success' | 'warning' | 'error', text: string }
 
+export const unknownStatus: Status = { badge: "default", text: '未知' }
+
 export const virtualMachineStatusMap: { [key: string]: Status } = {
-    '': { badge: "default", text: '未知' },
+    // '': { badge: "default", text: '未知' },
+    '': unknownStatus,
     'Stopped': { badge: "default", text: '已停止' },
     'Provisioning': { badge: "processing", text: '正在创建' },
     'Starting': { badge: "processing", text: '正在启动' },

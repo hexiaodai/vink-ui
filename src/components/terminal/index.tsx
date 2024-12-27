@@ -7,11 +7,12 @@ interface Props {
 }
 
 const Terminal: React.FC<Props> = ({ vm }) => {
-    const isRunning = vm?.status?.printableStatus as string === "Running"
+    const isRunning = vm?.status?.printableStatus === "Running"
     return (
         <a href='#'
             className={isRunning ? "" : commonStyles["a-disable"]}
-            onClick={() => {
+            onClick={(e) => {
+                e.preventDefault()
                 if (isRunning) {
                     openConsole(vm)
                 }

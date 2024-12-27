@@ -19,16 +19,16 @@ export default () => {
 
     const actionRef = useRef()
 
-    const { resource: virtualMachine, loading } = useWatchResourceInNamespaceName(ResourceType.VIRTUAL_MACHINE)
+    const { resource, loading } = useWatchResourceInNamespaceName(ResourceType.VIRTUAL_MACHINE)
 
-    const rootDisk = useRootDisk(virtualMachine)
+    const rootDisk = useRootDisk(resource)
 
-    if (!virtualMachine) {
+    if (!resource) {
         return
     }
 
     const cloudinit = () => {
-        const vol = virtualMachine.spec.template.spec.volumes.find((vol: any) => {
+        const vol = resource.spec.template.spec.volumes.find((vol: any) => {
             return vol.cloudInitNoCloud
         })
         return vol?.cloudInitNoCloud.userDataBase64 ? atob(vol.cloudInitNoCloud.userDataBase64) : undefined
@@ -57,7 +57,7 @@ export default () => {
                     <ProDescriptions
                         actionRef={actionRef}
                         column={3}
-                        dataSource={virtualMachine}
+                        dataSource={resource}
                         editable={{
                             onSave: (keypath, newInfo, oriInfo) => handleSave(keypath, newInfo, oriInfo)
                         }}
@@ -68,7 +68,7 @@ export default () => {
                             ellipsis
                             editable={false}
                         >
-                            <VirtualMachineStatus vm={virtualMachine} />
+                            <VirtualMachineStatus vm={resource} />
                         </ProDescriptions.Item>
                         <ProDescriptions.Item
                             title="Operating System"
@@ -84,7 +84,7 @@ export default () => {
                             ellipsis
                             editable={false}
                         >
-                            <Terminal vm={virtualMachine} />
+                            <Terminal vm={resource} />
                         </ProDescriptions.Item>
                         <ProDescriptions.Item
                             title="Name"
@@ -92,7 +92,7 @@ export default () => {
                             ellipsis
                             editable={false}
                         >
-                            {virtualMachine.metadata.name}
+                            {resource.metadata.name}
                         </ProDescriptions.Item>
                         <ProDescriptions.Item
                             title="Namespace"
@@ -100,7 +100,7 @@ export default () => {
                             ellipsis
                             editable={false}
                         >
-                            {virtualMachine.metadata.namespace}
+                            {resource.metadata.namespace}
                         </ProDescriptions.Item>
                         <ProDescriptions.Item
                             dataIndex={['spec', 'template', 'spec', 'architecture']}
@@ -128,7 +128,7 @@ export default () => {
                 <ProCard title="CPU">
                     <ProDescriptions
                         actionRef={actionRef}
-                        dataSource={virtualMachine}
+                        dataSource={resource}
                         column={3}
                         editable={{
                             onSave: (keypath, newInfo, oriInfo) => handleSave(keypath, newInfo, oriInfo)
@@ -170,7 +170,7 @@ export default () => {
                 <ProCard title="Memory">
                     <ProDescriptions
                         actionRef={actionRef}
-                        dataSource={virtualMachine}
+                        dataSource={resource}
                         column={3}
                         editable={{
                             onSave: (keypath, newInfo, oriInfo) => handleSave(keypath, newInfo, oriInfo)
@@ -188,7 +188,7 @@ export default () => {
                 <ProCard title="Resource limit">
                     <ProDescriptions
                         actionRef={actionRef}
-                        dataSource={virtualMachine}
+                        dataSource={resource}
                         column={3}
                         editable={{
                             onSave: (keypath, newInfo, oriInfo) => handleSave(keypath, newInfo, oriInfo)

@@ -201,7 +201,7 @@ const columns: ProColumns<any>[] = [
         ellipsis: true,
         render: (_, summary) => {
             const vm = virtualMachine(summary)
-            let core = vm.spec.template?.spec?.domain?.cpu?.cores || vm.spec.template?.spec?.resources?.requests?.cpu
+            let core = vm?.spec.template.spec.domain.cpu?.cores || vm?.spec.template.spec.resources.requests?.cpu
             return core ? `${core} Core` : ''
         }
     },
@@ -211,7 +211,7 @@ const columns: ProColumns<any>[] = [
         ellipsis: true,
         render: (_, summary) => {
             const vm = virtualMachine(summary)
-            const mem = vm.spec.template?.spec?.domain?.memory?.guest || vm.spec.template?.spec?.domain?.resources?.requests?.memory
+            const mem = vm?.spec.template.spec.domain.memory?.guest || vm.spec.template.spec.domain.resources.requests?.memory
             const [value, unit] = formatMemory(mem)
             return `${value} ${unit}`
         }

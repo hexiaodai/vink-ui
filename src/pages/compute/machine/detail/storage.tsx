@@ -9,8 +9,8 @@ import { dataVolumes, virtualMachine } from "@/utils/parse-summary"
 import { clients, getResourceName } from "@/clients/clients"
 import { NotificationInstance } from "antd/es/notification/interface"
 import { extractNamespaceAndName } from "@/utils/k8s"
-import commonStyles from "@/common/styles/common.module.less"
 import { VirtualMachinePowerStateRequest_PowerState } from "@/clients/ts/management/virtualmachine/v1alpha1/virtualmachine"
+import commonStyles from "@/common/styles/common.module.less"
 
 export default () => {
     const { notification } = App.useApp()
