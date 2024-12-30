@@ -84,13 +84,14 @@ const useDataSource = (virtualMachineSummary: any) => {
             return
         }
 
+        const interfaces = vm.spec?.template?.spec?.domain?.devices?.interfaces || []
         const interfacesMap = new Map<string, any>(
-            vm.spec.template.spec.domain.devices.interfaces.map((item: any) => [item.name, item])
+            interfaces.map((item: any) => [item.name, item])
         )
 
-        const vmIPs = virtualMachineIPs(virtualMachineSummary)
+        const vmIPs = virtualMachineIPs(virtualMachineSummary) || []
         const ipsMap = new Map<string, any>(
-            vmIPs?.map((item: any) => {
+            vmIPs.map((item: any) => {
                 const arr = item.metadata.name.split(".")
                 if (arr.length >= 3) {
                     return [`${arr[1]}/${arr[2]}`, item]
@@ -106,28 +107,29 @@ const useDataSource = (virtualMachineSummary: any) => {
                 subnetSelectors.push({ fieldPath: "metadata.name", operator: "=", values: [ipObj.spec.subnet] })
             })
 
-            const subnets = await clients.listResources(ResourceType.SUBNET, ListOptions.create({ fieldSelectorGroup: { operator: "||", fieldSelectors: subnetSelectors } }))
-            const subnetMap = new Map<string, any>(
-                subnets.map((crd: any) => {
-                    return [crd.metadata.name, crd]
+            const subnetMap = new Map<string, any>()
+            try {
+                const subnets = await clients.listResources(ResourceType.SUBNET, ListOptions.create({ fieldSelectorGroup: { operator: "||", fieldSelectors: subnetSelectors } }))
+                subnets.forEach((crd: any) => {
+                    subnetMap.set(crd.metadata.name, crd)
                 })
-            )
+            } catch (err: any) {
+                console.error("Failed to get subnets", err)
+            }
 
-            const data: DataSourceType[] = await Promise.all(vm.spec.template.spec.networks.map(async (item: any) => {
+            const networks = vm?.spec?.template?.spec?.networks || []
+            const data: DataSourceType[] = await Promise.all(networks.map(async (item: any) => {
                 const inter = interfacesMap.get(item.name)
                 if (!inter) {
                     return null
                 }
 
-                if (!vm.spec.template.metadata.annotations) {
-                    vm.spec.template.metadata.annotations = {}
-                }
-                let multus = item.multus?.networkName || vm.spec.template.metadata.annotations[defaultNetworkAnno]
+                let multus = item.multus?.networkName || vm?.spec?.template?.metadata?.annotations?.[defaultNetworkAnno]
                 let ipObject = ipsMap.get(multus)
 
-                const ippool = vm.spec.template.metadata.annotations[generateKubeovnNetworkAnnon(multus, "ip_pool")]
+                const ippool = vm?.spec?.template?.metadata?.annotations?.[generateKubeovnNetworkAnnon(multus, "ip_pool")]
 
-                const subnet = subnetMap.get(ipObject?.spec.subnet)
+                const subnet = subnetMap.get(ipObject?.spec?.subnet)
 
                 const ds: DataSourceType = {
                     name: item.name,

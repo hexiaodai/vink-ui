@@ -123,6 +123,10 @@ export interface NetworkConfig {
 export const updateNetwork = (vm: any, netcfg: NetworkConfig) => {
     const isAddAction = (!netcfg.name || netcfg.name.length === 0)
 
+    if (!vm.spec.template.spec.networks) {
+        vm.spec.template.spec.networks = []
+    }
+
     const multusNameMap = new Map<string, boolean>()
     const networkNameMap = new Map<string, boolean>()
     for (const element of vm.spec.template.spec.networks) {
@@ -169,11 +173,15 @@ export const updateNetwork = (vm: any, netcfg: NetworkConfig) => {
         vm.spec.template.metadata.annotations[defaultNetworkAnno] = multusName
     } else {
         net.multus = { default: netcfg.default, networkName: multusName }
-        if (vm.spec.template.metadata.annotations?.[defaultNetworkAnno] === multusName) {
+        if (vm.spec.template.metadata.annotations[defaultNetworkAnno] === multusName) {
             delete vm.spec.template.metadata.annotations[defaultNetworkAnno]
         }
     }
     vm.spec.template.spec.networks.push(net)
+
+    if (!vm.spec.template.spec.domain.devices.interfaces) {
+        vm.spec.template.spec.domain.devices.interfaces = []
+    }
 
     vm.spec.template.spec.domain.devices.interfaces = vm.spec.template.spec.domain.devices.interfaces.filter((net: any) => {
         return net.name !== netcfg.name
