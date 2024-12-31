@@ -98,7 +98,7 @@ export const openConsole = (vm: any) => {
         return
     }
 
-    const url = `/console?namespace=${vm.metadata.namespace}&name=${vm.metadata.name}`
+    const url = `/console.html?namespace=${vm.metadata.namespace}&name=${vm.metadata.name}`
     const width = screen.width - 400
     const height = screen.height - 250
     const left = 0
