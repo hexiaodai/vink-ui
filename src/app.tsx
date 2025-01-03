@@ -50,8 +50,8 @@ export default () => {
                 options={[
                   { value: '', label: '全部工作空间' },
                   ...namespaces.map((ns: any) => ({
-                    value: ns.metadata?.name,
-                    label: ns.metadata?.name
+                    value: ns.metadata.name,
+                    label: ns.metadata.name
                   }))
                 ]}
               />

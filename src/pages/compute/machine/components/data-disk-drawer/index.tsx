@@ -6,7 +6,7 @@ import { instances as labels } from "@/clients/ts/label/labels.gen"
 import { FieldSelector, ResourceType } from '@/clients/ts/types/types'
 import { useWatchResources } from '@/hooks/use-resource'
 import { getNamespaceFieldSelector, replaceDots } from '@/utils/search'
-import { useNamespaceFromURL } from '@/hooks/use-namespace-from-url'
+import { useNamespaceFromURL } from '@/hooks/use-query-params-from-url'
 import { CustomTable, SearchItem } from '@/components/custom-table'
 import { dataSource, filterNullish } from '@/utils/utils'
 import { WatchOptions } from '@/clients/ts/management/resource/v1alpha1/watch'
