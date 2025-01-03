@@ -5,7 +5,7 @@ import { isAbortedError } from "@/utils/utils"
 import { EventType, WatchOptions } from "@/clients/ts/management/resource/v1alpha1/watch"
 import { namespaceNameKey } from "@/utils/k8s"
 import { App } from "antd"
-import { useNamespaceFromURL } from "./use-namespace-from-url"
+import { useNamespaceFromURL } from "./use-query-params-from-url"
 import { ListOptions } from "@/clients/ts/management/resource/v1alpha1/resource"
 import useUnmount from "./use-unmount"
 

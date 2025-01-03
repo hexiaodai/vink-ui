@@ -1,7 +1,7 @@
 import { Flex, Segmented, Space } from "antd"
 import { useEffect, useState } from "react"
 import { useLocation, useNavigate } from "react-router-dom"
-import { useNamespaceFromURL } from "@/hooks/use-namespace-from-url"
+import { useNamespaceFromURL } from "@/hooks/use-query-params-from-url"
 import Overview from "./overview"
 import Volume from "./storage"
 import Network from "./network"

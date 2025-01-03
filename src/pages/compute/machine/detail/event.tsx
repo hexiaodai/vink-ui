@@ -4,7 +4,7 @@ import { Button, Drawer, Flex, Table, TableProps } from "antd"
 import { useWatchResources } from "@/hooks/use-resource"
 import { LoadingOutlined } from '@ant-design/icons'
 import { useRef, useState } from "react"
-import { useNamespaceFromURL } from "@/hooks/use-namespace-from-url"
+import { useNamespaceFromURL } from "@/hooks/use-query-params-from-url"
 import { namespaceNameKey } from "@/utils/k8s"
 import { WatchOptions } from "@/clients/ts/management/resource/v1alpha1/watch"
 import { yaml as langYaml } from "@codemirror/lang-yaml"
