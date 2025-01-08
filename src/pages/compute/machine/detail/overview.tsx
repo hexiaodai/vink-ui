@@ -3,35 +3,74 @@ import { useEffect, useRef, useState } from "react"
 import { ResourceType } from "@/clients/ts/types/types"
 import { clients, getResourceName } from "@/clients/clients"
 import { ProCard, ProDescriptions } from "@ant-design/pro-components"
-import { useWatchResourceInNamespaceName } from "@/hooks/use-resource"
 import { LoadingOutlined } from '@ant-design/icons'
 import { classNames, formatTimestamp, getErrorMessage, updateNestedValue } from "@/utils/utils"
 import { yaml as langYaml } from "@codemirror/lang-yaml"
+import { useNamespaceFromURL } from "@/hooks/use-query-params-from-url"
+import { DataVolume, getRootDisk } from "@/clients/data-volume"
+import { VirtualMachine, watchVirtualMachine } from "@/clients/virtual-machine"
 import CodeMirror from '@uiw/react-codemirror'
 import codeMirrorStyles from "@/common/styles/code-mirror.module.less"
 import commonStyles from "@/common/styles/common.module.less"
 import OperatingSystem from "@/components/operating-system"
 import VirtualMachineStatus from "@/pages/compute/machine/components/status"
 import Terminal from "@/components/terminal"
+import useUnmount from "@/hooks/use-unmount"
 
 export default () => {
     const { notification } = App.useApp()
 
     const actionRef = useRef()
 
-    const { resource, loading } = useWatchResourceInNamespaceName(ResourceType.VIRTUAL_MACHINE)
+    const ns = useNamespaceFromURL()
 
-    const rootDisk = useRootDisk(resource)
+    const [loading, setLoading] = useState(true)
+    const [virtualMachine, setVirtualMachine] = useState<VirtualMachine>()
 
-    if (!resource) {
-        return
-    }
+    const abortCtrl = useRef<AbortController>()
+
+    useEffect(() => {
+        abortCtrl.current?.abort()
+        abortCtrl.current = new AbortController()
+        watchVirtualMachine(ns, setVirtualMachine, setLoading, abortCtrl.current.signal).catch(err => {
+            notification.error({
+                message: getResourceName(ResourceType.VIRTUAL_MACHINE),
+                description: getErrorMessage(err)
+            })
+        })
+    }, [ns])
+
+    const [rootDiskLoading, setRootDiskLoading] = useState(true)
+    const [rootDisk, setRootDisk] = useState<DataVolume>()
+
+    useEffect(() => {
+        if (!virtualMachine) {
+            return
+        }
+        getRootDisk(setRootDiskLoading, virtualMachine).then(dv => {
+            setRootDisk(dv)
+        }).catch(err => {
+            notification.error({
+                message: getResourceName(ResourceType.DATA_VOLUME),
+                description: getErrorMessage(err)
+            })
+        })
+    }, [virtualMachine])
+
+    useUnmount(() => {
+        console.log("Unmounting watcher", getResourceName(ResourceType.VIRTUAL_MACHINE))
+        abortCtrl.current?.abort()
+    })
 
     const cloudinit = () => {
-        const vol = resource.spec.template.spec.volumes.find((vol: any) => {
+        const vol = virtualMachine?.spec?.template?.spec?.volumes?.find((vol: any) => {
             return vol.cloudInitNoCloud
         })
-        return vol?.cloudInitNoCloud.userDataBase64 ? atob(vol.cloudInitNoCloud.userDataBase64) : undefined
+        const userData = vol?.cloudInitNoCloud?.userDataBase64
+        if (!userData) {
+            return
+        }
+        return atob(userData)
     }
 
     const handleSave = async (keypath: any, newInfo: any, oriInfo: any) => {
@@ -48,7 +87,7 @@ export default () => {
     }
 
     return (
-        <Spin spinning={loading} delay={500} indicator={<LoadingOutlined spin />} >
+        <Spin spinning={loading || rootDiskLoading} delay={500} indicator={<LoadingOutlined spin />} >
             <Space
                 direction="vertical"
                 size="middle"
@@ -57,7 +96,7 @@ export default () => {
                     <ProDescriptions
                         actionRef={actionRef}
                         column={3}
-                        dataSource={resource}
+                        dataSource={virtualMachine}
                         editable={{
                             onSave: (keypath, newInfo, oriInfo) => handleSave(keypath, newInfo, oriInfo)
                         }}
@@ -68,7 +107,7 @@ export default () => {
                             ellipsis
                             editable={false}
                         >
-                            <VirtualMachineStatus vm={resource} />
+                            {virtualMachine && <VirtualMachineStatus vm={virtualMachine} />}
                         </ProDescriptions.Item>
                         <ProDescriptions.Item
                             title="Operating System"
@@ -84,7 +123,7 @@ export default () => {
                             ellipsis
                             editable={false}
                         >
-                            <Terminal vm={resource} />
+                            {virtualMachine && <Terminal vm={virtualMachine} />}
                         </ProDescriptions.Item>
                         <ProDescriptions.Item
                             title="Name"
@@ -92,7 +131,7 @@ export default () => {
                             ellipsis
                             editable={false}
                         >
-                            {resource.metadata.name}
+                            {virtualMachine?.metadata?.name}
                         </ProDescriptions.Item>
                         <ProDescriptions.Item
                             title="Namespace"
@@ -100,7 +139,7 @@ export default () => {
                             ellipsis
                             editable={false}
                         >
-                            {resource.metadata.namespace}
+                            {virtualMachine?.metadata?.namespace}
                         </ProDescriptions.Item>
                         <ProDescriptions.Item
                             dataIndex={['spec', 'template', 'spec', 'architecture']}
@@ -120,7 +159,13 @@ export default () => {
                             key="creationTimestamp"
                             ellipsis
                             editable={false}
-                            render={(_, vm: any) => formatTimestamp(vm.metadata.creationTimestamp)}
+                            render={(_, vm: any) => {
+                                const timestamp = vm?.metadata?.creationTimestamp
+                                if (!timestamp) {
+                                    return
+                                }
+                                return formatTimestamp(timestamp)
+                            }}
                         />
                     </ProDescriptions>
                 </ProCard>
@@ -128,7 +173,7 @@ export default () => {
                 <ProCard title="CPU">
                     <ProDescriptions
                         actionRef={actionRef}
-                        dataSource={resource}
+                        dataSource={virtualMachine}
                         column={3}
                         editable={{
                             onSave: (keypath, newInfo, oriInfo) => handleSave(keypath, newInfo, oriInfo)
@@ -170,7 +215,7 @@ export default () => {
                 <ProCard title="Memory">
                     <ProDescriptions
                         actionRef={actionRef}
-                        dataSource={resource}
+                        dataSource={virtualMachine}
                         column={3}
                         editable={{
                             onSave: (keypath, newInfo, oriInfo) => handleSave(keypath, newInfo, oriInfo)
@@ -188,7 +233,7 @@ export default () => {
                 <ProCard title="Resource limit">
                     <ProDescriptions
                         actionRef={actionRef}
-                        dataSource={resource}
+                        dataSource={virtualMachine}
                         column={3}
                         editable={{
                             onSave: (keypath, newInfo, oriInfo) => handleSave(keypath, newInfo, oriInfo)
@@ -232,41 +277,4 @@ export default () => {
             </Space>
         </Spin >
     )
-}
-
-const useRootDisk = (virtualMachine: any) => {
-    const { notification } = App.useApp()
-
-    const [rootDisk, setRootDisk] = useState<any>(null)
-
-    useEffect(() => {
-        if (!virtualMachine || virtualMachine.spec.template.spec.domain.devices.disks.length === 0) {
-            return
-        }
-
-        let disk = virtualMachine.spec.template.spec.domain.devices.disks.find((disk: any) => {
-            return disk.bootOrder === 1
-        })
-        if (!disk) {
-            disk = virtualMachine.spec.template.spec.domain.devices.disks[0]
-        }
-
-        const vol = virtualMachine.spec.template.spec.volumes.find((vol: any) => {
-            return vol.name == disk.name
-        })
-        if (!vol) {
-            return
-        }
-
-        clients.getResource(ResourceType.DATA_VOLUME, { namespace: virtualMachine.metadata.namespace, name: vol.dataVolume.name }).then((crd: any) => {
-            setRootDisk(crd)
-        }).catch((err: any) => {
-            notification.error({
-                message: getResourceName(ResourceType.DATA_VOLUME),
-                description: getErrorMessage(err)
-            })
-        })
-    }, [virtualMachine])
-
-    return rootDisk
 }

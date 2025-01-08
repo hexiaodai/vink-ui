@@ -1,177 +1,97 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { App, Modal, Space, Table, TableProps } from 'antd'
-import { classNames, generateKubeovnNetworkAnnon, getErrorMessage } from '@/utils/utils'
-import { useWatchResourceInNamespaceName } from '@/hooks/use-resource'
-import { FieldSelector, ResourceType } from '@/clients/ts/types/types'
+import { classNames, getErrorMessage } from '@/utils/utils'
+import { ResourceType } from '@/clients/ts/types/types'
 import { extractNamespaceAndName, namespaceNameKey } from '@/utils/k8s'
 import { LoadingOutlined } from '@ant-design/icons'
 import { clients, getResourceName } from '@/clients/clients'
-import { virtualMachine, virtualMachineIPs } from '@/utils/parse-summary'
-import { defaultNetworkAnno, deleteNetwork, NetworkConfig, updateNetwork } from '../virtualmachine'
-import { NotificationInstance } from 'antd/es/notification/interface'
-import { ListOptions } from '@/clients/ts/management/resource/v1alpha1/resource'
+import { deleteNetwork, NetworkConfig, updateNetwork } from '../virtualmachine'
 import { NetworkDrawer } from '../components/network-drawer'
 import { VirtualMachinePowerStateRequest_PowerState } from '@/clients/ts/management/virtualmachine/v1alpha1/virtualmachine'
+import { useNamespaceFromURL } from '@/hooks/use-query-params-from-url'
+import { VirtualMachineSummary, watchVirtualMachineSummary } from '@/clients/virtual-machine-summary'
+import { listSubnetsForVirtualMachine, VirtualMachineNetworkDataSourceType } from '@/clients/subnet'
+import useUnmount from '@/hooks/use-unmount'
 import commonStyles from '@/common/styles/common.module.less'
-
-type DataSourceType = {
-    name: string
-    default: boolean
-    network: string
-    interface: string
-    multus: string
-    vpc: string
-    subnet: string
-    ippool: string
-    ipAddress: string
-    macAddress: string
-}
 
 export default () => {
     const { notification } = App.useApp()
+
+    const ns = useNamespaceFromURL()
 
     const [open, setOpen] = useState(false)
 
     const [networkConfig, setNetworkConfig] = useState<NetworkConfig>()
 
-    const { resource: virtualMachineSummary, loading } = useWatchResourceInNamespaceName(ResourceType.VIRTUAL_MACHINE_SUMMARY)
+    const abortCtrl = useRef<AbortController>()
+    const [loading, setLoading] = useState(true)
+    const [summary, setSummary] = useState<VirtualMachineSummary>()
 
-    const { dataSource, loading: dataSourceLoading } = useDataSource(virtualMachineSummary)
+    const [vmNetLoading, setVMNetLoading] = useState(true)
+    const [virtualMachineNetworks, setVirtualMachineNetworks] = useState<VirtualMachineNetworkDataSourceType[]>()
 
-    const columns = columnsFunc(virtualMachineSummary, setOpen, setNetworkConfig, notification)
+    useEffect(() => {
+        abortCtrl.current?.abort()
+        abortCtrl.current = new AbortController()
+        watchVirtualMachineSummary(ns, setSummary, setLoading, abortCtrl.current.signal).catch(err => {
+            notification.error({
+                message: getResourceName(ResourceType.VIRTUAL_MACHINE_SUMMARY),
+                description: getErrorMessage(err)
+            })
+        })
+    }, [ns])
+
+    useEffect(() => {
+        if (!summary) {
+            return
+        }
+        setVMNetLoading(true)
+        listSubnetsForVirtualMachine(summary).then(items => {
+            setVirtualMachineNetworks(items)
+        }).catch(err => {
+            notification.error({
+                message: getResourceName(ResourceType.VIRTUAL_MACHINE_SUMMARY),
+                description: getErrorMessage(err)
+            })
+        }).finally(() => {
+            setVMNetLoading(false)
+        })
+    }, [summary])
+
+    useUnmount(() => {
+        console.log("Unmounting watcher", getResourceName(ResourceType.VIRTUAL_MACHINE_SUMMARY))
+        abortCtrl.current?.abort()
+    })
 
     const handleConfirmNetwork = async (networkConfig: NetworkConfig) => {
+        const namespace = summary?.metadata?.namespace
+        const name = summary?.metadata?.name
+        if (!namespace || !name) {
+            return
+        }
+
         try {
-            const vm = await clients.getResource(ResourceType.VIRTUAL_MACHINE, extractNamespaceAndName(virtualMachineSummary))
+            const vm = await clients.getResource(ResourceType.VIRTUAL_MACHINE, { namespace, name })
             updateNetwork(vm, networkConfig)
             await clients.updateResource(ResourceType.VIRTUAL_MACHINE, vm)
-            await clients.manageVirtualMachinePowerState(extractNamespaceAndName(vm), VirtualMachinePowerStateRequest_PowerState.REBOOT)
+            await clients.manageVirtualMachinePowerState({ namespace, name }, VirtualMachinePowerStateRequest_PowerState.REBOOT)
             setOpen(false)
         } catch (err: any) {
             notification.error({ message: getResourceName(ResourceType.VIRTUAL_MACHINE), description: getErrorMessage(err) })
         }
     }
 
-    return (
-        <>
-            <Table
-                className={classNames(commonStyles["small-scrollbar"])}
-                size="middle"
-                scroll={{ x: 150 * 10 }}
-                loading={{ spinning: loading || dataSourceLoading, delay: 500, indicator: <LoadingOutlined spin /> }}
-                columns={columns}
-                dataSource={dataSource}
-                pagination={false}
-            />
-
-            <NetworkDrawer
-                open={open}
-                networkConfig={networkConfig}
-                onCanel={() => setOpen(false)}
-                onConfirm={handleConfirmNetwork}
-            />
-        </>
-    )
-}
-
-const useDataSource = (virtualMachineSummary: any) => {
-    const [dataSource, setDataSource] = useState<any[]>()
-    const [loading, setLoading] = useState(false)
-
-    useEffect(() => {
-        const vm = virtualMachine(virtualMachineSummary)
-        if (!vm) {
-            return
-        }
-
-        const interfaces = vm.spec?.template?.spec?.domain?.devices?.interfaces || []
-        const interfacesMap = new Map<string, any>(
-            interfaces.map((item: any) => [item.name, item])
-        )
-
-        const vmIPs = virtualMachineIPs(virtualMachineSummary) || []
-        const ipsMap = new Map<string, any>(
-            vmIPs.map((item: any) => {
-                const arr = item.metadata.name.split(".")
-                if (arr.length >= 3) {
-                    return [`${arr[1]}/${arr[2]}`, item]
-                }
-                return [namespaceNameKey(item), item]
-            })
-        )
-
-        const fetchData = async () => {
-            setLoading(true)
-            const subnetSelectors: FieldSelector[] = []
-            ipsMap.forEach(ipObj => {
-                subnetSelectors.push({ fieldPath: "metadata.name", operator: "=", values: [ipObj.spec.subnet] })
-            })
-
-            const subnetMap = new Map<string, any>()
-            try {
-                const subnets = await clients.listResources(ResourceType.SUBNET, ListOptions.create({ fieldSelectorGroup: { operator: "||", fieldSelectors: subnetSelectors } }))
-                subnets.forEach((crd: any) => {
-                    subnetMap.set(crd.metadata.name, crd)
-                })
-            } catch (err: any) {
-                console.error("Failed to get subnets", err)
-            }
-
-            const networks = vm?.spec?.template?.spec?.networks || []
-            const data: DataSourceType[] = await Promise.all(networks.map(async (item: any) => {
-                const inter = interfacesMap.get(item.name)
-                if (!inter) {
-                    return null
-                }
-
-                let multus = item.multus?.networkName || vm?.spec?.template?.metadata?.annotations?.[defaultNetworkAnno]
-                let ipObject = ipsMap.get(multus)
-
-                const ippool = vm?.spec?.template?.metadata?.annotations?.[generateKubeovnNetworkAnnon(multus, "ip_pool")]
-
-                const subnet = subnetMap.get(ipObject?.spec?.subnet)
-
-                const ds: DataSourceType = {
-                    name: item.name,
-                    default: item.pod ? true : item.multus.default ? true : false,
-                    network: item.multus ? "multus" : "pod",
-                    interface: inter.bridge ? "bridge" : inter.masquerade ? "masquerade" : inter.sriov ? "sriov" : inter.slirp ? "slirp" : "",
-                    multus: multus,
-                    vpc: subnet?.spec.vpc,
-                    subnet: ipObject?.spec.subnet,
-                    ippool: ippool,
-                    ipAddress: ipObject?.spec.ipAddress,
-                    macAddress: ipObject?.spec.macAddress
-                }
-
-                return ds
-            }))
-
-            setLoading(false)
-            setDataSource(data.filter(Boolean))
-        }
-        fetchData()
-    }, [virtualMachineSummary])
-
-    return { dataSource, loading }
-}
-
-const columnsFunc = (virtualMachineSummary: any, setOpen: any, setNetworkConfig: any, notification: NotificationInstance) => {
-    if (!virtualMachineSummary) {
-        return
-    }
-
     const handleRemoveNetwork = (netName: string) => {
         Modal.confirm({
             title: "Remove Network?",
-            content: `You are about to remove the network "${namespaceNameKey(virtualMachineSummary)}". Please confirm.`,
+            content: `You are about to remove the network "${namespaceNameKey(summary)}". Please confirm.`,
             okText: 'Confirm Removal',
             okType: 'danger',
             cancelText: 'Cancel',
             okButtonProps: { disabled: false },
             onOk: async () => {
                 try {
-                    const vm = await clients.getResource(ResourceType.VIRTUAL_MACHINE, extractNamespaceAndName(virtualMachineSummary))
+                    const vm = await clients.getResource(ResourceType.VIRTUAL_MACHINE, extractNamespaceAndName(summary))
                     deleteNetwork(vm, netName)
                     await clients.updateResource(ResourceType.VIRTUAL_MACHINE, vm)
                     await clients.manageVirtualMachinePowerState(extractNamespaceAndName(vm), VirtualMachinePowerStateRequest_PowerState.REBOOT)
@@ -238,7 +158,6 @@ const columnsFunc = (virtualMachineSummary: any, setOpen: any, setNetworkConfig:
                 return (
                     <Space>
                         <a onClick={() => {
-                            console.log(record)
                             setNetworkConfig(record)
                             setOpen(true)
                         }}>编辑</a>
@@ -249,5 +168,24 @@ const columnsFunc = (virtualMachineSummary: any, setOpen: any, setNetworkConfig:
         }
     ]
 
-    return columns
+    return (
+        <>
+            <Table
+                className={classNames(commonStyles["small-scrollbar"])}
+                size="middle"
+                scroll={{ x: 150 * 10 }}
+                loading={{ spinning: loading || vmNetLoading, delay: 500, indicator: <LoadingOutlined spin /> }}
+                columns={columns}
+                dataSource={virtualMachineNetworks}
+                pagination={false}
+            />
+
+            <NetworkDrawer
+                open={open}
+                networkConfig={networkConfig}
+                onCanel={() => setOpen(false)}
+                onConfirm={handleConfirmNetwork}
+            />
+        </>
+    )
 }

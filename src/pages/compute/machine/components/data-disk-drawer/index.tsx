@@ -1,31 +1,46 @@
-import { Badge, Button, Drawer, Flex, Popover, Space, Tag } from 'antd'
+import { App, Button, Drawer, Flex, Popover, Space, Tag } from 'antd'
 import { useEffect, useRef, useState } from 'react'
-import { formatMemoryString } from '@/utils/k8s'
 import { instances as annotations } from "@/clients/ts/annotation/annotations.gen"
 import { instances as labels } from "@/clients/ts/label/labels.gen"
 import { FieldSelector, ResourceType } from '@/clients/ts/types/types'
-import { useWatchResources } from '@/hooks/use-resource'
 import { getNamespaceFieldSelector, replaceDots } from '@/utils/search'
 import { useNamespaceFromURL } from '@/hooks/use-query-params-from-url'
 import { CustomTable, SearchItem } from '@/components/custom-table'
-import { dataSource, filterNullish } from '@/utils/utils'
+import { filterNullish, getErrorMessage } from '@/utils/utils'
 import { WatchOptions } from '@/clients/ts/management/resource/v1alpha1/watch'
+import { DataVolume, watchDataVolumes } from '@/clients/data-volume'
+import { getResourceName } from '@/clients/clients'
 import type { ProColumns } from '@ant-design/pro-components'
 import DataVolumeStatus from '@/components/datavolume-status'
+import useUnmount from '@/hooks/use-unmount'
 
 interface DataDiskDrawerProps {
-    open?: boolean
-    current?: any[]
+    open: boolean
+    current?: DataVolume[]
     onCanel?: () => void
-    onConfirm?: (dataDisks: any[]) => void
+    onConfirm?: (dataDisks: DataVolume[]) => void
 }
 
 const dvTypeSelector: FieldSelector = { fieldPath: `metadata.labels.${replaceDots(labels.VinkDatavolumeType.name)}`, operator: "=", values: ["data"] }
 
+const searchItems: SearchItem[] = [
+    { fieldPath: "metadata.name", name: "Name", operator: "*=" },
+    {
+        fieldPath: "status.phase", name: "Status",
+        items: [
+            { inputValue: "Succeeded", values: ["Succeeded"], operator: '=' },
+            { inputValue: "Failed", values: ["Failed"], operator: '=' },
+            { inputValue: 'Provisioning', values: ["ImportInProgress", "CloneInProgress", "CloneFromSnapshotSourceInProgress", "SmartClonePVCInProgress", "CSICloneInProgress", "ExpansionInProgress", "NamespaceTransferInProgress", "PrepClaimInProgress", "RebindInProgress"], operator: '~=' },
+        ]
+    }
+]
+
 export const DataDiskDrawer: React.FC<DataDiskDrawerProps> = ({ open, current, onCanel, onConfirm }) => {
+    const { notification } = App.useApp()
+
     const namespaceName = useNamespaceFromURL()
 
-    const [selectedRows, setSelectedRows] = useState<any[]>([])
+    const [selectedRows, setSelectedRows] = useState<DataVolume[]>([])
 
     useEffect(() => {
         setSelectedRows(current || [])
@@ -36,20 +51,105 @@ export const DataDiskDrawer: React.FC<DataDiskDrawerProps> = ({ open, current, o
         fieldSelectorGroup: { operator: "&&", fieldSelectors: defaultFieldSelectors }
     }))
 
+    const [loading, setLoading] = useState(true)
+    const [dataVolumes, setDataVolumes] = useState<DataVolume[]>()
+
+    const abortCtrl = useRef<AbortController>()
+
+    useEffect(() => {
+        abortCtrl.current?.abort()
+        abortCtrl.current = new AbortController()
+        watchDataVolumes(setDataVolumes, setLoading, abortCtrl.current.signal, opts).catch(err => {
+            notification.error({
+                message: getResourceName(ResourceType.DATA_VOLUME),
+                description: getErrorMessage(err)
+            })
+        })
+    }, [opts])
+
+    useUnmount(() => {
+        console.log("Unmounting watcher", getResourceName(ResourceType.DATA_VOLUME))
+        abortCtrl.current?.abort()
+    })
+
     useEffect(() => {
         setDefaultFieldSelectors(filterNullish([getNamespaceFieldSelector(namespaceName.namespace), dvTypeSelector]))
     }, [namespaceName.namespace])
 
-    const { resources, loading } = useWatchResources(ResourceType.DATA_VOLUME, opts, !open)
-
-    const handleCheckboxProps = (dv: any) => {
-        const binding = dv.metadata.annotations[annotations.VinkDatavolumeOwner.name]
-        if (!binding || binding.length == 0) {
+    const handleCheckboxProps = (dv: DataVolume) => {
+        const binding = dv.metadata!.annotations?.[annotations.VinkDatavolumeOwner.name]
+        if (!binding || (binding as string).length == 0) {
             return { disabled: false }
         }
         const parse = JSON.parse(binding)
         return { disabled: parse && parse.length > 0 }
     }
+
+    const columns: ProColumns<DataVolume>[] = [
+        {
+            title: '名称',
+            key: 'name',
+            ellipsis: true,
+            render: (_, dv) => dv.metadata!.name
+        },
+        {
+            key: 'status',
+            title: '状态',
+            ellipsis: true,
+            render: (_, dv) => <DataVolumeStatus dv={dv} />
+        },
+        {
+            title: '容量',
+            key: 'capacity',
+            ellipsis: true,
+            render: (_, dv) => dv.spec.pvc?.resources?.requests?.storage
+        },
+        {
+            key: 'owner',
+            title: 'Owner',
+            ellipsis: true,
+            render: (_, dv) => {
+                const owners = dv.metadata!.annotations?.[annotations.VinkDatavolumeOwner.name]
+                if (!owners) {
+                    return
+                }
+
+                const parse: string[] = JSON.parse(owners)
+                if (parse.length == 0) {
+                    return
+                }
+
+                const content = (
+                    <Flex wrap gap="4px 0" style={{ maxWidth: 250 }}>
+                        {parse.map((element: any, index: any) => (
+                            <Tag key={index} bordered={true}>
+                                {element}
+                            </Tag>
+                        ))}
+                    </Flex>
+                )
+
+                return (
+                    <Popover content={content}>
+                        <Tag bordered={true}>{parse[0]}</Tag>
+                        +{parse.length}
+                    </Popover>
+                )
+            }
+        },
+        {
+            title: '存储类',
+            key: 'storageClassName',
+            ellipsis: true,
+            render: (_, dv) => dv.spec.pvc?.storageClassName
+        },
+        {
+            title: '访问模式',
+            key: 'accessModes',
+            ellipsis: true,
+            render: (_, dv) => dv.spec.pvc?.accessModes?.[0]
+        }
+    ]
 
     return (
         <Drawer
@@ -74,14 +174,14 @@ export const DataDiskDrawer: React.FC<DataDiskDrawerProps> = ({ open, current, o
                 </Flex>
             }
         >
-            <CustomTable
+            <CustomTable<DataVolume>
                 loading={loading}
                 storageKey="data-disk-drawer-table-columns"
                 defaultFieldSelectors={defaultFieldSelectors}
                 searchItems={searchItems}
                 columns={columns}
                 updateWatchOptions={setOpts}
-                dataSource={dataSource(resources)}
+                dataSource={dataVolumes}
                 rowSelection={{
                     onChange: (_, selectedRows) => { setSelectedRows(selectedRows) },
                     getCheckboxProps: handleCheckboxProps
@@ -91,101 +191,3 @@ export const DataDiskDrawer: React.FC<DataDiskDrawerProps> = ({ open, current, o
         </Drawer>
     )
 }
-
-const searchItems: SearchItem[] = [
-    { fieldPath: "metadata.name", name: "Name", operator: "*=" },
-    {
-        fieldPath: "status.phase", name: "Status",
-        items: [
-            { inputValue: "Succeeded", values: ["Succeeded"], operator: '=' },
-            { inputValue: "Failed", values: ["Failed"], operator: '=' },
-            { inputValue: 'Provisioning', values: ["ImportInProgress", "CloneInProgress", "CloneFromSnapshotSourceInProgress", "SmartClonePVCInProgress", "CSICloneInProgress", "ExpansionInProgress", "NamespaceTransferInProgress", "PrepClaimInProgress", "RebindInProgress"], operator: '~=' },
-        ]
-    }
-]
-
-const columns: ProColumns<any>[] = [
-    {
-        title: '名称',
-        key: 'name',
-        ellipsis: true,
-        render: (_, dv) => dv.metadata.name
-    },
-    {
-        key: 'status',
-        title: '状态',
-        ellipsis: true,
-        render: (_, dv) => <DataVolumeStatus dv={dv} />
-    },
-    {
-        title: '容量',
-        key: 'capacity',
-        ellipsis: true,
-        render: (_, dv) => {
-            const storage = dv.spec.pvc?.resources?.requests?.storage
-            if (!storage) {
-                return
-            }
-            return formatMemoryString(storage)
-        }
-    },
-    // {
-    //     key: 'binding',
-    //     title: '资源占用',
-    //     ellipsis: true,
-    //     render: (_, dv) => {
-    //         const binding = dv.metadata?.annotations[annotations.VinkDatavolumeOwner.name]
-    //         if (!binding) {
-    //             return "空闲"
-    //         }
-    //         const parse = JSON.parse(binding)
-    //         return parse && parse.length > 0 ? "使用中" : "空闲"
-    //     }
-    // },
-    {
-        key: 'owner',
-        title: 'Owner',
-        ellipsis: true,
-        render: (_, dv) => {
-            const owners = dv.metadata.annotations?.[annotations.VinkDatavolumeOwner.name]
-            if (!owners) {
-                return
-            }
-            const parse: string[] = JSON.parse(owners)
-
-            const content = (
-                <Flex wrap gap="4px 0" style={{ maxWidth: 250 }}>
-                    {parse.map((element: any, index: any) => (
-                        <Tag key={index} bordered={true}>
-                            {element}
-                        </Tag>
-                    ))}
-                </Flex>
-            )
-
-            return (
-                <Popover content={content}>
-                    <Tag bordered={true}>{parse[0]}</Tag>
-                    +{parse.length}
-                </Popover>
-            )
-        }
-    },
-    {
-        title: '存储类',
-        key: 'storageClassName',
-        ellipsis: true,
-        render: (_, dv) => dv.spec.pvc?.storageClassName
-    },
-    {
-        title: '访问模式',
-        key: 'accessModes',
-        ellipsis: true,
-        render: (_, dv) => {
-            if (dv.spec.pvc?.accessModes.length == 0) {
-                return
-            }
-            return dv.spec.pvc.accessModes[0]
-        }
-    }
-]

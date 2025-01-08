@@ -53,17 +53,21 @@ export interface WatchOptions {
  */
 export enum EventType {
     /**
-     * @generated from protobuf enum value: ADDED = 0;
+     * @generated from protobuf enum value: READY = 0;
      */
-    ADDED = 0,
+    READY = 0,
     /**
-     * @generated from protobuf enum value: MODIFIED = 1;
+     * @generated from protobuf enum value: ADDED = 1;
      */
-    MODIFIED = 1,
+    ADDED = 1,
     /**
-     * @generated from protobuf enum value: DELETED = 2;
+     * @generated from protobuf enum value: MODIFIED = 2;
      */
-    DELETED = 2
+    MODIFIED = 2,
+    /**
+     * @generated from protobuf enum value: DELETED = 3;
+     */
+    DELETED = 3
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class WatchRequest$Type extends MessageType<WatchRequest> {

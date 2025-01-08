@@ -1,97 +1,50 @@
 import { ResourceType } from "@/clients/ts/types/types"
-import { classNames, dataSource, formatTimestamp } from "@/utils/utils"
-import { Button, Drawer, Flex, Table, TableProps } from "antd"
-import { useWatchResources } from "@/hooks/use-resource"
+import { classNames, formatTimestamp, getErrorMessage } from "@/utils/utils"
+import { App, Button, Drawer, Flex, Table, TableProps } from "antd"
 import { LoadingOutlined } from '@ant-design/icons'
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useNamespaceFromURL } from "@/hooks/use-query-params-from-url"
 import { namespaceNameKey } from "@/utils/k8s"
-import { WatchOptions } from "@/clients/ts/management/resource/v1alpha1/watch"
 import { yaml as langYaml } from "@codemirror/lang-yaml"
+import { watchVirtualMachineEvents } from "@/clients/event"
+import { getResourceName } from "@/clients/clients"
 import CodeMirror from '@uiw/react-codemirror'
 import codeMirrorStyles from "@/common/styles/code-mirror.module.less"
 import commonStyles from "@/common/styles/common.module.less"
 import yaml from 'js-yaml'
+import useUnmount from "@/hooks/use-unmount"
 
 export default () => {
-    const namespaceName = useNamespaceFromURL()
+    const { notification } = App.useApp()
+
+    const ns = useNamespaceFromURL()
 
     const [open, setOpen] = useState(false)
 
     const [currentEventDetail, setCurrentEventDetail] = useState<any>()
 
-    // FIXME: involvedObject.name^=virt-launcher-${namespaceName.name}-
-    const optsRef = useRef<WatchOptions>(WatchOptions.create({
-        fieldSelectorGroup: {
-            operator: "&&",
-            fieldSelectors: [
-                {
-                    fieldPath: "involvedObject.namespace",
-                    operator: "=",
-                    values: [namespaceName.namespace]
-                },
-                {
-                    fieldPath: "involvedObject.kind",
-                    operator: "~=",
-                    values: ["VirtualMachine", "VirtualMachineInstance", "Pod"]
-                },
-                {
-                    fieldPath: "involvedObject.name",
-                    operator: "=",
-                    values: [namespaceName.name]
-                }
-            ]
-        }
-    }))
+    const [loading, setLoading] = useState(true)
 
-    const { resources: events, loading } = useWatchResources(ResourceType.EVENT, optsRef.current)
+    const [events, setEvents] = useState<any[]>()
 
-    const sort = () => {
-        const items = dataSource(events)
-        if (!items) {
-            return undefined
-        }
-        return items.sort((a: any, b: any) => {
-            return new Date(b.lastTimestamp).getTime() - new Date(a.lastTimestamp).getTime()
+    const abortCtrl = useRef<AbortController>()
+
+    useEffect(() => {
+        abortCtrl.current?.abort()
+        abortCtrl.current = new AbortController()
+        watchVirtualMachineEvents(ns, setEvents, setLoading, abortCtrl.current.signal).catch(err => {
+            notification.error({
+                message: getResourceName(ResourceType.EVENT),
+                description: getErrorMessage(err)
+            })
         })
-    }
+    }, [ns])
 
-    return (
-        <>
-            <Table
-                size="middle"
-                loading={{ spinning: loading, delay: 500, indicator: <LoadingOutlined spin /> }}
-                columns={getColumns(setOpen, setCurrentEventDetail)}
-                dataSource={sort()}
-                rowKey={(e) => namespaceNameKey(e)}
-                pagination={false}
-            />
+    useUnmount(() => {
+        console.log("Unmounting watcher", getResourceName(ResourceType.EVENT))
+        abortCtrl.current?.abort()
+    })
 
-            <Drawer
-                title="事件详情"
-                open={open}
-                onClose={() => setOpen(false)}
-                closeIcon={false}
-                width={650}
-                footer={
-                    <Flex justify="space-between" align="flex-start">
-                        <Button onClick={() => setOpen(false)}>关闭</Button>
-                    </Flex>
-                }
-            >
-                <CodeMirror
-                    className={classNames(codeMirrorStyles["editor"], commonStyles["small-scrollbar"])}
-                    value={yaml.dump(currentEventDetail).trimStart()}
-                    maxHeight="100vh"
-                    editable={false}
-                    extensions={[langYaml()]}
-                />
-            </Drawer>
-        </>
-    )
-}
-
-const getColumns = (setOpen: any, setCurrentEventDetail: any) => {
     const columns: TableProps<any>['columns'] = [
         {
             title: 'type',
@@ -139,5 +92,38 @@ const getColumns = (setOpen: any, setCurrentEventDetail: any) => {
             }}>查看</Button>
         }
     ]
-    return columns
+
+    return (
+        <>
+            <Table
+                size="middle"
+                loading={{ spinning: loading, delay: 500, indicator: <LoadingOutlined spin /> }}
+                columns={columns}
+                dataSource={events}
+                rowKey={(e) => namespaceNameKey(e)}
+                pagination={false}
+            />
+
+            <Drawer
+                title="事件详情"
+                open={open}
+                onClose={() => setOpen(false)}
+                closeIcon={false}
+                width={650}
+                footer={
+                    <Flex justify="space-between" align="flex-start">
+                        <Button onClick={() => setOpen(false)}>关闭</Button>
+                    </Flex>
+                }
+            >
+                <CodeMirror
+                    className={classNames(codeMirrorStyles["editor"], commonStyles["small-scrollbar"])}
+                    value={yaml.dump(currentEventDetail).trimStart()}
+                    maxHeight="100vh"
+                    editable={false}
+                    extensions={[langYaml()]}
+                />
+            </Drawer>
+        </>
+    )
 }

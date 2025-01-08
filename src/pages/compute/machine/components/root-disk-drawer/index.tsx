@@ -1,28 +1,31 @@
-import { Badge, Button, Drawer, Flex, Space } from 'antd'
+import { App, Button, Drawer, Flex, Space } from 'antd'
 import { useEffect, useRef, useState } from 'react'
-import { formatMemoryString, namespaceNameKey } from '@/utils/k8s'
+import { namespaceNameKey } from '@/utils/k8s'
 import { instances as labels } from "@/clients/ts/label/labels.gen"
 import { FieldSelector, ResourceType } from '@/clients/ts/types/types'
-import { useWatchResources } from '@/hooks/use-resource'
 import { replaceDots } from '@/utils/search'
 import { CustomTable, SearchItem } from '@/components/custom-table'
-import { dataSource, filterNullish } from '@/utils/utils'
+import { filterNullish, getErrorMessage } from '@/utils/utils'
 import { WatchOptions } from '@/clients/ts/management/resource/v1alpha1/watch'
-import { dataVolumeStatusMap } from '@/utils/resource-status'
+import { DataVolume, watchDataVolumes } from '@/clients/data-volume'
+import { getResourceName } from '@/clients/clients'
 import type { ProColumns } from '@ant-design/pro-components'
 import OperatingSystem from '@/components/operating-system'
 import DataVolumeStatus from '@/components/datavolume-status'
+import useUnmount from '@/hooks/use-unmount'
 
 interface RootDiskDrawerProps {
-    open?: boolean
-    current?: any
+    open: boolean
+    current?: DataVolume
     onCanel?: () => void
-    onConfirm?: (rootDisk?: any) => void
+    onConfirm?: (rootDisk: DataVolume) => void
 }
 
 const dvTypeSelector: FieldSelector = { fieldPath: `metadata.labels.${replaceDots(labels.VinkDatavolumeType.name)}`, operator: "=", values: ["image"] }
 
 export const RootDiskDrawer: React.FC<RootDiskDrawerProps> = ({ open, current, onCanel, onConfirm }) => {
+    const { notification } = App.useApp()
+
     const [selectedRows, setSelectedRows] = useState<any[]>([])
 
     useEffect(() => {
@@ -32,7 +35,53 @@ export const RootDiskDrawer: React.FC<RootDiskDrawerProps> = ({ open, current, o
     const defaultFieldSelectors = useRef<FieldSelector[]>(filterNullish([dvTypeSelector]))
     const [opts, setOpts] = useState<WatchOptions>(WatchOptions.create({ fieldSelectorGroup: { fieldSelectors: defaultFieldSelectors.current } }))
 
-    const { resources, loading } = useWatchResources(ResourceType.DATA_VOLUME, opts, !open)
+    const [loading, setLoading] = useState(true)
+    const [dataVolumes, setDataVolumes] = useState<DataVolume[]>()
+
+    const abortCtrl = useRef<AbortController>()
+
+    useEffect(() => {
+        abortCtrl.current?.abort()
+        abortCtrl.current = new AbortController()
+        watchDataVolumes(setDataVolumes, setLoading, abortCtrl.current.signal, opts).catch(err => {
+            notification.error({
+                message: getResourceName(ResourceType.DATA_VOLUME),
+                description: getErrorMessage(err)
+            })
+        })
+    }, [opts])
+
+    useUnmount(() => {
+        console.log("Unmounting watcher", getResourceName(ResourceType.DATA_VOLUME))
+        abortCtrl.current?.abort()
+    })
+
+    const columns: ProColumns<any>[] = [
+        {
+            title: '名称',
+            key: 'name',
+            ellipsis: true,
+            render: (_, dv) => dv.metadata!.name
+        },
+        {
+            key: 'status',
+            title: '状态',
+            ellipsis: true,
+            render: (_, dv) => <DataVolumeStatus dv={dv} />
+        },
+        {
+            title: '操作系统',
+            key: 'operatingSystem',
+            ellipsis: true,
+            render: (_, dv) => <OperatingSystem dv={dv} />
+        },
+        {
+            title: '容量',
+            key: 'capacity',
+            ellipsis: true,
+            render: (_, dv) => dv.spec?.pvc?.resources?.requests?.storage
+        }
+    ]
 
     return (
         <Drawer
@@ -61,9 +110,9 @@ export const RootDiskDrawer: React.FC<RootDiskDrawerProps> = ({ open, current, o
                 storageKey="root-disk-drawer-table-columns"
                 defaultFieldSelectors={defaultFieldSelectors.current}
                 searchItems={searchItems}
-                columns={rootDiskDrawerColumns}
+                columns={columns}
                 updateWatchOptions={setOpts}
-                dataSource={dataSource(resources)}
+                dataSource={dataVolumes}
                 rowSelection={{
                     type: 'radio',
                     selectedRowKeys: selectedRows.length > 0 ? [namespaceNameKey(selectedRows[0].metadata)] : [],
@@ -95,37 +144,4 @@ const searchItems: SearchItem[] = [
             { inputValue: "Windows", values: ["Windows"], operator: '=' },
         ]
     },
-]
-
-export const rootDiskDrawerColumns: ProColumns<any>[] = [
-    {
-        title: '名称',
-        key: 'name',
-        ellipsis: true,
-        render: (_, dv) => dv.metadata.name
-    },
-    {
-        key: 'status',
-        title: '状态',
-        ellipsis: true,
-        render: (_, dv) => <DataVolumeStatus dv={dv} />
-    },
-    {
-        title: '操作系统',
-        key: 'operatingSystem',
-        ellipsis: true,
-        render: (_, dv) => <OperatingSystem dv={dv} />
-    },
-    {
-        title: '容量',
-        key: 'capacity',
-        ellipsis: true,
-        render: (_, dv) => {
-            const storage = dv.spec.pvc?.resources?.requests?.storage
-            if (!storage) {
-                return
-            }
-            return formatMemoryString(storage)
-        }
-    }
 ]

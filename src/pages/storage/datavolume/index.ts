@@ -7,13 +7,31 @@ const defaultAccessMode = "ReadWriteOnce"
 
 const defaultStorageClass = "local-path"
 
+const getProtocol = (url: string): string | null => {
+    const protocolRegex = /^(https?|docker|s3):\/\//
+    const match = url.match(protocolRegex)
+    return match ? match[1] : null
+}
+
 export const newSystemImage = (namespaceName: NamespaceName, imageSource: string, imageCapacity: number, family: string, version: string) => {
     const instance: any = yaml.load(dataVolumYaml)
 
     instance.metadata.name = namespaceName.name
     instance.metadata.namespace = namespaceName.namespace
     instance.spec.pvc.resources.requests.storage = `${imageCapacity}Gi`
-    instance.spec.source = { registry: { url: imageSource } }
+
+    switch (getProtocol(imageSource)) {
+        case "docker":
+            instance.spec.source = { registry: { url: imageSource } }
+            break
+        case "s3":
+            instance.spec.source = { s3: { url: imageSource } }
+            break
+        case "http":
+        case "https":
+            instance.spec.source = { http: { url: imageSource } }
+            break
+    }
 
     instance.metadata.labels[labels.VinkDatavolumeType.name] = "image"
     instance.metadata.labels[labels.VinkOperatingSystem.name] = family
