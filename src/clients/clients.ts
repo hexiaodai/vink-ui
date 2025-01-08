@@ -8,6 +8,16 @@ import { VirtualMachinePowerStateRequest_PowerState } from "@/clients/ts/managem
 import { ListOptions } from "./ts/management/resource/v1alpha1/resource"
 import { virtualMachine } from "@/utils/parse-summary"
 
+export const transport = new GrpcWebFetchTransport({
+    baseUrl: window.location.origin
+})
+
+export const defaultTimeout = 1500
+
+export const resourceClient = new ResourceManagementClient(transport)
+export const virtualMachineClient = new VirtualMachineManagementClient(transport)
+export const resourceWatchClient = new ResourceWatchManagementClient(transport)
+
 export const getResourceName = (type: ResourceType) => {
     return ResourceType[type]
 }

@@ -63,6 +63,15 @@ export const useWatchResources = (resourceType: ResourceType, opts?: WatchOption
                     }
                     response.items.forEach((data) => {
                         const crd = JSON.parse(data)
+
+                        // const s = crd as V1alpha1VirtualMachineSummary
+                        // console.log(s?.status?.dataVolumes?.[0]?.spec?.pvc?.resources?.limits, "==========")
+                        // console.log(s?.status?.dataVolumes?.[0]?.spec?.pvc?.resources?.requests, "==========")
+                        // console.log(s, "==========")
+
+                        // const summary = crd as components["schemas"]["v1alpha1VirtualMachineSummary"]
+                        // console.log(summary?.status?.dataVolumes?.[0]?.spec?.pvc?.resources?.requests, "==========")
+
                         setResources((prevResources) => {
                             const updatedResources = initResourceRef.current ? new Map() : new Map(prevResources)
                             initResourceRef.current = false

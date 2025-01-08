@@ -12,7 +12,7 @@ import React from 'react'
 import formStyles from "@/common/styles/form.module.less"
 
 interface NetworkProps {
-    open?: boolean
+    open: boolean
     networkConfig?: NetworkConfig
     onCanel?: () => void
     onConfirm?: (networkConfig: NetworkConfig) => void

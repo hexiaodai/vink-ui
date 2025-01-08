@@ -1,9 +1,6 @@
 import { NamespaceName } from "@/clients/ts/types/types"
 
-export const formatOSFamily = (family?: string): string => {
-    if (!family) {
-        return ''
-    }
+export const formatOSFamily = (family: string): string => {
     let result = family.charAt(0).toUpperCase() + family.slice(1)
     if (result.endsWith('os')) {
         result = `${result.slice(0, -2)}OS`
@@ -11,10 +8,7 @@ export const formatOSFamily = (family?: string): string => {
     return result
 }
 
-export const formatMemory = (value?: string): [string, string] => {
-    if (!value) {
-        return ['', '']
-    }
+export const formatMemory = (value: string): [string, string] => {
     const match = value.match(/^(\d+)(\w+)$/)
     if (match) {
         return [match[1], match[2]]
@@ -22,7 +16,7 @@ export const formatMemory = (value?: string): [string, string] => {
     return ['', '']
 }
 
-export const formatMemoryString = (str?: string): string => {
+export const formatMemoryString = (str: string): string => {
     const [value, uint] = formatMemory(str)
     return `${value} ${uint}`
 }

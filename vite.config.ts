@@ -25,16 +25,22 @@ export default defineConfig({
   server: {
     proxy: {
       '/vink.kubevm.io.apis': {
-        target: 'http://127.0.0.1:8080',
+        target: 'http://127.0.0.1:30080',
+        // target: 'http://192.168.18.199:30080',
+        // target: 'http://127.0.0.1:8080',
         changeOrigin: true
       },
       '/apis/vink.io': {
-        target: 'http://127.0.0.1:9090',
+        target: 'http://127.0.0.1:30080',
+        // target: 'http://192.168.18.199:30080',
+        // target: 'http://127.0.0.1:9090',
         changeOrigin: true,
         ws: true
       },
       '/grafana': {
-        target: 'http://127.0.0.1:3000',
+        target: 'http://127.0.0.1:30080',
+        // target: 'http://192.168.18.199:30080',
+        // target: 'http://127.0.0.1:3000',
         // changeOrigin: true
       }
     }

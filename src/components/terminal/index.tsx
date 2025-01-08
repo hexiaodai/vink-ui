@@ -1,13 +1,14 @@
 import { openConsole } from '@/utils/utils'
 import { CodeOutlined } from '@ant-design/icons'
+import { VirtualMachine } from '@/clients/virtual-machine'
 import commonStyles from '@/common/styles/common.module.less'
 
 interface Props {
-    vm?: any
+    vm: VirtualMachine
 }
 
 const Terminal: React.FC<Props> = ({ vm }) => {
-    const isRunning = vm?.status?.printableStatus === "Running"
+    const isRunning = vm.status?.printableStatus === "Running"
     return (
         <a href='#'
             className={isRunning ? "" : commonStyles["a-disable"]}

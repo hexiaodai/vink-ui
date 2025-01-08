@@ -1,59 +1,59 @@
 import { ResourceType } from "@/clients/ts/types/types"
-import { dataVolumeStatusMap } from "@/utils/resource-status"
-import { capacity, getErrorMessage } from "@/utils/utils"
+import { getErrorMessage } from "@/utils/utils"
 import { App, Badge, Modal, Space, Table, TableProps } from "antd"
 import { instances as labels } from '@/clients/ts/label/labels.gen'
-import { useWatchResourceInNamespaceName } from "@/hooks/use-resource"
 import { LoadingOutlined, StopOutlined } from '@ant-design/icons'
-import { dataVolumes, virtualMachine } from "@/utils/parse-summary"
-import { clients, getResourceName } from "@/clients/clients"
-import { NotificationInstance } from "antd/es/notification/interface"
-import { extractNamespaceAndName } from "@/utils/k8s"
+import { getResourceName } from "@/clients/clients"
 import { VirtualMachinePowerStateRequest_PowerState } from "@/clients/ts/management/virtualmachine/v1alpha1/virtualmachine"
+import { useEffect, useRef, useState } from "react"
+import { VirtualMachineSummary, watchVirtualMachineSummary } from "@/clients/virtual-machine-summary"
+import { useNamespaceFromURL } from "@/hooks/use-query-params-from-url"
+import { getVirtualMachine, manageVirtualMachinePowerState, updateVirtualMachine } from "@/clients/virtual-machine"
+import { DataVolume } from "@/clients/data-volume"
 import commonStyles from "@/common/styles/common.module.less"
+import DataVolumeStatus from "@/components/datavolume-status"
+import useUnmount from "@/hooks/use-unmount"
 
 export default () => {
     const { notification } = App.useApp()
 
-    const { resource: virtualMachineSummary, loading } = useWatchResourceInNamespaceName(ResourceType.VIRTUAL_MACHINE_SUMMARY)
+    const ns = useNamespaceFromURL()
 
-    const columns = columnsFunc(virtualMachineSummary, notification)
+    const abortCtrl = useRef<AbortController>()
+    const [loading, setLoading] = useState(true)
+    const [summary, setSummary] = useState<VirtualMachineSummary>()
+
+    useEffect(() => {
+        abortCtrl.current?.abort()
+        abortCtrl.current = new AbortController()
+        watchVirtualMachineSummary(ns, setSummary, setLoading, abortCtrl.current?.signal).catch(err => {
+            notification.error({
+                message: getResourceName(ResourceType.VIRTUAL_MACHINE_SUMMARY),
+                description: getErrorMessage(err)
+            })
+        })
+    }, [ns])
+
+    useUnmount(() => {
+        console.log("Unmounting watcher", getResourceName(ResourceType.VIRTUAL_MACHINE_SUMMARY))
+        abortCtrl.current?.abort()
+    })
 
     const simpleDataVolumes = () => {
-        return virtualMachineSummary?.status?.virtualMachine.spec.template.spec.volumes.filter((volume: any) => {
-            return volume.dataVolume
-        })
+        return summary?.status?.virtualMachine?.spec?.template?.spec?.volumes?.filter(volume => volume.dataVolume) || []
     }
-
-    return (
-        <Table
-            size="middle"
-            loading={{ spinning: loading, delay: 500, indicator: <LoadingOutlined spin /> }}
-            columns={columns}
-            dataSource={simpleDataVolumes()}
-            pagination={false}
-        />
-    )
-}
-
-const columnsFunc = (virtualMachineSummary: any, notification: NotificationInstance) => {
-    if (!virtualMachineSummary) {
-        return
-    }
-
-    const namespaceName = extractNamespaceAndName(virtualMachineSummary)
 
     const handleMount = async (name: string) => {
+        const vmNamespace = summary?.metadata!.namespace!
+        const vmName = summary?.metadata!.name!
         try {
-            const vm: any = await clients.getResource(ResourceType.VIRTUAL_MACHINE, namespaceName)
-            vm.spec.template.spec.domain.devices.disks.push({
+            const vm = await getVirtualMachine({ namespace: vmNamespace, name: vmName })
+            vm.spec?.template?.spec?.domain?.devices?.disks?.push({
                 name: name,
-                disk: {
-                    bus: "virtio"
-                }
+                disk: { bus: "virtio" }
             })
-            await clients.updateResource(ResourceType.VIRTUAL_MACHINE, vm)
-            await clients.manageVirtualMachinePowerState(extractNamespaceAndName(vm), VirtualMachinePowerStateRequest_PowerState.REBOOT)
+            await updateVirtualMachine(vm)
+            await manageVirtualMachinePowerState({ namespace: vmNamespace, name: vmName }, VirtualMachinePowerStateRequest_PowerState.REBOOT)
         } catch (err: any) {
             notification.error({
                 message: getResourceName(ResourceType.VIRTUAL_MACHINE),
@@ -63,6 +63,9 @@ const columnsFunc = (virtualMachineSummary: any, notification: NotificationInsta
     }
 
     const handleUnmount = async (name: string) => {
+        const vmNamespace = summary?.metadata!.namespace!
+        const vmName = summary?.metadata!.name!
+
         Modal.confirm({
             title: "Unmount Disk?",
             content: `You are about to unmount the disk "${name}". Please confirm.`,
@@ -72,10 +75,12 @@ const columnsFunc = (virtualMachineSummary: any, notification: NotificationInsta
             okButtonProps: { disabled: false },
             onOk: async () => {
                 try {
-                    const vm: any = await clients.getResource(ResourceType.VIRTUAL_MACHINE, namespaceName)
-                    vm.spec.template.spec.domain.devices.disks = vm.spec.template.spec.domain.devices.disks.filter((disk: any) => disk.name !== name)
-                    await clients.updateResource(ResourceType.VIRTUAL_MACHINE, vm)
-                    await clients.manageVirtualMachinePowerState(extractNamespaceAndName(vm), VirtualMachinePowerStateRequest_PowerState.REBOOT)
+                    const vm = await getVirtualMachine({ namespace: vmNamespace, name: vmName })
+                    if (vm.spec?.template?.spec?.domain.devices.disks) {
+                        vm.spec.template.spec.domain.devices.disks = vm.spec.template.spec.domain.devices.disks.filter((disk) => disk.name !== name)
+                    }
+                    await updateVirtualMachine(vm)
+                    await manageVirtualMachinePowerState({ namespace: vmNamespace, name: vmName }, VirtualMachinePowerStateRequest_PowerState.REBOOT)
                 } catch (err: any) {
                     notification.error({
                         message: getResourceName(ResourceType.VIRTUAL_MACHINE),
@@ -87,6 +92,9 @@ const columnsFunc = (virtualMachineSummary: any, notification: NotificationInsta
     }
 
     const handleRemove = async (name: string) => {
+        const vmNamespace = summary?.metadata!.namespace!
+        const vmName = summary?.metadata!.name!
+
         Modal.confirm({
             title: "Remove Disk?",
             content: `You are about to remove the disk "${name}". Please confirm.`,
@@ -96,11 +104,15 @@ const columnsFunc = (virtualMachineSummary: any, notification: NotificationInsta
             okButtonProps: { disabled: false },
             onOk: async () => {
                 try {
-                    const vm: any = await clients.getResource(ResourceType.VIRTUAL_MACHINE, namespaceName)
-                    vm.spec.template.spec.domain.devices.disks = vm.spec.template.spec.domain.devices.disks.filter((disk: any) => disk.name !== name)
-                    vm.spec.template.spec.volumes = vm.spec.template.spec.volumes.filter((disk: any) => disk.name !== name)
-                    await clients.updateResource(ResourceType.VIRTUAL_MACHINE, vm)
-                    await clients.manageVirtualMachinePowerState(extractNamespaceAndName(vm), VirtualMachinePowerStateRequest_PowerState.REBOOT)
+                    const vm = await getVirtualMachine({ namespace: vmNamespace, name: vmName })
+                    if (vm.spec?.template?.spec?.domain.devices.disks) {
+                        vm.spec.template.spec.domain.devices.disks = vm.spec.template.spec.domain.devices.disks.filter((disk: any) => disk.name !== name)
+                    }
+                    if (vm.spec?.template?.spec?.volumes) {
+                        vm.spec.template.spec.volumes = vm.spec.template.spec.volumes.filter((disk: any) => disk.name !== name)
+                    }
+                    await updateVirtualMachine(vm)
+                    await manageVirtualMachinePowerState({ namespace: vmNamespace, name: vmName }, VirtualMachinePowerStateRequest_PowerState.REBOOT)
                 } catch (err: any) {
                     notification.error({
                         message: getResourceName(ResourceType.VIRTUAL_MACHINE),
@@ -111,27 +123,26 @@ const columnsFunc = (virtualMachineSummary: any, notification: NotificationInsta
         })
     }
 
-    const columns: TableProps<any>['columns'] = [
+    const columns: TableProps<{ name: string }>['columns'] = [
         {
             title: '名称',
             key: 'name',
             ellipsis: true,
-            render: (_, simple) => simple.dataVolume.name
+            render: (_, simple) => simple.name
         },
         {
             key: 'status',
             title: '状态',
             ellipsis: true,
             render: (_, simple) => {
-                const dv = dataVolumes(virtualMachineSummary)?.find((item: any) => item.metadata.name === simple.dataVolume.name)
+                const dv = summary?.status?.dataVolumes?.find(item => item.metadata!.name === simple.name)
                 if (!dv) {
                     return
                 }
-                if (!virtualMachine(virtualMachineSummary)?.spec.template.spec.domain.devices.disks.find((item: any) => item.name === simple.name)) {
+                if (!(summary?.status?.virtualMachine?.spec?.template?.spec?.domain?.devices?.disks?.find((item) => item.name === simple.name))) {
                     return <Badge status="warning" text="未挂载" />
                 }
-                const displayStatus = parseFloat(dv.status.progress) === 100 ? dataVolumeStatusMap[dv.status.phase].text : dv.status.progress
-                return <Badge status={dataVolumeStatusMap[dv.status.phase].badge} text={displayStatus} />
+                return <DataVolumeStatus dv={dv as DataVolume} />
             }
         },
         {
@@ -139,12 +150,12 @@ const columnsFunc = (virtualMachineSummary: any, notification: NotificationInsta
             title: '类型',
             ellipsis: true,
             render: (_, simple) => {
-                const dv = dataVolumes(virtualMachineSummary, simple.dataVolume.name)
+                const dv = summary?.status?.dataVolumes?.find(item => item.metadata!.name === simple.name)
                 if (!dv) {
                     return
                 }
-                const osname = dv.metadata?.labels[labels.VinkOperatingSystem.name]
-                return osname && osname.length > 0 ? "系统盘" : "数据盘"
+                const name = dv.metadata!.labels?.[labels.VinkOperatingSystem.name]
+                return name && (name as string).length > 0 ? "系统盘" : "数据盘"
             }
         },
         {
@@ -152,11 +163,8 @@ const columnsFunc = (virtualMachineSummary: any, notification: NotificationInsta
             key: 'capacity',
             ellipsis: true,
             render: (_, simple) => {
-                const dv = dataVolumes(virtualMachineSummary, simple.dataVolume.name)
-                if (!dv) {
-                    return
-                }
-                return capacity(dv)
+                const dv = summary?.status?.dataVolumes?.find(item => item.metadata!.name === simple.name)
+                return dv?.spec?.pvc?.resources?.requests?.storage
             }
         },
         {
@@ -164,11 +172,8 @@ const columnsFunc = (virtualMachineSummary: any, notification: NotificationInsta
             key: 'storageClassName',
             ellipsis: true,
             render: (_, simple) => {
-                const dv = dataVolumes(virtualMachineSummary, simple.dataVolume.name)
-                if (!dv) {
-                    return
-                }
-                return dv.spec.pvc.storageClassName
+                const dv = summary?.status?.dataVolumes?.find(item => item.metadata!.name === simple.name)
+                return dv?.spec?.pvc?.storageClassName
             }
         },
         {
@@ -176,11 +181,8 @@ const columnsFunc = (virtualMachineSummary: any, notification: NotificationInsta
             key: 'capacity',
             ellipsis: true,
             render: (_, simple) => {
-                const dv = dataVolumes(virtualMachineSummary, simple.dataVolume.name)
-                if (!dv) {
-                    return
-                }
-                return dv.spec.pvc.accessModes[0]
+                const dv = summary?.status?.dataVolumes?.find(item => item.metadata!.name === simple.name)
+                return dv?.spec?.pvc?.accessModes?.[0]
             }
         },
         {
@@ -189,27 +191,23 @@ const columnsFunc = (virtualMachineSummary: any, notification: NotificationInsta
             width: 100,
             align: 'center',
             render: (_, simple) => {
-                const dv = dataVolumes(virtualMachineSummary, simple.dataVolume.name)
-                if (!dv) {
-                    return
-                }
-                if (dv.metadata.labels && dv.metadata.labels[labels.VinkOperatingSystem.name]) {
+                const dv = summary?.status?.dataVolumes?.find(item => item.metadata!.name === simple.name)
+                if (dv?.metadata!.labels?.[labels.VinkOperatingSystem.name]) {
                     return <StopOutlined className={commonStyles["disable-color"]} />
                 }
 
-                const mounted = virtualMachine(virtualMachineSummary)?.spec.template.spec.domain.devices.disks.find((item: any) => item.name === simple.name)
+                const mounted = summary?.status?.virtualMachine?.spec?.template?.spec?.domain?.devices?.disks?.find((item) => item.name === simple.name)
+
+                let content: JSX.Element
+                if (mounted) {
+                    content = <a className={commonStyles["warning-color"]} onClick={async () => handleMount(simple.name)}>卸载</a>
+                } else {
+                    content = <a onClick={async () => handleUnmount(simple.name)}>卸载</a>
+                }
 
                 return (
                     <Space>
-                        <a className={mounted ? commonStyles["warning-color"] : ""} onClick={async () => {
-                            if (mounted) {
-                                handleUnmount(simple.name)
-                            } else {
-                                await handleMount(simple.name)
-                            }
-                        }}>
-                            {mounted ? "卸载" : "挂载"}
-                        </a>
+                        {content}
                         <a className={commonStyles["warning-color"]} onClick={() => handleRemove(simple.name)}>
                             移除
                         </a>
@@ -219,5 +217,13 @@ const columnsFunc = (virtualMachineSummary: any, notification: NotificationInsta
         }
     ]
 
-    return columns
+    return (
+        <Table
+            size="middle"
+            loading={{ spinning: loading, delay: 500, indicator: <LoadingOutlined spin /> }}
+            columns={columns}
+            dataSource={simpleDataVolumes()}
+            pagination={false}
+        />
+    )
 }

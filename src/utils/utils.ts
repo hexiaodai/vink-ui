@@ -2,6 +2,7 @@
 import { ColumnsState } from "@ant-design/pro-components"
 import { formatMemory, namespaceNameKey } from "./k8s"
 import { NamespaceName, ResourceType } from '@/clients/ts/types/types'
+import { VirtualMachine } from "@/clients/virtual-machine"
 
 /**
  * Combines multiple class names into a single string.
@@ -17,13 +18,13 @@ export function classNames(...classes: (string | undefined | null)[]): string {
  * @param timestamp - The bigint timestamp (assumed to be in milliseconds) or an ISO string.
  * @returns The string representation of the date and time in "YYYY-MM-DD HH:mm:ss" format.
  */
-export function formatTimestamp(timestamp?: bigint | string): string {
-    let date: Date;
+export function formatTimestamp(timestamp: bigint | string): string {
+    let date: Date
 
     if (typeof timestamp === 'string') {
-        date = new Date(timestamp) // 处理 ISO 字符串
+        date = new Date(timestamp)
     } else {
-        date = new Date(Number(timestamp) * 1e3) // 处理 bigint
+        date = new Date(Number(timestamp) * 1e3)
     }
 
     // Extract date components
@@ -92,19 +93,22 @@ export const capacity = (rootDisk: any) => {
     return `${value} ${uint}`
 }
 
-export const openConsole = (vm: any) => {
-    const isRunning = vm.status.printableStatus as string === "Running"
-    if (!isRunning) {
+export const openConsole = (vm: VirtualMachine) => {
+    const status = vm.status?.printableStatus
+    if (!status || status !== "Running") {
         return
     }
 
-    const url = `/console.html?namespace=${vm.metadata.namespace}&name=${vm.metadata.name}`
+    const namespace = vm.metadata!.namespace
+    const name = vm.metadata!.name
+
+    const url = `/console.html?namespace=${namespace}&name=${name}`
     const width = screen.width - 400
     const height = screen.height - 250
     const left = 0
     const top = 0
 
-    window.open(url, `${vm.metadata.namespace}/${vm.metadata.name}`, `toolbars=0, width=${width}, height=${height}, left=${left}, top=${top}`)
+    window.open(url, `${namespace}/${name}`, `toolbars=0, width=${width}, height=${height}, left=${left}, top=${top}`)
 }
 
 export const getNamespaceName = (params: URLSearchParams) => {

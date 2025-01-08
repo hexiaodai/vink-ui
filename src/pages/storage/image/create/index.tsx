@@ -1,6 +1,6 @@
 import { FooterToolbar, ProCard, ProForm, ProFormCascader, ProFormItem, ProFormText, ProFormTextArea } from '@ant-design/pro-components'
-import { App, InputNumber, Space } from 'antd'
-import { useEffect, useRef } from 'react'
+import { App, InputNumber, Space, AutoComplete } from 'antd'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useNamespace } from '@/common/context'
 import { classNames, getErrorMessage } from '@/utils/utils'
@@ -27,6 +27,25 @@ export default () => {
             formRef.current?.validateFields(["namespace"])
         }
     }, [namespace])
+
+    const [imageSourceOptions, setImageSourceOptions] = useState<{ value: string }[]>([])
+
+    const handleClick = () => {
+        const fields = formRef.current?.getFieldsValue()
+        const family = fields.operatingSystem?.[0]
+        const version = fields.operatingSystem?.[1]
+
+        const imageSource = imageSources[family]?.[version]
+        if (!imageSource) {
+            return
+        }
+
+        const opts = []
+        for (const tag of imageSource.tags) {
+            opts.push({ value: `${imageSource.baseUrl}/${tag}` })
+        }
+        setImageSourceOptions(opts)
+    }
 
     const handleSubmit = async () => {
         if (!formRef.current) {
@@ -151,22 +170,58 @@ export default () => {
                         />
                     </ProFormItem>
 
-                    <ProFormText
-                        width="lg"
+                    <ProFormItem
                         name="imageSource"
                         label="镜像源"
                         tooltip="http(s)、s3、docker"
-                        placeholder="scheme://example.com"
                         rules={[{
                             required: true,
                             pattern: /^(https?:\/\/|s3:\/\/|docker:\/\/)/,
                             message: "仅支持 http(s)、s3、docker"
                         }]}
-                    />
+                    >
+                        <AutoComplete
+                            style={{ width: 440 }}
+                            options={imageSourceOptions}
+                            placeholder="请选择或输入"
+                            onClick={handleClick}
+                        />
+                    </ProFormItem>
+
                 </ProCard>
             </Space>
         </ProForm >
     )
+}
+
+const imageSources: any = {
+    "ubuntu": {
+        "22.04": {
+            "baseUrl": "https://cloud-images.ubuntu.com/jammy/current",
+            "tags": [
+                "jammy-server-cloudimg-amd64-disk-kvm.img",
+                "jammy-server-cloudimg-amd64.img"
+            ]
+        }
+    },
+    "centos": {
+        "10": {
+            "baseUrl": "https://cloud.centos.org/centos/10-stream/images",
+            "tags": [
+                "CentOS-Stream-GenericCloud-10-latest.x86_64.qcow2"
+            ]
+        }
+    },
+    "debian": {
+        "12": {
+            "baseUrl": "https://cdimage.debian.org/cdimage/cloud/bookworm/latest",
+            "tags": [
+                "debian-12-generic-amd64.qcow2",
+                "debian-12-genericcloud-amd64.qcow2",
+                "debian-12-nocloud-amd64.qcow2"
+            ]
+        }
+    }
 }
 
 const options = [
@@ -196,6 +251,14 @@ const options = [
                 value: '8',
                 label: '8',
             },
+            {
+                value: '9',
+                label: '9',
+            },
+            {
+                value: '10',
+                label: '10',
+            }
         ],
     },
     {
@@ -214,6 +277,10 @@ const options = [
                 value: '11',
                 label: '11',
             },
+            {
+                value: '12',
+                label: '12',
+            }
         ],
     },
     {

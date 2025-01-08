@@ -3,18 +3,25 @@ import { IconFont } from '@/components/icon'
 import { getOperatingSystemFromDataVolume } from '@/utils/operating-system'
 import { formatOSFamily } from '@/utils/k8s'
 import styles from "./index.module.less"
+import { DataVolume } from '@/clients/data-volume'
 
 interface OperatingSystemProps {
-    dv?: any
+    dv?: DataVolume
     family?: string
     version?: string
 }
 
 const OperatingSystem: React.FC<OperatingSystemProps> = ({ dv, family, version }) => {
     if (dv) {
-        const info = getOperatingSystemFromDataVolume(dv)
-        family = info.family
-        version = info.version
+        const os = getOperatingSystemFromDataVolume(dv)
+        if (!os) {
+            return
+        }
+        family = os.family
+        version = os.version
+    }
+    if (!family) {
+        return
     }
     return (
         <Flex justify="flex-start" align="center">
