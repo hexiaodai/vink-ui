@@ -12,15 +12,15 @@ import tableStyles from '@/common/styles/table.module.less'
 import commonStyles from '@/common/styles/common.module.less'
 
 interface CustomTableProps<T extends Record<string, any>> extends Partial<React.ComponentProps<typeof ProTable<T>>> {
+    key: string
     searchItems?: SearchItem[] | undefined
-    storageKey?: string
     loading?: boolean
     defaultFieldSelectors?: FieldSelector[]
     onSelectRows?: (rows: T[]) => void
     updateWatchOptions?: React.Dispatch<React.SetStateAction<WatchOptions>>
 }
 
-export const CustomTable = <T extends Record<string, any>>({ searchItems, onSelectRows, storageKey, loading, defaultFieldSelectors, updateWatchOptions, ...proTableProps }: CustomTableProps<T>) => {
+export const CustomTable = <T extends Record<string, any>>({ key, searchItems, onSelectRows, loading, defaultFieldSelectors, updateWatchOptions, ...proTableProps }: CustomTableProps<T>) => {
     const { namespace } = useNamespace()
 
     const searchRef = useRef<HTMLInputElement>()
@@ -40,7 +40,7 @@ export const CustomTable = <T extends Record<string, any>>({ searchItems, onSele
     }, [namespace])
 
     useEffect(() => {
-        const inputElement = document.querySelector('input[name="search"]')
+        const inputElement = document.querySelector(`input[name="search-${key}"]`)
         if (inputElement) {
             searchRef.current = inputElement as HTMLInputElement
         }
@@ -52,9 +52,7 @@ export const CustomTable = <T extends Record<string, any>>({ searchItems, onSele
             rowKey={(crd) => namespaceNameKey(crd)}
             rowSelection={{
                 onChange: (_, selectedRows) => {
-                    if (onSelectRows) {
-                        onSelectRows(selectedRows)
-                    }
+                    onSelectRows?.(selectedRows)
                 },
             }}
             tableAlertRender={({ selectedRowKeys, onCleanSelected }) => {
@@ -70,7 +68,7 @@ export const CustomTable = <T extends Record<string, any>>({ searchItems, onSele
             search={false}
             loading={{ spinning: loading, delay: 500, indicator: <LoadingOutlined /> }}
             columnsState={{
-                persistenceKey: storageKey,
+                persistenceKey: key,
                 persistenceType: 'localStorage',
                 onChange: (obj) => setScroll(calcScroll(obj))
             }}
@@ -107,7 +105,7 @@ export const CustomTable = <T extends Record<string, any>>({ searchItems, onSele
                 fullScreen: true,
                 density: false,
                 search: {
-                    name: "search",
+                    name: `search-${key}`,
                     autoComplete: "off",
                     allowClear: true,
                     style: { width: 300 },

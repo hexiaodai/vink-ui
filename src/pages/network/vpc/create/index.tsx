@@ -2,9 +2,7 @@ import { App } from 'antd'
 import { vpcYaml } from './crd-template'
 import { useNavigate } from 'react-router-dom'
 import { CreateCRDWithYaml } from '@/components/create-crd-with-yaml'
-import { clients, getResourceName } from '@/clients/clients'
-import { ResourceType } from '@/clients/ts/types/types'
-import { getErrorMessage } from '@/utils/utils'
+import { createVPC, VPC } from '@/clients/vpc'
 import * as yaml from 'js-yaml'
 
 export default () => {
@@ -13,13 +11,9 @@ export default () => {
     const navigate = useNavigate()
 
     const submit = async (data: string) => {
-        try {
-            const vpcObject: any = yaml.load(data)
-            await clients.createResource(ResourceType.VPC, vpcObject)
-            navigate('/network/vpcs')
-        } catch (err: any) {
-            notification.error({ message: getResourceName(ResourceType.VPC), description: getErrorMessage(err) })
-        }
+        const vpc = yaml.load(data) as VPC
+        await createVPC(vpc, undefined, undefined, notification)
+        navigate('/network/vpcs')
     }
 
     return (

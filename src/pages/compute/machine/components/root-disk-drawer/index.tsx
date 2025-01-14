@@ -2,13 +2,12 @@ import { App, Button, Drawer, Flex, Space } from 'antd'
 import { useEffect, useRef, useState } from 'react'
 import { namespaceNameKey } from '@/utils/k8s'
 import { instances as labels } from "@/clients/ts/label/labels.gen"
-import { FieldSelector, ResourceType } from '@/clients/ts/types/types'
+import { FieldSelector } from '@/clients/ts/types/types'
 import { replaceDots } from '@/utils/search'
 import { CustomTable, SearchItem } from '@/components/custom-table'
-import { filterNullish, getErrorMessage } from '@/utils/utils'
+import { filterNullish } from '@/utils/utils'
 import { WatchOptions } from '@/clients/ts/management/resource/v1alpha1/watch'
 import { DataVolume, watchDataVolumes } from '@/clients/data-volume'
-import { getResourceName } from '@/clients/clients'
 import type { ProColumns } from '@ant-design/pro-components'
 import OperatingSystem from '@/components/operating-system'
 import DataVolumeStatus from '@/components/datavolume-status'
@@ -22,6 +21,28 @@ interface RootDiskDrawerProps {
 }
 
 const dvTypeSelector: FieldSelector = { fieldPath: `metadata.labels.${replaceDots(labels.VinkDatavolumeType.name)}`, operator: "=", values: ["image"] }
+
+const searchItems: SearchItem[] = [
+    { fieldPath: "metadata.name", name: "Name", operator: "*=" },
+    {
+        fieldPath: "status.phase", name: "Status",
+        items: [
+            { inputValue: "Succeeded", values: ["Succeeded"], operator: '=' },
+            { inputValue: "Failed", values: ["Failed"], operator: '=' },
+            { inputValue: 'Provisioning', values: ["ImportInProgress", "CloneInProgress", "CloneFromSnapshotSourceInProgress", "SmartClonePVCInProgress", "CSICloneInProgress", "ExpansionInProgress", "NamespaceTransferInProgress", "PrepClaimInProgress", "RebindInProgress"], operator: '~=' },
+        ]
+    },
+    {
+        fieldPath: `metadata.labels.${replaceDots("vink.kubevm.io/virtualmachine.os")}`, name: "OS",
+        items: [
+            { inputValue: "Ubuntu", values: ["Ubuntu"], operator: '=' },
+            { inputValue: "CentOS", values: ["CentOS"], operator: '=' },
+            { inputValue: "Debian", values: ["Debian"], operator: '=' },
+            { inputValue: "Linux", values: ["Linux", "Ubuntu", "CentOS", "Debian"], operator: '~=' },
+            { inputValue: "Windows", values: ["Windows"], operator: '=' },
+        ]
+    }
+]
 
 export const RootDiskDrawer: React.FC<RootDiskDrawerProps> = ({ open, current, onCanel, onConfirm }) => {
     const { notification } = App.useApp()
@@ -41,22 +62,19 @@ export const RootDiskDrawer: React.FC<RootDiskDrawerProps> = ({ open, current, o
     const abortCtrl = useRef<AbortController>()
 
     useEffect(() => {
+        if (!open) {
+            return
+        }
         abortCtrl.current?.abort()
         abortCtrl.current = new AbortController()
-        watchDataVolumes(setDataVolumes, setLoading, abortCtrl.current.signal, opts).catch(err => {
-            notification.error({
-                message: getResourceName(ResourceType.DATA_VOLUME),
-                description: getErrorMessage(err)
-            })
-        })
-    }, [opts])
+        watchDataVolumes(setDataVolumes, setLoading, abortCtrl.current.signal, opts, notification)
+    }, [open, opts])
 
     useUnmount(() => {
-        console.log("Unmounting watcher", getResourceName(ResourceType.DATA_VOLUME))
         abortCtrl.current?.abort()
     })
 
-    const columns: ProColumns<any>[] = [
+    const columns: ProColumns<DataVolume>[] = [
         {
             title: '名称',
             key: 'name',
@@ -79,7 +97,7 @@ export const RootDiskDrawer: React.FC<RootDiskDrawerProps> = ({ open, current, o
             title: '容量',
             key: 'capacity',
             ellipsis: true,
-            render: (_, dv) => dv.spec?.pvc?.resources?.requests?.storage
+            render: (_, dv) => dv.spec.pvc?.resources?.requests?.storage
         }
     ]
 
@@ -107,7 +125,7 @@ export const RootDiskDrawer: React.FC<RootDiskDrawerProps> = ({ open, current, o
         >
             <CustomTable
                 loading={loading}
-                storageKey="root-disk-drawer-table-columns"
+                key="root-disk-drawer-table-columns"
                 defaultFieldSelectors={defaultFieldSelectors.current}
                 searchItems={searchItems}
                 columns={columns}
@@ -123,25 +141,3 @@ export const RootDiskDrawer: React.FC<RootDiskDrawerProps> = ({ open, current, o
         </Drawer>
     )
 }
-
-const searchItems: SearchItem[] = [
-    { fieldPath: "metadata.name", name: "Name", operator: "*=" },
-    {
-        fieldPath: "status.phase", name: "Status",
-        items: [
-            { inputValue: "Succeeded", values: ["Succeeded"], operator: '=' },
-            { inputValue: "Failed", values: ["Failed"], operator: '=' },
-            { inputValue: 'Provisioning', values: ["ImportInProgress", "CloneInProgress", "CloneFromSnapshotSourceInProgress", "SmartClonePVCInProgress", "CSICloneInProgress", "ExpansionInProgress", "NamespaceTransferInProgress", "PrepClaimInProgress", "RebindInProgress"], operator: '~=' },
-        ]
-    },
-    {
-        fieldPath: `metadata.labels.${replaceDots("vink.kubevm.io/virtualmachine.os")}`, name: "OS",
-        items: [
-            { inputValue: "Ubuntu", values: ["Ubuntu"], operator: '=' },
-            { inputValue: "CentOS", values: ["CentOS"], operator: '=' },
-            { inputValue: "Debian", values: ["Debian"], operator: '=' },
-            { inputValue: "Linux", values: ["Linux", "Ubuntu", "CentOS", "Debian"], operator: '~=' },
-            { inputValue: "Windows", values: ["Windows"], operator: '=' },
-        ]
-    },
-]

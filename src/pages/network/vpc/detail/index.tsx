@@ -1,9 +1,46 @@
 import { DetailYaml } from "@/components/detail-yaml"
-import { ResourceType } from "@/clients/ts/types/types"
-import { useWatchResourceInNamespaceName } from "@/hooks/use-resource"
+import { useEffect, useRef, useState } from "react"
+import { App } from "antd"
+import { useNamespaceFromURL } from "@/hooks/use-query-params-from-url"
+import { useNavigate } from "react-router"
+import { updateVPC, VPC, watchVPC } from "@/clients/vpc"
+import useUnmount from "@/hooks/use-unmount"
 
 export default () => {
-    const { resource, loading } = useWatchResourceInNamespaceName(ResourceType.VPC)
+    const { notification } = App.useApp()
 
-    return <DetailYaml resourceType={ResourceType.VPC} resource={resource} loading={loading} backPath="/network/vpcs" />
+    const navigate = useNavigate()
+
+    const ns = useNamespaceFromURL()
+
+    const [loading, setLoading] = useState(true)
+
+    const [vpc, setVPC] = useState<VPC>()
+
+    const abortCtrl = useRef<AbortController>()
+
+    useEffect(() => {
+        abortCtrl.current?.abort()
+        abortCtrl.current = new AbortController()
+        watchVPC(ns, setVPC, setLoading, abortCtrl.current.signal, notification)
+    }, [ns])
+
+    useUnmount(() => {
+        abortCtrl.current?.abort()
+    })
+
+    const handleSave = async (data: any) => {
+        await updateVPC(data as VPC, undefined, undefined, notification)
+    }
+
+    const handleCancel = () => {
+        navigate('/network/vpcs')
+    }
+
+    return <DetailYaml
+        data={vpc}
+        loading={loading}
+        onCancel={handleCancel}
+        onSave={handleSave}
+    />
 }

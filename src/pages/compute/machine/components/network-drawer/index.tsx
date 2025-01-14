@@ -1,106 +1,115 @@
 import { ProForm, ProFormCheckbox, ProFormSelect, ProFormText } from '@ant-design/pro-components'
 import { App, Button, Drawer, Flex, Space } from 'antd'
 import { useEffect, useRef, useState } from 'react'
-import { clients, getResourceName } from '@/clients/clients'
-import { ResourceType } from '@/clients/ts/types/types'
-import { namespaceNameKey, parseNamespaceNameKey } from '@/utils/k8s'
-import { getErrorMessage, getProvider } from '@/utils/utils'
-import { NetworkConfig } from '../../virtualmachine'
+import { NamespaceName } from '@/clients/ts/types/types'
+import { namespaceNameKey } from '@/utils/k8s'
+import { getProvider } from '@/utils/utils'
 import { ListOptions } from '@/clients/ts/management/resource/v1alpha1/resource'
+import { getMultus, listMultus, Multus } from '@/clients/multus'
+import { getSubnet, listSubnets, Subnet, VirtualMachineNetworkType } from '@/clients/subnet'
+import { IPPool, listIPPools } from '@/clients/ippool'
 import type { ProFormInstance } from '@ant-design/pro-components'
-import React from 'react'
 import formStyles from "@/common/styles/form.module.less"
 
 interface NetworkProps {
     open: boolean
-    networkConfig?: NetworkConfig
+    networkConfig?: VirtualMachineNetworkType
     onCanel?: () => void
-    onConfirm?: (networkConfig: NetworkConfig) => void
+    onConfirm?: (networkConfig: VirtualMachineNetworkType) => void
+}
+
+interface formValues {
+    network: string
+    interface: string
+    multus: string
+    subnet: string
+    ippool: string
+    ipAddress: string
+    macAddress: string
+    default: boolean
 }
 
 export const NetworkDrawer: React.FC<NetworkProps> = ({ open, networkConfig, onCanel, onConfirm }) => {
     const { notification } = App.useApp()
 
-    const formRef = useRef<ProFormInstance>()
+    const formRef = useRef<ProFormInstance<formValues>>()
 
-    const [multus, setMultus] = useState<any[]>([])
-    const [subnets, setSubnets] = useState<any[]>([])
-    const [ippools, setIPPools] = useState<any[]>([])
+    const [multus, setMultus] = useState<Multus[]>()
 
-    const [selected, setSelected] = useState<{ multus: any, subnet: any, ippool: any }>({ multus: undefined, subnet: undefined, ippool: undefined })
+    const [subnets, setSubnets] = useState<Subnet[]>()
+
+    const [ippools, setIPPools] = useState<IPPool[]>()
+
+    const [selected, setSelected] = useState<{ multus?: Multus, subnet?: Subnet, ippool?: IPPool }>()
 
     useEffect(() => {
-        if (!open) return
-        reset()
+        formRef.current?.resetFields()
+        setSelected(undefined)
     }, [open])
 
     useEffect(() => {
         if (!networkConfig) {
             return
         }
-        clients.getResource(ResourceType.MULTUS, parseNamespaceNameKey(networkConfig.multus)).then(crd => {
-            setSelected((pre => ({ ...pre, multus: crd })))
-        }).catch(err => {
-            notification.error({ message: getResourceName(ResourceType.MULTUS), description: getErrorMessage(err) })
-        })
-        clients.getResource(ResourceType.SUBNET, parseNamespaceNameKey(networkConfig.subnet)).then(crd => {
-            setSelected((pre => ({ ...pre, subnet: crd })))
-        }).catch(err => {
-            notification.error({ message: getResourceName(ResourceType.SUBNET), description: getErrorMessage(err) })
-        })
+
+        const multus = networkConfig.multus
+        if (multus) {
+            let multusNS: NamespaceName
+            if ("metadata" in multus) {
+                multusNS = { namespace: multus.metadata!.namespace, name: multus.metadata!.name }
+            } else {
+                multusNS = multus as NamespaceName
+            }
+            getMultus(multusNS, undefined, undefined, notification).then(data => {
+                setSelected((pre => ({ ...pre, multus: data })))
+            })
+        }
+
+        const subnet = networkConfig.subnet
+        if (subnet) {
+            let subnetNS: NamespaceName
+            if (typeof subnet === "string") {
+                subnetNS = { namespace: "", name: subnet }
+            } else {
+                subnetNS = { namespace: "", name: subnet.metadata!.name! }
+            }
+            getSubnet(subnetNS, undefined, undefined, notification).then(data => {
+                setSelected((pre => ({ ...pre, subnet: data })))
+            })
+        }
     }, [networkConfig])
 
-    const fetchMultusData = () => {
-        clients.listResources(ResourceType.MULTUS).then(crds => {
-            setMultus(crds)
-        }).catch(err => {
-            notification.error({
-                message: getResourceName(ResourceType.MULTUS),
-                description: getErrorMessage(err)
-            })
-        })
-    }
-
-    const fetchSubnetsData = () => {
-        const multusCR = selected.multus
-        if (!multusCR) {
+    const handleMultusDropdownVisibleChange = (open: boolean) => {
+        if (!open) {
             return
         }
-        const provider = getProvider(multusCR)
+        listMultus(setMultus, undefined, undefined, notification)
+    }
+
+    const handleSubnetDropdownVisibleChange = (open: boolean) => {
+        if (!open || !selected || !selected.multus) {
+            return
+        }
+        const provider = getProvider(selected.multus)
         if (!provider) {
             return
         }
         const opts = ListOptions.create({ fieldSelectorGroup: { fieldSelectors: [{ fieldPath: "spec.provider", operator: "=", values: [provider] }] } })
-        clients.listResources(ResourceType.SUBNET, opts).then(crds => {
-            setSubnets(crds)
-        }).catch(err => {
-            notification.error({
-                message: getResourceName(ResourceType.SUBNET),
-                description: getErrorMessage(err)
-            })
-        })
+        listSubnets(setSubnets, opts, undefined, notification)
     }
 
-    const fetchIPPoolsData = () => {
-        let subnetName = selected.subnet?.metadata.name
-        if (!subnetName) {
+    const handleIPPoolDropdownVisibleChange = (open: boolean) => {
+        if (!open || !selected || !selected.subnet) {
             return
         }
+        let subnetName = selected.subnet.metadata!.name!
         const opts = ListOptions.create({ fieldSelectorGroup: { fieldSelectors: [{ fieldPath: "spec.subnet", operator: "=", values: [subnetName] }] } })
-        clients.listResources(ResourceType.IPPOOL, opts).then(crds => {
-            setIPPools(crds)
-        }).catch(err => {
-            notification.error({
-                message: getResourceName(ResourceType.IPPOOL),
-                description: getErrorMessage(err)
-            })
-        })
+        listIPPools(setIPPools, opts, undefined, notification)
     }
 
     const handleConfirm = () => {
         const fields = formRef.current?.getFieldsValue()
-        console.log(fields, selected)
-        if (!selected.multus || !selected.subnet || !fields || !onConfirm) {
+        if (!selected || !selected.multus || !selected.subnet || !fields || !onConfirm) {
             return
         }
         onConfirm({
@@ -116,28 +125,23 @@ export const NetworkDrawer: React.FC<NetworkProps> = ({ open, networkConfig, onC
         })
     }
 
-    const reset = () => {
-        formRef.current?.resetFields()
-        setSelected({ multus: null, subnet: null, ippool: null })
-    }
-
     const handleSelectMultus = (value: string) => {
-        const multusCR = multus.find(item => namespaceNameKey(item) === value)
+        const multusCR = multus?.find(item => namespaceNameKey(item) === value)
         setSelected((prevState) => ({ ...prevState, multus: multusCR }))
         formRef.current?.resetFields(["subnet", "ippool"])
-        setSubnets([])
-        setIPPools([])
+        setSubnets(undefined)
+        setIPPools(undefined)
     }
 
     const handleSelectSubnet = (value: string) => {
-        const subnet = subnets.find(item => item.metadata.name === value)
+        const subnet = subnets?.find(item => item.metadata!.name === value)
         setSelected((prevState) => ({ ...prevState, subnet: subnet }))
         formRef.current?.resetFields(["ippool"])
-        setIPPools([])
+        setIPPools(undefined)
     }
 
     const handleSelectIPPool = (value: string) => {
-        const ippool = ippools.find(item => item.metadata.name === value)
+        const ippool = ippools?.find(item => item.metadata!.name === value)
         setSelected((prevState) => ({ ...prevState, ippool: ippool }))
     }
 
@@ -154,7 +158,7 @@ export const NetworkDrawer: React.FC<NetworkProps> = ({ open, networkConfig, onC
                         <Button onClick={handleConfirm} type="primary">确定</Button>
                         <Button onClick={onCanel}>取消</Button>
                     </Space>
-                    <Button type='text' onClick={reset}>重置</Button>
+                    {/* <Button type='text' onClick={reset}>重置</Button> */}
                 </Flex>
             }
         >
@@ -165,7 +169,7 @@ export const NetworkDrawer: React.FC<NetworkProps> = ({ open, networkConfig, onC
                 labelAlign="left"
                 colon={false}
                 formRef={formRef}
-                onReset={reset}
+                // onReset={reset}
                 submitter={false}
             >
                 <ProFormSelect
@@ -205,18 +209,15 @@ export const NetworkDrawer: React.FC<NetworkProps> = ({ open, networkConfig, onC
                     label="Multus CR"
                     name="multusCR"
                     placeholder="选择 Multus CR"
-                    initialValue={networkConfig?.multus}
+                    initialValue={networkConfig?.multus ? namespaceNameKey(networkConfig.multus) : undefined}
                     fieldProps={{
                         allowClear: false,
                         showSearch: true,
-                        onDropdownVisibleChange: (open) => {
-                            if (!open) return
-                            fetchMultusData()
-                        }
+                        onDropdownVisibleChange: handleMultusDropdownVisibleChange
                     }}
                     onChange={handleSelectMultus}
                     options={
-                        multus.map((m: any) => ({ value: namespaceNameKey(m), label: namespaceNameKey(m) }))
+                        multus?.map((m: any) => ({ value: namespaceNameKey(m), label: namespaceNameKey(m) }))
                     }
                     rules={[{
                         required: true,
@@ -231,14 +232,11 @@ export const NetworkDrawer: React.FC<NetworkProps> = ({ open, networkConfig, onC
                     fieldProps={{
                         allowClear: false,
                         showSearch: true,
-                        onDropdownVisibleChange: (open) => {
-                            if (!open) return
-                            fetchSubnetsData()
-                        }
+                        onDropdownVisibleChange: handleSubnetDropdownVisibleChange
                     }}
                     onChange={handleSelectSubnet}
                     options={
-                        subnets.map((s: any) => ({ value: s.metadata.name, label: s.metadata.name }))
+                        subnets?.map((s: any) => ({ value: s.metadata.name, label: s.metadata.name }))
                     }
                     rules={[{
                         required: true,
@@ -254,14 +252,11 @@ export const NetworkDrawer: React.FC<NetworkProps> = ({ open, networkConfig, onC
                     fieldProps={{
                         allowClear: false,
                         showSearch: true,
-                        onDropdownVisibleChange: (open) => {
-                            if (!open) return
-                            fetchIPPoolsData()
-                        }
+                        onDropdownVisibleChange: handleIPPoolDropdownVisibleChange
                     }}
                     onChange={handleSelectIPPool}
                     options={
-                        ippools.map((p: any) => ({ value: p.metadata?.name, label: p.metadata?.name }))
+                        ippools?.map((p: any) => ({ value: p.metadata?.name, label: p.metadata?.name }))
                     }
                 />
 

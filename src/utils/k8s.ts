@@ -8,6 +8,14 @@ export const formatOSFamily = (family: string): string => {
     return result
 }
 
+export const parseMemoryValue = (value: string): [number, string] | undefined => {
+    const match = value.match(/^(\d+)(\w+)$/)
+    if (match) {
+        return [parseInt(match[1], 10), match[2]]
+    }
+    return undefined
+}
+
 export const formatMemory = (value: string): [string, string] => {
     const match = value.match(/^(\d+)(\w+)$/)
     if (match) {

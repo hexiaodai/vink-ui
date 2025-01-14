@@ -2,10 +2,8 @@ import { App } from 'antd'
 import { subnetYaml } from './crd-template'
 import { useNavigate } from 'react-router-dom'
 import { CreateCRDWithYaml } from '@/components/create-crd-with-yaml'
-import { clients, getResourceName } from '@/clients/clients'
-import { ResourceType } from '@/clients/ts/types/types'
+import { createSubnet, Subnet } from '@/clients/subnet'
 import * as yaml from 'js-yaml'
-import { getErrorMessage } from '@/utils/utils'
 
 export default () => {
     const { notification } = App.useApp()
@@ -13,13 +11,9 @@ export default () => {
     const navigate = useNavigate()
 
     const submit = async (data: string) => {
-        try {
-            const subnetObject: any = yaml.load(data)
-            await clients.createResource(ResourceType.SUBNET, subnetObject)
-            navigate('/network/subnets')
-        } catch (err: any) {
-            notification.error({ message: getResourceName(ResourceType.MULTUS), description: getErrorMessage(err) })
-        }
+        const subnet = yaml.load(data) as Subnet
+        await createSubnet(subnet, undefined, undefined, notification)
+        navigate('/network/subnets')
     }
 
     return (

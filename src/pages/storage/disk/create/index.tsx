@@ -3,64 +3,78 @@ import { App, Button, InputNumber, Space } from 'antd'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useNamespace } from '@/common/context'
-import { classNames, getErrorMessage } from '@/utils/utils'
-import { ResourceType } from '@/clients/ts/types/types'
-import { clients, getResourceName } from '@/clients/clients'
+import { classNames } from '@/utils/utils'
 import { PlusOutlined } from '@ant-design/icons'
 import { newDataDisk } from '../../datavolume'
+import { createDataVolume } from '@/clients/data-volume'
+import { listStorageClass, StorageClass } from '@/clients/storage-class'
 import type { ProFormInstance } from '@ant-design/pro-components'
 import formStyles from "@/common/styles/form.module.less"
+
+interface formValues {
+    namespace: string
+    name: string
+    dataDiskCapacity: number
+    storageClass: string
+    accessMode: string
+    description: string
+}
+
+const accessModeOptions = [
+    {
+        value: "ReadWriteOnce",
+        label: "ReadWriteOnce"
+    },
+    {
+        value: "ReadOnlyMany",
+        label: "ReadOnlyMany"
+    },
+    {
+        value: "ReadWriteMany",
+        label: "ReadWriteMany"
+    },
+    {
+        value: "ReadWriteOncePod",
+        label: "ReadWriteOncePod"
+    }
+]
 
 export default () => {
     const { notification } = App.useApp()
 
     const { namespace } = useNamespace()
 
-    const formRef = useRef<ProFormInstance>()
+    const formRef = useRef<ProFormInstance<formValues>>()
 
     const navigate = useNavigate()
 
     const [enableOpts, setEnableOpts] = useState<{ storageClass: boolean, accessMode: boolean }>({ storageClass: false, accessMode: false })
 
     useEffect(() => {
-        formRef.current?.setFieldsValue({
-            namespace: namespace
-        })
+        formRef.current?.setFieldsValue({ namespace: namespace })
     }, [namespace])
 
-    const { storageClass } = useStorageClass(enableOpts.storageClass)
+    const [storageClass, setStorageClass] = useState<StorageClass[]>()
 
+    useEffect(() => {
+        if (!enableOpts.storageClass) {
+            return
+        }
+        listStorageClass(setStorageClass, undefined, undefined, notification)
+    }, [enableOpts.storageClass])
 
     const handleSubmit = async () => {
         if (!formRef.current) {
-            return
+            throw new Error("formRef is not initialized")
         }
 
-        try {
-            await formRef.current.validateFields()
+        await formRef.current.validateFields()
+        const fields = formRef.current.getFieldsValue()
+        const ns = { namespace: fields.namespace, name: fields.name }
+        const instance = newDataDisk(ns, fields.dataDiskCapacity, fields.storageClass, fields.accessMode)
+        await createDataVolume(instance, undefined, undefined, notification)
 
-            const fields = formRef.current.getFieldsValue()
-
-            const namespaceName = { namespace: fields.namespace, name: fields.name }
-
-            const instance = newDataDisk(
-                namespaceName,
-                fields.dataDiskCapacity,
-                fields.storageClass,
-                fields.accessMode
-            )
-
-            await clients.createResource(ResourceType.DATA_VOLUME, instance)
-            navigate('/storage/disks')
-        } catch (err: any) {
-            const errorMessage = err.errorFields?.map((field: any, idx: number) => `${idx + 1}. ${field.errors}`).join('<br />') || getErrorMessage(err)
-            notification.error({
-                message: getResourceName(ResourceType.DATA_VOLUME),
-                description: (
-                    <div dangerouslySetInnerHTML={{ __html: errorMessage }} />
-                )
-            })
-        }
+        navigate('/storage/disks')
     }
 
     return (
@@ -133,12 +147,12 @@ export default () => {
                                 width="lg"
                                 name="storageClass"
                                 placeholder="选择存储类"
-                                options={[
-                                    ...storageClass.map((ns: any) => ({
-                                        value: ns.metadata.name,
-                                        label: ns.metadata.name
+                                options={
+                                    (storageClass || []).map((sc) => ({
+                                        value: sc.metadata.name,
+                                        label: sc.metadata.name
                                     }))
-                                ]}
+                                }
                             />
                         }
                         <Button
@@ -189,42 +203,3 @@ export default () => {
         </ProForm >
     )
 }
-
-const useStorageClass = (enableCustomStorageClass: boolean) => {
-    const { notification } = App.useApp()
-    const [loading, setLoading] = useState(false)
-    const [storageClass, setStorageClass] = useState<any[]>([])
-
-    useEffect(() => {
-        if (!enableCustomStorageClass) {
-            return
-        }
-        setLoading(true)
-        clients.listResources(ResourceType.STORAGE_CLASS).then((items) => {
-            setStorageClass(items)
-        }).catch(err => {
-            notification.error({ message: "获取存储类失败", description: getErrorMessage(err) })
-        })
-    }, [enableCustomStorageClass])
-
-    return { storageClass, loading }
-}
-
-const accessModeOptions = [
-    {
-        value: "ReadWriteOnce",
-        label: "ReadWriteOnce"
-    },
-    {
-        value: "ReadOnlyMany",
-        label: "ReadOnlyMany"
-    },
-    {
-        value: "ReadWriteMany",
-        label: "ReadWriteMany"
-    },
-    {
-        value: "ReadWriteOncePod",
-        label: "ReadWriteOncePod"
-    }
-]

@@ -1,14 +1,12 @@
 import { App, Space, Spin } from "antd"
 import { useEffect, useRef, useState } from "react"
-import { ResourceType } from "@/clients/ts/types/types"
-import { clients, getResourceName } from "@/clients/clients"
 import { ProCard, ProDescriptions } from "@ant-design/pro-components"
 import { LoadingOutlined } from '@ant-design/icons'
-import { classNames, formatTimestamp, getErrorMessage, updateNestedValue } from "@/utils/utils"
+import { classNames, formatTimestamp, updateNestedValue } from "@/utils/utils"
 import { yaml as langYaml } from "@codemirror/lang-yaml"
 import { useNamespaceFromURL } from "@/hooks/use-query-params-from-url"
 import { DataVolume, getRootDisk } from "@/clients/data-volume"
-import { VirtualMachine, watchVirtualMachine } from "@/clients/virtual-machine"
+import { updateVirtualMachine, VirtualMachine, watchVirtualMachine } from "@/clients/virtual-machine"
 import CodeMirror from '@uiw/react-codemirror'
 import codeMirrorStyles from "@/common/styles/code-mirror.module.less"
 import commonStyles from "@/common/styles/common.module.less"
@@ -25,6 +23,7 @@ export default () => {
     const ns = useNamespaceFromURL()
 
     const [loading, setLoading] = useState(true)
+
     const [virtualMachine, setVirtualMachine] = useState<VirtualMachine>()
 
     const abortCtrl = useRef<AbortController>()
@@ -32,12 +31,7 @@ export default () => {
     useEffect(() => {
         abortCtrl.current?.abort()
         abortCtrl.current = new AbortController()
-        watchVirtualMachine(ns, setVirtualMachine, setLoading, abortCtrl.current.signal).catch(err => {
-            notification.error({
-                message: getResourceName(ResourceType.VIRTUAL_MACHINE),
-                description: getErrorMessage(err)
-            })
-        })
+        watchVirtualMachine(ns, setVirtualMachine, setLoading, abortCtrl.current.signal)
     }, [ns])
 
     const [rootDiskLoading, setRootDiskLoading] = useState(true)
@@ -47,18 +41,10 @@ export default () => {
         if (!virtualMachine) {
             return
         }
-        getRootDisk(setRootDiskLoading, virtualMachine).then(dv => {
-            setRootDisk(dv)
-        }).catch(err => {
-            notification.error({
-                message: getResourceName(ResourceType.DATA_VOLUME),
-                description: getErrorMessage(err)
-            })
-        })
+        getRootDisk(virtualMachine, setRootDisk, setRootDiskLoading)
     }, [virtualMachine])
 
     useUnmount(() => {
-        console.log("Unmounting watcher", getResourceName(ResourceType.VIRTUAL_MACHINE))
         abortCtrl.current?.abort()
     })
 
@@ -74,16 +60,9 @@ export default () => {
     }
 
     const handleSave = async (keypath: any, newInfo: any, oriInfo: any) => {
-        try {
-            const deepCopyOriInfo = JSON.parse(JSON.stringify(oriInfo))
-            updateNestedValue(keypath as string[], newInfo, deepCopyOriInfo, true)
-            await clients.updateResource(ResourceType.VIRTUAL_MACHINE, deepCopyOriInfo)
-        } catch (err) {
-            notification.error({
-                message: getResourceName(ResourceType.VIRTUAL_MACHINE),
-                description: getErrorMessage(err)
-            })
-        }
+        const deepCopyOriInfo = JSON.parse(JSON.stringify(oriInfo))
+        updateNestedValue(keypath as string[], newInfo, deepCopyOriInfo, true)
+        await updateVirtualMachine(deepCopyOriInfo, undefined, undefined, notification)
     }
 
     return (

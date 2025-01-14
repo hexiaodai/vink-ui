@@ -2,14 +2,13 @@ import { App, Button, Drawer, Flex, Popover, Space, Tag } from 'antd'
 import { useEffect, useRef, useState } from 'react'
 import { instances as annotations } from "@/clients/ts/annotation/annotations.gen"
 import { instances as labels } from "@/clients/ts/label/labels.gen"
-import { FieldSelector, ResourceType } from '@/clients/ts/types/types'
+import { FieldSelector } from '@/clients/ts/types/types'
 import { getNamespaceFieldSelector, replaceDots } from '@/utils/search'
 import { useNamespaceFromURL } from '@/hooks/use-query-params-from-url'
 import { CustomTable, SearchItem } from '@/components/custom-table'
-import { filterNullish, getErrorMessage } from '@/utils/utils'
+import { filterNullish } from '@/utils/utils'
 import { WatchOptions } from '@/clients/ts/management/resource/v1alpha1/watch'
 import { DataVolume, watchDataVolumes } from '@/clients/data-volume'
-import { getResourceName } from '@/clients/clients'
 import type { ProColumns } from '@ant-design/pro-components'
 import DataVolumeStatus from '@/components/datavolume-status'
 import useUnmount from '@/hooks/use-unmount'
@@ -57,18 +56,15 @@ export const DataDiskDrawer: React.FC<DataDiskDrawerProps> = ({ open, current, o
     const abortCtrl = useRef<AbortController>()
 
     useEffect(() => {
+        if (!open) {
+            return
+        }
         abortCtrl.current?.abort()
         abortCtrl.current = new AbortController()
-        watchDataVolumes(setDataVolumes, setLoading, abortCtrl.current.signal, opts).catch(err => {
-            notification.error({
-                message: getResourceName(ResourceType.DATA_VOLUME),
-                description: getErrorMessage(err)
-            })
-        })
-    }, [opts])
+        watchDataVolumes(setDataVolumes, setLoading, abortCtrl.current.signal, opts, notification)
+    }, [open, opts])
 
     useUnmount(() => {
-        console.log("Unmounting watcher", getResourceName(ResourceType.DATA_VOLUME))
         abortCtrl.current?.abort()
     })
 
@@ -77,11 +73,11 @@ export const DataDiskDrawer: React.FC<DataDiskDrawerProps> = ({ open, current, o
     }, [namespaceName.namespace])
 
     const handleCheckboxProps = (dv: DataVolume) => {
-        const binding = dv.metadata!.annotations?.[annotations.VinkDatavolumeOwner.name]
-        if (!binding || (binding as string).length == 0) {
+        const owner = dv.metadata!.annotations?.[annotations.VinkDatavolumeOwner.name]
+        if (!owner || (owner as string).length == 0) {
             return { disabled: false }
         }
-        const parse = JSON.parse(binding)
+        const parse = JSON.parse(owner)
         return { disabled: parse && parse.length > 0 }
     }
 
@@ -176,7 +172,7 @@ export const DataDiskDrawer: React.FC<DataDiskDrawerProps> = ({ open, current, o
         >
             <CustomTable<DataVolume>
                 loading={loading}
-                storageKey="data-disk-drawer-table-columns"
+                key="data-disk-drawer-table-columns"
                 defaultFieldSelectors={defaultFieldSelectors}
                 searchItems={searchItems}
                 columns={columns}
