@@ -2,9 +2,7 @@ import { App } from 'antd'
 import { useNavigate } from 'react-router-dom'
 import { multusYaml } from './crd-template'
 import { CreateCRDWithYaml } from '@/components/create-crd-with-yaml'
-import { clients, getResourceName } from '@/clients/clients'
-import { ResourceType } from '@/clients/ts/types/types'
-import { getErrorMessage } from '@/utils/utils'
+import { createMultus, Multus } from '@/clients/multus'
 import * as yaml from 'js-yaml'
 
 export default () => {
@@ -13,13 +11,9 @@ export default () => {
     const navigate = useNavigate()
 
     const submit = async (data: string) => {
-        try {
-            const multusObject: any = yaml.load(data)
-            await clients.createResource(ResourceType.MULTUS, multusObject)
-            navigate('/network/multus')
-        } catch (err: any) {
-            notification.error({ message: getResourceName(ResourceType.MULTUS), description: getErrorMessage(err) })
-        }
+        const multus = yaml.load(data) as Multus
+        await createMultus(multus, undefined, undefined, notification)
+        navigate('/network/multus')
     }
 
     return (

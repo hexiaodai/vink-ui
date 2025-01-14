@@ -13,7 +13,7 @@ export interface components {
             apiVersion?: string;
             /** @description Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
             kind?: string;
-            metadata?: Record<string, never>;
+            metadata?: Record<string, any>;
             /** @description DataVolumeSpec defines the DataVolume type specification */
             spec: {
                 /** @description Checkpoints is a list of DataVolumeCheckpoints, representing stages in a multistage import. */
@@ -290,6 +290,7 @@ export interface components {
             };
         };
         v1IPPool: {
+            metadata?: Record<string, any>;
             spec?: {
                 subnet: string;
                 namespaces?: string[];
@@ -315,6 +316,7 @@ export interface components {
             };
         };
         v1IP: {
+            metadata?: Record<string, any>;
             spec?: {
                 podName?: string;
                 namespace?: string;
@@ -337,7 +339,7 @@ export interface components {
             apiVersion?: string;
             /** @description Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
             kind?: string;
-            metadata?: Record<string, never>;
+            metadata?: Record<string, any>;
             /** @description NetworkAttachmentDefinition spec defines the desired state of a network attachment */
             spec?: {
                 /** @description NetworkAttachmentDefinition config is a JSON-formatted CNI configuration */
@@ -345,9 +347,7 @@ export interface components {
             };
         };
         v1Subnet: {
-            metadata?: {
-                name?: string;
-            };
+            metadata?: Record<string, any>;
             status?: {
                 v4availableIPs?: number;
                 v4usingIPs?: number;
@@ -459,11 +459,11 @@ export interface components {
              *     In CamelCase.
              *     More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
             kind?: string;
-            metadata?: Record<string, never>;
+            metadata?: Record<string, any>;
             spec?: Record<string, never>;
             status?: {
                 dataVolumes?: {
-                    metadata?: Record<string, never>;
+                    metadata?: Record<string, any>;
                     /** @description DataVolumeSpec defines the DataVolume type specification */
                     spec?: {
                         /** @description Checkpoints is a list of DataVolumeCheckpoints, representing stages in a multistage import. */
@@ -835,7 +835,7 @@ export interface components {
                 }[];
                 network?: {
                     ips?: {
-                        metadata?: Record<string, never>;
+                        metadata?: Record<string, any>;
                         spec?: {
                             attachIps: string[];
                             attachMacs: string[];
@@ -854,7 +854,7 @@ export interface components {
                     }[];
                 };
                 virtualMachine?: {
-                    metadata?: Record<string, never>;
+                    metadata?: Record<string, any>;
                     /** @description VirtualMachineSpec describes how the proper VirtualMachine
                      *     should look like */
                     spec?: {
@@ -872,7 +872,7 @@ export interface components {
                              *     In CamelCase.
                              *     More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
                             kind?: string;
-                            metadata?: Record<string, never> | null;
+                            metadata?: Record<string, any> | null;
                             /** @description DataVolumeSpec contains the DataVolume specification. */
                             spec: {
                                 /** @description Checkpoints is a list of DataVolumeCheckpoints, representing stages in a multistage import. */
@@ -1270,7 +1270,7 @@ export interface components {
                         running?: boolean;
                         /** @description Template is the direct specification of VirtualMachineInstance */
                         template: {
-                            metadata?: Record<string, never> | null;
+                            metadata?: Record<string, any> | null;
                             /** @description VirtualMachineInstance Spec contains the VirtualMachineInstance specification. */
                             spec?: {
                                 /** @description Specifies a set of public keys to inject into the vm guest */
@@ -3421,7 +3421,7 @@ export interface components {
                     };
                 };
                 virtualMachineInstance?: {
-                    metadata?: Record<string, never>;
+                    metadata?: Record<string, any>;
                     /** @description Spec       *kubevirtcorev1.VirtualMachineInstanceSpec   `json:"spec,omitempty"` */
                     status?: {
                         /**
@@ -3836,7 +3836,7 @@ export interface components {
             apiVersion?: string;
             /** @description Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
             kind?: string;
-            metadata?: Record<string, never>;
+            metadata?: Record<string, any>;
             /** @description VirtualMachineInstance Spec contains the VirtualMachineInstance specification. */
             spec: {
                 /** @description Specifies a set of public keys to inject into the vm guest */
@@ -5381,7 +5381,7 @@ export interface components {
             apiVersion?: string;
             /** @description Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
             kind?: string;
-            metadata?: Record<string, never>;
+            metadata?: Record<string, any>;
             /** @description VirtualMachineInstance Spec contains the VirtualMachineInstance specification. */
             spec: {
                 /** @description Specifies a set of public keys to inject into the vm guest */
@@ -6926,7 +6926,7 @@ export interface components {
             apiVersion?: string;
             /** @description Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
             kind?: string;
-            metadata?: Record<string, never>;
+            metadata?: Record<string, any>;
             /** @description Spec contains the specification of VirtualMachineInstance created */
             spec: {
                 /** @description dataVolumeTemplates is a list of dataVolumes that the VirtualMachineInstance template can reference. DataVolumes in this list are dynamically created for the VirtualMachine and are tied to the VirtualMachine's life-cycle. */
@@ -6935,7 +6935,7 @@ export interface components {
                     apiVersion?: string;
                     /** @description Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
                     kind?: string;
-                    metadata?: Record<string, never> | null;
+                    metadata?: Record<string, any> | null;
                     /** @description DataVolumeSpec contains the DataVolume specification. */
                     spec: {
                         /** @description Checkpoints is a list of DataVolumeCheckpoints, representing stages in a multistage import. */
@@ -7238,7 +7238,7 @@ export interface components {
                 running?: boolean;
                 /** @description Template is the direct specification of VirtualMachineInstance */
                 template: {
-                    metadata?: Record<string, never> | null;
+                    metadata?: Record<string, any> | null;
                     /** @description VirtualMachineInstance Spec contains the VirtualMachineInstance specification. */
                     spec?: {
                         /** @description Specifies a set of public keys to inject into the vm guest */
@@ -8653,7 +8653,7 @@ export interface components {
             apiVersion?: string;
             /** @description Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
             kind?: string;
-            metadata?: Record<string, never>;
+            metadata?: Record<string, any>;
             /** @description Spec contains the specification of VirtualMachineInstance created */
             spec: {
                 /** @description dataVolumeTemplates is a list of dataVolumes that the VirtualMachineInstance template can reference. DataVolumes in this list are dynamically created for the VirtualMachine and are tied to the VirtualMachine's life-cycle. */
@@ -8662,7 +8662,7 @@ export interface components {
                     apiVersion?: string;
                     /** @description Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
                     kind?: string;
-                    metadata?: Record<string, never> | null;
+                    metadata?: Record<string, any> | null;
                     /** @description DataVolumeSpec contains the DataVolume specification. */
                     spec: {
                         /** @description Checkpoints is a list of DataVolumeCheckpoints, representing stages in a multistage import. */
@@ -8965,7 +8965,7 @@ export interface components {
                 running?: boolean;
                 /** @description Template is the direct specification of VirtualMachineInstance */
                 template: {
-                    metadata?: Record<string, never> | null;
+                    metadata?: Record<string, any> | null;
                     /** @description VirtualMachineInstance Spec contains the VirtualMachineInstance specification. */
                     spec?: {
                         /** @description Specifies a set of public keys to inject into the vm guest */
@@ -10375,6 +10375,7 @@ export interface components {
             };
         };
         v1Vpc: {
+            metadata?: Record<string, any>;
             spec?: {
                 defaultSubnet?: string;
                 enableExternal?: boolean;

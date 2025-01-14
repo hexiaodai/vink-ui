@@ -1,9 +1,6 @@
-import { ResourceType } from "@/clients/ts/types/types"
-import { getErrorMessage } from "@/utils/utils"
 import { App, Badge, Modal, Space, Table, TableProps } from "antd"
 import { instances as labels } from '@/clients/ts/label/labels.gen'
 import { LoadingOutlined, StopOutlined } from '@ant-design/icons'
-import { getResourceName } from "@/clients/clients"
 import { VirtualMachinePowerStateRequest_PowerState } from "@/clients/ts/management/virtualmachine/v1alpha1/virtualmachine"
 import { useEffect, useRef, useState } from "react"
 import { VirtualMachineSummary, watchVirtualMachineSummary } from "@/clients/virtual-machine-summary"
@@ -26,16 +23,10 @@ export default () => {
     useEffect(() => {
         abortCtrl.current?.abort()
         abortCtrl.current = new AbortController()
-        watchVirtualMachineSummary(ns, setSummary, setLoading, abortCtrl.current?.signal).catch(err => {
-            notification.error({
-                message: getResourceName(ResourceType.VIRTUAL_MACHINE_SUMMARY),
-                description: getErrorMessage(err)
-            })
-        })
+        watchVirtualMachineSummary(ns, setSummary, setLoading, abortCtrl.current?.signal, notification)
     }, [ns])
 
     useUnmount(() => {
-        console.log("Unmounting watcher", getResourceName(ResourceType.VIRTUAL_MACHINE_SUMMARY))
         abortCtrl.current?.abort()
     })
 
@@ -44,28 +35,24 @@ export default () => {
     }
 
     const handleMount = async (name: string) => {
-        const vmNamespace = summary?.metadata!.namespace!
-        const vmName = summary?.metadata!.name!
-        try {
-            const vm = await getVirtualMachine({ namespace: vmNamespace, name: vmName })
-            vm.spec?.template?.spec?.domain?.devices?.disks?.push({
-                name: name,
-                disk: { bus: "virtio" }
-            })
-            await updateVirtualMachine(vm)
-            await manageVirtualMachinePowerState({ namespace: vmNamespace, name: vmName }, VirtualMachinePowerStateRequest_PowerState.REBOOT)
-        } catch (err: any) {
-            notification.error({
-                message: getResourceName(ResourceType.VIRTUAL_MACHINE),
-                description: getErrorMessage(err)
-            })
+        if (!summary) {
+            return
         }
+        const ns = { namespace: summary.metadata!.namespace, name: summary.metadata!.name }
+        const vm = await getVirtualMachine(ns, undefined, undefined, notification)
+        vm.spec?.template?.spec?.domain?.devices?.disks?.push({
+            name: name,
+            disk: { bus: "virtio" }
+        })
+        await updateVirtualMachine(vm, undefined, undefined, notification)
+        await manageVirtualMachinePowerState(ns, VirtualMachinePowerStateRequest_PowerState.REBOOT, undefined, notification)
     }
 
     const handleUnmount = async (name: string) => {
-        const vmNamespace = summary?.metadata!.namespace!
-        const vmName = summary?.metadata!.name!
-
+        if (!summary) {
+            return
+        }
+        const ns = { namespace: summary.metadata!.namespace, name: summary.metadata!.name }
         Modal.confirm({
             title: "Unmount Disk?",
             content: `You are about to unmount the disk "${name}". Please confirm.`,
@@ -74,27 +61,21 @@ export default () => {
             cancelText: 'Cancel',
             okButtonProps: { disabled: false },
             onOk: async () => {
-                try {
-                    const vm = await getVirtualMachine({ namespace: vmNamespace, name: vmName })
-                    if (vm.spec?.template?.spec?.domain.devices.disks) {
-                        vm.spec.template.spec.domain.devices.disks = vm.spec.template.spec.domain.devices.disks.filter((disk) => disk.name !== name)
-                    }
-                    await updateVirtualMachine(vm)
-                    await manageVirtualMachinePowerState({ namespace: vmNamespace, name: vmName }, VirtualMachinePowerStateRequest_PowerState.REBOOT)
-                } catch (err: any) {
-                    notification.error({
-                        message: getResourceName(ResourceType.VIRTUAL_MACHINE),
-                        description: getErrorMessage(err)
-                    })
+                const vm = await getVirtualMachine(ns, undefined, undefined, notification)
+                if (vm.spec?.template?.spec?.domain.devices.disks) {
+                    vm.spec.template.spec.domain.devices.disks = vm.spec.template.spec.domain.devices.disks.filter((disk) => disk.name !== name)
                 }
+                await updateVirtualMachine(vm, undefined, undefined, notification)
+                await manageVirtualMachinePowerState(ns, VirtualMachinePowerStateRequest_PowerState.REBOOT, undefined, notification)
             }
         })
     }
 
     const handleRemove = async (name: string) => {
-        const vmNamespace = summary?.metadata!.namespace!
-        const vmName = summary?.metadata!.name!
-
+        if (!summary) {
+            return
+        }
+        const ns = { namespace: summary.metadata!.namespace, name: summary.metadata!.name }
         Modal.confirm({
             title: "Remove Disk?",
             content: `You are about to remove the disk "${name}". Please confirm.`,
@@ -103,22 +84,15 @@ export default () => {
             cancelText: 'Cancel',
             okButtonProps: { disabled: false },
             onOk: async () => {
-                try {
-                    const vm = await getVirtualMachine({ namespace: vmNamespace, name: vmName })
-                    if (vm.spec?.template?.spec?.domain.devices.disks) {
-                        vm.spec.template.spec.domain.devices.disks = vm.spec.template.spec.domain.devices.disks.filter((disk: any) => disk.name !== name)
-                    }
-                    if (vm.spec?.template?.spec?.volumes) {
-                        vm.spec.template.spec.volumes = vm.spec.template.spec.volumes.filter((disk: any) => disk.name !== name)
-                    }
-                    await updateVirtualMachine(vm)
-                    await manageVirtualMachinePowerState({ namespace: vmNamespace, name: vmName }, VirtualMachinePowerStateRequest_PowerState.REBOOT)
-                } catch (err: any) {
-                    notification.error({
-                        message: getResourceName(ResourceType.VIRTUAL_MACHINE),
-                        description: getErrorMessage(err)
-                    })
+                const vm = await getVirtualMachine(ns, undefined, undefined, notification)
+                if (vm.spec?.template?.spec?.domain.devices.disks) {
+                    vm.spec.template.spec.domain.devices.disks = vm.spec.template.spec.domain.devices.disks.filter((disk: any) => disk.name !== name)
                 }
+                if (vm.spec?.template?.spec?.volumes) {
+                    vm.spec.template.spec.volumes = vm.spec.template.spec.volumes.filter((disk: any) => disk.name !== name)
+                }
+                await updateVirtualMachine(vm, undefined, undefined, notification)
+                await manageVirtualMachinePowerState(ns, VirtualMachinePowerStateRequest_PowerState.REBOOT, undefined, notification)
             }
         })
     }

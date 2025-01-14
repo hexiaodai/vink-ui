@@ -1,9 +1,46 @@
+import { App } from "antd"
 import { DetailYaml } from "@/components/detail-yaml"
-import { ResourceType } from "@/clients/ts/types/types"
-import { useWatchResourceInNamespaceName } from "@/hooks/use-resource"
+import { useNamespaceFromURL } from "@/hooks/use-query-params-from-url"
+import { useEffect, useRef, useState } from "react"
+import { useNavigate } from "react-router"
+import { DataVolume, updateDataVolume, watchDataVolume } from "@/clients/data-volume"
+import useUnmount from "@/hooks/use-unmount"
 
 export default () => {
-    const { resource, loading } = useWatchResourceInNamespaceName(ResourceType.DATA_VOLUME)
+    const { notification } = App.useApp()
 
-    return <DetailYaml resourceType={ResourceType.DATA_VOLUME} resource={resource} loading={loading} backPath="/storage/images" />
+    const navigate = useNavigate()
+
+    const ns = useNamespaceFromURL()
+
+    const [loading, setLoading] = useState(true)
+
+    const [dataVolume, setDataVolume] = useState<DataVolume>()
+
+    const abortCtrl = useRef<AbortController>()
+
+    useEffect(() => {
+        abortCtrl.current?.abort()
+        abortCtrl.current = new AbortController()
+        watchDataVolume(ns, setDataVolume, setLoading, abortCtrl.current.signal, notification)
+    }, [ns])
+
+    useUnmount(() => {
+        abortCtrl.current?.abort()
+    })
+
+    const handleSave = async (data: any) => {
+        await updateDataVolume(data as DataVolume, undefined, undefined, notification)
+    }
+
+    const handleCancel = () => {
+        navigate('/storage/images')
+    }
+
+    return <DetailYaml
+        data={dataVolume}
+        loading={loading}
+        onCancel={handleCancel}
+        onSave={handleSave}
+    />
 }

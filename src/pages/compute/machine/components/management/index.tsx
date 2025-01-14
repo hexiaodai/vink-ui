@@ -1,17 +1,18 @@
 import { VirtualMachinePowerStateRequest_PowerState } from '@/clients/ts/management/virtualmachine/v1alpha1/virtualmachine'
 import { NamespaceName, ResourceType } from '@/clients/ts/types/types'
-import { getErrorMessage, openConsole } from '@/utils/utils'
+import { openConsole } from '@/utils/utils'
 import { App, Button, Dropdown, MenuProps, Modal, Spin } from 'antd'
 import { EllipsisOutlined } from '@ant-design/icons'
 import { useState } from 'react'
 import { DataDiskDrawer } from '../data-disk-drawer'
 import { Link } from 'react-router-dom'
 import { NetworkDrawer } from '../network-drawer'
-import { NetworkConfig, updateDataDisks, updateNetwork } from '../../virtualmachine'
-import { extractNamespaceAndName, namespaceNameKey } from '@/utils/k8s'
+import { generateDataDisks, generateNetwork } from '../../virtualmachine'
+import { namespaceNameKey } from '@/utils/k8s'
 import { LoadingOutlined } from '@ant-design/icons'
-import { clients, getPowerStateName, getResourceName } from '@/clients/clients'
-import { deleteVirtualMachine, getVirtualMachine, manageVirtualMachinePowerState, VirtualMachine } from '@/clients/virtual-machine'
+import { deleteVirtualMachine, getVirtualMachine, manageVirtualMachinePowerState, updateVirtualMachine, VirtualMachine } from '@/clients/virtual-machine'
+import { DataVolume } from '@/clients/data-volume'
+import { VirtualMachineNetworkType } from '@/clients/subnet'
 
 interface Props {
     namespace: NamespaceName
@@ -32,77 +33,46 @@ const VirtualMachineManagement: React.FC<Props> = ({ namespace, type }) => {
         content = <Button color="default" variant="filled" icon={<EllipsisOutlined style={{ fontSize: 20 }} />} />
     }
 
-    const handleOpenChange = (open: boolean) => {
+    const handleOpenChange = async (open: boolean) => {
         if (!open) {
             return
         }
-        setLoading(true)
-        getVirtualMachine(namespace).then(vm => {
-            setVirtualMachine(vm)
-        }).catch(err => {
-            notification.error({
-                message: getResourceName(ResourceType.VIRTUAL_MACHINE),
-                description: getErrorMessage(err)
-            })
-        }).finally(() => {
-            setLoading(false)
-        })
+        await getVirtualMachine(namespace, setVirtualMachine, setLoading, notification)
     }
 
-    const handleConfirmDisk = async (disks: any[]) => {
-        if (disks.length == 0) {
+    const handleConfirmDisk = async (disks: DataVolume[]) => {
+        if (disks.length == 0 || !virtualMachine) {
             return
         }
-        try {
-            updateDataDisks(virtualMachine, disks)
-            await clients.updateResource(ResourceType.VIRTUAL_MACHINE, virtualMachine)
-            setOpenDrawer((prevState) => ({ ...prevState, dataDisk: false }))
-        } catch (err) {
-            notification.error({
-                message: getResourceName(ResourceType.VIRTUAL_MACHINE),
-                description: getErrorMessage(err)
-            })
-        }
+        generateDataDisks(virtualMachine, disks)
+        await updateVirtualMachine(virtualMachine)
+        await manageVirtualMachinePowerState({ namespace: virtualMachine.metadata!.namespace, name: virtualMachine.metadata!.name }, VirtualMachinePowerStateRequest_PowerState.REBOOT, undefined, notification)
+        setOpenDrawer((prevState) => ({ ...prevState, dataDisk: false }))
     }
 
-    const handleConfirmNetwork = async (net: NetworkConfig) => {
-        try {
-            updateNetwork(virtualMachine, net)
-            await clients.updateResource(ResourceType.VIRTUAL_MACHINE, virtualMachine)
-            await clients.manageVirtualMachinePowerState(extractNamespaceAndName(virtualMachine), VirtualMachinePowerStateRequest_PowerState.REBOOT)
-            setOpenDrawer((prevState) => ({ ...prevState, network: false }))
-        } catch (err) {
-            notification.error({
-                message: getResourceName(ResourceType.VIRTUAL_MACHINE),
-                description: getErrorMessage(err)
-            })
+    const handleConfirmNetwork = async (net: VirtualMachineNetworkType) => {
+        if (!virtualMachine) {
+            return
         }
+        generateNetwork(virtualMachine, net)
+        await updateVirtualMachine(virtualMachine)
+        await manageVirtualMachinePowerState({ namespace: virtualMachine.metadata!.namespace, name: virtualMachine.metadata!.name }, VirtualMachinePowerStateRequest_PowerState.REBOOT, undefined, notification)
+        setOpenDrawer((prevState) => ({ ...prevState, network: false }))
     }
 
-    const handleVirtualMachinePowerState = (state: VirtualMachinePowerStateRequest_PowerState) => {
-        manageVirtualMachinePowerState({ namespace: virtualMachine?.metadata!.namespace!, name: virtualMachine?.metadata!.name! }, state).catch(err => {
-            notification.error({
-                message: getPowerStateName(state),
-                description: getErrorMessage(err)
-            })
-        })
+    const handleVirtualMachinePowerState = async (state: VirtualMachinePowerStateRequest_PowerState) => {
+        await manageVirtualMachinePowerState({ namespace: virtualMachine?.metadata!.namespace!, name: virtualMachine?.metadata!.name! }, state, undefined, notification)
     }
 
     const handleDeleteVirtualMachine = () => {
-        const resourceName = getResourceName(ResourceType.VIRTUAL_MACHINE)
         Modal.confirm({
-            title: `Delete ${resourceName}?`,
-            content: `Are you sure you want to delete "${namespaceNameKey(virtualMachine)}" ${resourceName}? This action cannot be undone.`,
+            title: `Confirm deletion of virtual machine`,
+            content: `Are you sure you want to delete the virtual machine "${namespaceNameKey(namespace)}"? This action cannot be undone.`,
             okText: "Delete",
             okType: "danger",
             cancelText: "Cancel",
             onOk: async () => {
-                deleteVirtualMachine({ namespace: virtualMachine?.metadata!.namespace!, name: virtualMachine?.metadata!.name! }).then(err => {
-                    notification.error({
-                        message: `Failed to delete ${resourceName}`,
-                        description: getErrorMessage(err)
-                    })
-                })
+                await deleteVirtualMachine({ namespace: virtualMachine?.metadata!.namespace!, name: virtualMachine?.metadata!.name! }, undefined, notification)
             }
         })
     }
@@ -114,19 +84,19 @@ const VirtualMachineManagement: React.FC<Props> = ({ namespace, type }) => {
             children: [
                 {
                     key: 'start',
-                    onClick: () => handleVirtualMachinePowerState(VirtualMachinePowerStateRequest_PowerState.ON),
+                    onClick: async () => await handleVirtualMachinePowerState(VirtualMachinePowerStateRequest_PowerState.ON),
                     label: "启动",
                     disabled: virtualMachine?.status?.printableStatus === "Running"
                 },
                 {
                     key: 'restart',
-                    onClick: () => handleVirtualMachinePowerState(VirtualMachinePowerStateRequest_PowerState.REBOOT),
+                    onClick: async () => await handleVirtualMachinePowerState(VirtualMachinePowerStateRequest_PowerState.REBOOT),
                     label: "重启",
                     disabled: virtualMachine?.status?.printableStatus !== "Running"
                 },
                 {
                     key: 'stop',
-                    onClick: () => handleVirtualMachinePowerState(VirtualMachinePowerStateRequest_PowerState.OFF),
+                    onClick: async () => await handleVirtualMachinePowerState(VirtualMachinePowerStateRequest_PowerState.OFF),
                     label: "关机",
                     disabled: virtualMachine?.status?.printableStatus === "Stopped"
                 },
@@ -136,13 +106,13 @@ const VirtualMachineManagement: React.FC<Props> = ({ namespace, type }) => {
                 },
                 {
                     key: 'force-restart',
-                    onClick: () => handleVirtualMachinePowerState(VirtualMachinePowerStateRequest_PowerState.FORCE_REBOOT),
+                    onClick: async () => await handleVirtualMachinePowerState(VirtualMachinePowerStateRequest_PowerState.FORCE_REBOOT),
                     label: "强制重启",
                     disabled: virtualMachine?.status?.printableStatus !== "Running"
                 },
                 {
                     key: 'force-stop',
-                    onClick: () => handleVirtualMachinePowerState(VirtualMachinePowerStateRequest_PowerState.FORCE_OFF),
+                    onClick: async () => await handleVirtualMachinePowerState(VirtualMachinePowerStateRequest_PowerState.FORCE_OFF),
                     label: "强制关机",
                     disabled: virtualMachine?.status?.printableStatus === "Stopped"
                 },

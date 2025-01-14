@@ -1,7 +1,6 @@
-import * as yaml from 'js-yaml'
-import { dataVolumYaml } from './template'
 import { instances as labels } from "@/clients/ts/label/labels.gen"
 import { NamespaceName } from '@/clients/ts/types/types'
+import { DataVolume } from '@/clients/data-volume'
 
 const defaultAccessMode = "ReadWriteOnce"
 
@@ -13,12 +12,35 @@ const getProtocol = (url: string): string | null => {
     return match ? match[1] : null
 }
 
-export const newSystemImage = (namespaceName: NamespaceName, imageSource: string, imageCapacity: number, family: string, version: string) => {
-    const instance: any = yaml.load(dataVolumYaml)
-
-    instance.metadata.name = namespaceName.name
-    instance.metadata.namespace = namespaceName.namespace
-    instance.spec.pvc.resources.requests.storage = `${imageCapacity}Gi`
+export const newSystemImage = (ns: NamespaceName, imageSource: string, imageCapacity: number, family: string, version: string) => {
+    const instance: DataVolume = {
+        apiVersion: "cdi.kubevirt.io/v1beta1",
+        kind: "DataVolume",
+        metadata: {
+            name: ns.name,
+            namespace: ns.namespace,
+            labels: {
+                [labels.VinkDatavolumeType.name]: "image",
+                [labels.VinkOperatingSystem.name]: family,
+                [labels.VinkOperatingSystemVersion.name]: version
+            },
+            annotations: {
+                "cdi.kubevirt.io/storage.bind.immediate.requested": "true"
+            }
+        },
+        spec: {
+            pvc: {
+                accessModes: ["ReadWriteOnce"],
+                resources: {
+                    requests: {
+                        storage: `${imageCapacity}Gi`
+                    }
+                },
+                storageClassName: "local-path"
+            },
+            source: {}
+        }
+    }
 
     switch (getProtocol(imageSource)) {
         case "docker":
@@ -33,24 +55,36 @@ export const newSystemImage = (namespaceName: NamespaceName, imageSource: string
             break
     }
 
-    instance.metadata.labels[labels.VinkDatavolumeType.name] = "image"
-    instance.metadata.labels[labels.VinkOperatingSystem.name] = family
-    instance.metadata.labels[labels.VinkOperatingSystemVersion.name] = version
-
     return instance
 }
 
-export const newDataDisk = (namespaceName: NamespaceName, diskCapacity: number, storageClass?: string, accessMode?: string) => {
-    const instance: any = yaml.load(dataVolumYaml)
-
-    instance.metadata.name = namespaceName.name
-    instance.metadata.namespace = namespaceName.namespace
-    instance.spec.pvc.resources.requests.storage = `${diskCapacity}Gi`
-    instance.spec.source = { blank: {} }
-
-    instance.spec.pvc.accessModes = [(accessMode && accessMode.length > 0) ? accessMode : defaultAccessMode]
-    instance.spec.pvc.storageClassName = (storageClass && storageClass.length > 0) ? storageClass : defaultStorageClass
-    instance.metadata.labels[labels.VinkDatavolumeType.name] = "data"
+export const newDataDisk = (ns: NamespaceName, diskCapacity: number, storageClass?: string, accessMode?: string) => {
+    const instance: DataVolume = {
+        apiVersion: "cdi.kubevirt.io/v1beta1",
+        kind: "DataVolume",
+        metadata: {
+            name: ns.name,
+            namespace: ns.namespace,
+            labels: {
+                [labels.VinkDatavolumeType.name]: "data"
+            },
+            annotations: {
+                "cdi.kubevirt.io/storage.bind.immediate.requested": "true"
+            }
+        },
+        spec: {
+            pvc: {
+                accessModes: [(accessMode && accessMode.length > 0) ? accessMode : defaultAccessMode],
+                resources: {
+                    requests: {
+                        storage: `${diskCapacity}Gi`
+                    }
+                },
+                storageClassName: (storageClass && storageClass.length > 0) ? storageClass : defaultStorageClass
+            },
+            source: { blank: {} }
+        }
+    }
 
     return instance
 }

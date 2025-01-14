@@ -1,18 +1,22 @@
 import { PlusOutlined } from '@ant-design/icons'
 import { App, Button, Dropdown, Flex, MenuProps, Modal, Popover, Space, Tag } from 'antd'
-import { useRef, useState } from 'react'
-import { extractNamespaceAndName } from '@/utils/k8s'
+import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
-import { dataSource, formatTimestamp, generateMessage, getErrorMessage } from '@/utils/utils'
-import { clients, getResourceName } from '@/clients/clients'
-import { ResourceType } from '@/clients/ts/types/types'
-import { NotificationInstance } from 'antd/lib/notification/interface'
+import { formatTimestamp } from '@/utils/utils'
+import { NamespaceName } from '@/clients/ts/types/types'
 import { EllipsisOutlined } from '@ant-design/icons'
 import { CustomTable, SearchItem } from '@/components/custom-table'
 import { WatchOptions } from '@/clients/ts/management/resource/v1alpha1/watch'
-import { useWatchResources } from '@/hooks/use-resource'
+import { deleteVPC, deleteVPCs, VPC, watchVPCs } from '@/clients/vpc'
 import type { ActionType, ProColumns } from '@ant-design/pro-components'
 import commonStyles from '@/common/styles/common.module.less'
+import useUnmount from '@/hooks/use-unmount'
+
+const searchItems: SearchItem[] = [
+    { fieldPath: "metadata.name", name: "Name", operator: "*=" },
+    { fieldPath: "spec.namespaces[*]", name: "Namespace", operator: "*=" },
+    { fieldPath: "status.subnets[*]", name: "Subnet", operator: "*=" }
+]
 
 export default () => {
     const { notification } = App.useApp()
@@ -21,85 +25,82 @@ export default () => {
 
     const actionRef = useRef<ActionType>()
 
-    const columns = columnsFunc(actionRef, notification)
-
     const [opts, setOpts] = useState<WatchOptions>(WatchOptions.create())
 
-    const { resources, loading } = useWatchResources(ResourceType.VPC, opts)
+    const [loading, setLoading] = useState(true)
 
-    const handleBatchDeleteVPC = async () => {
-        const resourceName = getResourceName(ResourceType.VPC)
+    const [resources, setResources] = useState<VPC[]>()
+
+    const abortCtrl = useRef<AbortController>()
+
+    useEffect(() => {
+        abortCtrl.current?.abort()
+        abortCtrl.current = new AbortController()
+        watchVPCs(setResources, setLoading, abortCtrl.current.signal, opts, notification)
+    }, [opts])
+
+    useUnmount(() => {
+        abortCtrl.current?.abort()
+    })
+
+    const handleDeleteVPCs = async () => {
         Modal.confirm({
-            title: `Batch delete ${resourceName}?`,
-            content: generateMessage(selectedRows, `You are about to delete the following ${resourceName}: "{names}", please confirm.`, `You are about to delete the following ${resourceName}: "{names}" and {count} others, please confirm.`),
-            okText: 'Confirm Delete',
+            title: `Confirm batch deletion of VPCs`,
+            content: `Are you sure you want to delete the selected VPCs? This action cannot be undone.`,
+            okText: 'Delete',
             okType: 'danger',
             cancelText: 'Cancel',
-            okButtonProps: { disabled: false },
             onOk: async () => {
-                clients.batchDeleteResources(ResourceType.VPC, selectedRows).catch(err => {
-                    notification.error({
-                        message: `Batch delete of ${resourceName} failed`,
-                        description: getErrorMessage(err)
-                    })
-                })
+                await deleteVPCs(selectedRows, undefined, notification)
             }
         })
     }
 
-    return (
-        <CustomTable
-            searchItems={searchItems}
-            loading={loading}
-            updateWatchOptions={setOpts}
-            onSelectRows={(rows) => setSelectedRows(rows)}
-            storageKey="vpcs-list-table-columns"
-            columns={columns}
-            dataSource={dataSource(resources)}
-            tableAlertOptionRender={() => {
-                return (
-                    <Space size={16}>
-                        <a className={commonStyles["warning-color"]} onClick={async () => handleBatchDeleteVPC()}>批量删除</a>
-                    </Space>
-                )
-            }}
-            toolbar={{
-                actions: [
-                    <NavLink to='/network/vpcs/create'><Button icon={<PlusOutlined />}>创建 VPC</Button></NavLink>
-                ]
-            }}
-        />
-    )
-}
+    const actionItemsFunc = (vpc: VPC) => {
+        const ns: NamespaceName = { namespace: "", name: vpc.metadata!.name }
+        const items: MenuProps['items'] = [
+            {
+                key: 'delete',
+                danger: true,
+                onClick: () => {
+                    Modal.confirm({
+                        title: "Confirm deletion of VPC",
+                        content: `Are you sure you want to delete the VPC "${ns.name}"? This action cannot be undone.`,
+                        okText: 'Delete',
+                        okType: 'danger',
+                        cancelText: 'Cancel',
+                        onOk: async () => {
+                            await deleteVPC(ns, undefined, notification)
+                        }
+                    })
+                },
+                label: "删除"
+            }
+        ]
+        return items
+    }
 
-const searchItems: SearchItem[] = [
-    { fieldPath: "metadata.name", name: "Name", operator: "*=" },
-    { fieldPath: "spec.namespaces[*]", name: "Namespace", operator: "*=" },
-    { fieldPath: "status.subnets[*]", name: "Subnet", operator: "*=" }
-]
-
-const columnsFunc = (actionRef: any, notification: NotificationInstance) => {
-    const columns: ProColumns<any>[] = [
+    const columns: ProColumns<VPC>[] = [
         {
             key: 'name',
             title: '名称',
             fixed: 'left',
             ellipsis: true,
-            render: (_, vpc) => <Link to={{ pathname: "/network/vpcs/detail", search: `name=${vpc.metadata.name}` }}>{vpc.metadata.name}</Link>
+            render: (_, vpc) => <Link to={{ pathname: "/network/vpcs/detail", search: `name=${vpc.metadata!.name}` }}>{vpc.metadata!.name}</Link>
         },
         {
             key: 'namespace',
             title: '命名空间',
             ellipsis: true,
             render: (_, vpc) => {
-                let nss = vpc.spec.namespaces
+                let nss = vpc.spec?.namespaces
                 if (!nss || nss.length === 0) {
                     return
                 }
 
                 const content = (
                     <Flex wrap gap="4px 0" style={{ maxWidth: 250 }}>
-                        {nss.map((element: any, index: any) => (
+                        {nss.map((element, index) => (
                             <Tag key={index} bordered={true}>
                                 {element}
                             </Tag>
@@ -126,7 +127,7 @@ const columnsFunc = (actionRef: any, notification: NotificationInstance) => {
 
                 const content = (
                     <Flex wrap gap="4px 0" style={{ maxWidth: 250 }}>
-                        {vpc.status.subnets.map((element: any, index: any) => (
+                        {vpc.status.subnets.map((element, index) => (
                             <Tag key={index} bordered={true}>
                                 {element}
                             </Tag>
@@ -147,9 +148,7 @@ const columnsFunc = (actionRef: any, notification: NotificationInstance) => {
             title: '创建时间',
             width: 160,
             ellipsis: true,
-            render: (_, mc) => {
-                return formatTimestamp(mc.metadata.creationTimestamp)
-            }
+            render: (_, vpc) => formatTimestamp(vpc.metadata!.creationTimestamp)
         },
         {
             key: 'action',
@@ -157,8 +156,8 @@ const columnsFunc = (actionRef: any, notification: NotificationInstance) => {
             fixed: 'right',
             width: 90,
             align: 'center',
-            render: (_, mc) => {
-                const items = actionItemsFunc(mc, actionRef, notification)
+            render: (_, vpc) => {
+                const items = actionItemsFunc(vpc)
                 return (
                     <Dropdown menu={{ items }} trigger={['click']}>
                         <EllipsisOutlined />
@@ -167,48 +166,28 @@ const columnsFunc = (actionRef: any, notification: NotificationInstance) => {
             }
         }
     ]
-    return columns
-}
 
-const actionItemsFunc = (m: any, actionRef: any, notification: NotificationInstance) => {
-    const name = m.metadata.name
-
-    const items: MenuProps['items'] = [
-        {
-            key: 'edit',
-            label: "编辑"
-        },
-        {
-            key: 'bindlabel',
-            label: '绑定标签'
-        },
-        {
-            key: 'divider-3',
-            type: 'divider'
-        },
-        {
-            key: 'delete',
-            danger: true,
-            onClick: () => {
-                Modal.confirm({
-                    title: "Delete VPC?",
-                    content: `You are about to delete the VPC "${name}". Please confirm.`,
-                    okText: 'Confirm delete',
-                    okType: 'danger',
-                    cancelText: 'Cancel',
-                    okButtonProps: { disabled: false },
-                    onOk: async () => {
-                        try {
-                            await clients.deleteResource(ResourceType.VPC, extractNamespaceAndName(m))
-                            actionRef.current?.reload()
-                        } catch (err) {
-                            notification.error({ message: getResourceName(ResourceType.VPC), description: getErrorMessage(err) })
-                        }
-                    }
-                })
-            },
-            label: "删除"
-        }
-    ]
-    return items
+    return (
+        <CustomTable
+            searchItems={searchItems}
+            loading={loading}
+            updateWatchOptions={setOpts}
+            onSelectRows={(rows) => setSelectedRows(rows)}
+            key="vpcs-list-table-columns"
+            columns={columns}
+            dataSource={resources}
+            tableAlertOptionRender={() => {
+                return (
+                    <Space size={16}>
+                        <a className={commonStyles["warning-color"]} onClick={async () => handleDeleteVPCs()}>批量删除</a>
+                    </Space>
+                )
+            }}
+            toolbar={{
+                actions: [
+                    <NavLink to='/network/vpcs/create'><Button icon={<PlusOutlined />}>创建 VPC</Button></NavLink>
+                ]
+            }}
+        />
+    )
 }

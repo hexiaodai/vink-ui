@@ -3,6 +3,7 @@ import { ColumnsState } from "@ant-design/pro-components"
 import { formatMemory, namespaceNameKey } from "./k8s"
 import { NamespaceName, ResourceType } from '@/clients/ts/types/types'
 import { VirtualMachine } from "@/clients/virtual-machine"
+import { Multus } from "@/clients/multus"
 
 /**
  * Combines multiple class names into a single string.
@@ -67,6 +68,15 @@ export const dataSource = (data: Map<string, any>): any[] | undefined => {
     let items = Array.from(data.values())
     if (items.length == 0) {
         return undefined
+    }
+    return items.sort((a: any, b: any) => {
+        return new Date(b.metadata.creationTimestamp).getTime() - new Date(a.metadata.creationTimestamp).getTime()
+    })
+}
+
+export const resourceSort = (items: any): any[] => {
+    if (!items || items.length == 0) {
+        return items
     }
     return items.sort((a: any, b: any) => {
         return new Date(b.metadata.creationTimestamp).getTime() - new Date(a.metadata.creationTimestamp).getTime()
@@ -143,22 +153,26 @@ export const generateKubeovnNetworkAnnon = (multus: NamespaceName | any, name: s
     return `${prefix}.ovn.kubernetes.io/${name}`
 }
 
-export const getProvider = (multusCR: any) => {
+export const getProvider = (multus: Multus): string => {
+    if (!multus.spec?.config) {
+        return ""
+    }
+
     const kubeovn = "kube-ovn"
-    const config = JSON.parse(multusCR.spec.config)
+    const config = JSON.parse(multus.spec.config)
     if (config.type == kubeovn) {
-        return config.provider
+        return config.provider as string
     }
     if (!config.plugins) {
-        return
+        return ""
     }
     for (let i = 0; i < config.plugins.length; i++) {
         const plugin = config.plugins[i]
         if (plugin.type == kubeovn) {
-            return plugin.provider
+            return plugin.provider as string
         }
     }
-    return
+    return ""
 }
 
 export const getErrorMessage = (err: unknown): string => {
@@ -195,3 +209,20 @@ export const arraysAreEqual = (a: any[], b: any[]) => {
 export const filterNullish = <T>(array: (T | null | undefined)[]): T[] => {
     return array.filter((item): item is T => item != null)
 }
+
+// export const addNewOption = (
+//     inputValue: number | undefined,
+//     options: { label: string; value: number }[],
+//     setOptions: React.Dispatch<React.SetStateAction<{ label: string, value: number }[]>>,
+//     fieldName: "cpu" | "memory"
+// ) => {
+//     if (!inputValue || !formRef.current) {
+//         return
+//     }
+//     const unit = fieldName === "cpu" ? "Core" : "Gi"
+//     if (!options.some(opt => opt.value === inputValue)) {
+//         const newOption = { label: `${inputValue} ${unit}`, value: inputValue }
+//         setOptions([...options, newOption])
+//         formRef.current.setFieldsValue({ [fieldName]: inputValue })
+//     }
+// }
