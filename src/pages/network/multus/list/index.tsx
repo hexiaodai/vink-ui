@@ -139,7 +139,7 @@ export default () => {
             updateWatchOptions={setOpts}
             onSelectRows={(rows) => setSelectedRows(rows)}
             defaultFieldSelectors={defaultFieldSelectors}
-            key="multus-list-table-columns"
+            tableKey="multus-list-table-columns"
             columns={columns}
             dataSource={resources}
             tableAlertOptionRender={() => {

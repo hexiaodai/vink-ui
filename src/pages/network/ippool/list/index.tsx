@@ -182,7 +182,7 @@ export default () => {
             loading={loading}
             updateWatchOptions={setOpts}
             onSelectRows={(rows) => setSelectedRows(rows)}
-            key="ippool-list-table-columns"
+            tableKey="ippool-list-table-columns"
             columns={columns}
             dataSource={resources}
             tableAlertOptionRender={() => {

@@ -170,7 +170,7 @@ export default () => {
             updateWatchOptions={setOpts}
             onSelectRows={(rows) => setSelectedRows(rows)}
             defaultFieldSelectors={defaultFieldSelectors}
-            key="image-list-table-columns"
+            tableKey="image-list-table-columns"
             columns={columns}
             dataSource={resources}
             tableAlertOptionRender={() => {

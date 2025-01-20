@@ -219,7 +219,7 @@ export default () => {
             loading={loading}
             updateWatchOptions={setOpts}
             onSelectRows={(rows) => setSelectedRows(rows)}
-            key="subnets-list-table-columns"
+            tableKey="subnets-list-table-columns"
             columns={columns}
             dataSource={resources}
             tableAlertOptionRender={() => {

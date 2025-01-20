@@ -68,9 +68,9 @@ export default () => {
         const ns = { namespace: summary.metadata!.namespace, name: summary.metadata!.name }
 
         Modal.confirm({
-            title: "Remove Network?",
-            content: `You are about to remove the network "${namespaceNameKey(summary)}". Please confirm.`,
-            okText: 'Confirm Removal',
+            title: `Confirm remove of network`,
+            content: `Are you sure you want to remove the network "${namespaceNameKey(ns)}"?`,
+            okText: 'Removal',
             okType: 'danger',
             cancelText: 'Cancel',
             okButtonProps: { disabled: false },

@@ -9,7 +9,11 @@ export const useNamespaceFromURL = () => {
     const [namespaceName, setNamespaceName] = useState<NamespaceName>(getNamespaceName(params))
 
     useEffect(() => {
-        setNamespaceName(getNamespaceName(params))
+        const newns = getNamespaceName(params)
+        if (newns.namespace === namespaceName.namespace && newns.name === namespaceName.name) {
+            return
+        }
+        setNamespaceName(newns)
     }, [location.search])
 
     return namespaceName
