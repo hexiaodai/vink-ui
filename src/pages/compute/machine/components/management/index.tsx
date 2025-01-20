@@ -1,5 +1,5 @@
 import { VirtualMachinePowerStateRequest_PowerState } from '@/clients/ts/management/virtualmachine/v1alpha1/virtualmachine'
-import { NamespaceName, ResourceType } from '@/clients/ts/types/types'
+import { NamespaceName } from '@/clients/ts/types/types'
 import { openConsole } from '@/utils/utils'
 import { App, Button, Dropdown, MenuProps, Modal, Spin } from 'antd'
 import { EllipsisOutlined } from '@ant-design/icons'
@@ -137,14 +137,6 @@ const VirtualMachineManagement: React.FC<Props> = ({ namespace, type }) => {
             type: 'divider'
         },
         {
-            key: 'bindlabel',
-            label: '绑定标签'
-        },
-        {
-            key: 'divider-3',
-            type: 'divider'
-        },
-        {
             key: 'disk',
             label: '磁盘',
             children: [
@@ -160,7 +152,7 @@ const VirtualMachineManagement: React.FC<Props> = ({ namespace, type }) => {
             ]
         },
         {
-            key: 'divider-4',
+            key: 'divider-3',
             type: 'divider'
         },
         {
@@ -179,7 +171,7 @@ const VirtualMachineManagement: React.FC<Props> = ({ namespace, type }) => {
             ]
         },
         {
-            key: 'divider-5',
+            key: 'divider-4',
             type: 'divider'
         },
         {

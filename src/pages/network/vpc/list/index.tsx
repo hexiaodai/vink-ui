@@ -173,7 +173,7 @@ export default () => {
             loading={loading}
             updateWatchOptions={setOpts}
             onSelectRows={(rows) => setSelectedRows(rows)}
-            key="vpcs-list-table-columns"
+            tableKey="vpcs-list-table-columns"
             columns={columns}
             dataSource={resources}
             tableAlertOptionRender={() => {

@@ -3,10 +3,10 @@ import { App, Button, Flex, Modal, Popover, Space, Tag } from 'antd'
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { VirtualMachinePowerStateRequest_PowerState } from '@/clients/ts/management/virtualmachine/v1alpha1/virtualmachine'
-import { filterNullish, formatTimestamp, generateMessage } from '@/utils/utils'
+import { filterNullish, formatTimestamp } from '@/utils/utils'
 import { useNamespace } from '@/common/context'
-import { FieldSelector, ResourceType } from '@/clients/ts/types/types'
-import { getPowerStateName, getResourceName } from '@/clients/clients'
+import { FieldSelector } from '@/clients/ts/types/types'
+import { getPowerStateName } from '@/clients/clients'
 import { instances as annotations } from '@/clients/ts/annotation/annotations.gen'
 import { WatchOptions } from '@/clients/ts/management/resource/v1alpha1/watch'
 import { rootDisk } from '@/utils/parse-summary'
@@ -302,7 +302,7 @@ export default () => {
             updateWatchOptions={setOpts}
             onSelectRows={(rows) => setSelectedRows(rows)}
             defaultFieldSelectors={defaultFieldSelectors}
-            key="virtual-machine-list-table-columns"
+            tableKey="virtual-machine-list-table-columns"
             columns={columns}
             dataSource={resources}
             toolbar={{

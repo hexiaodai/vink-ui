@@ -7,6 +7,7 @@ import { VirtualMachineSummary, watchVirtualMachineSummary } from "@/clients/vir
 import { useNamespaceFromURL } from "@/hooks/use-query-params-from-url"
 import { getVirtualMachine, manageVirtualMachinePowerState, updateVirtualMachine } from "@/clients/virtual-machine"
 import { DataVolume } from "@/clients/data-volume"
+import { namespaceNameKey } from "@/utils/k8s"
 import commonStyles from "@/common/styles/common.module.less"
 import DataVolumeStatus from "@/components/datavolume-status"
 import useUnmount from "@/hooks/use-unmount"
@@ -54,12 +55,11 @@ export default () => {
         }
         const ns = { namespace: summary.metadata!.namespace, name: summary.metadata!.name }
         Modal.confirm({
-            title: "Unmount Disk?",
-            content: `You are about to unmount the disk "${name}". Please confirm.`,
-            okText: 'Confirm Unmount',
+            title: `Confirm unmount of disk`,
+            content: `Are you sure you want to unmount the disk "${namespaceNameKey(ns)}"?`,
+            okText: 'Unmount',
             okType: 'danger',
             cancelText: 'Cancel',
-            okButtonProps: { disabled: false },
             onOk: async () => {
                 const vm = await getVirtualMachine(ns, undefined, undefined, notification)
                 if (vm.spec?.template?.spec?.domain.devices.disks) {
@@ -77,12 +77,11 @@ export default () => {
         }
         const ns = { namespace: summary.metadata!.namespace, name: summary.metadata!.name }
         Modal.confirm({
-            title: "Remove Disk?",
-            content: `You are about to remove the disk "${name}". Please confirm.`,
-            okText: 'Confirm Removal',
+            title: `Confirm remove of disk`,
+            content: `Are you sure you want to remove the disk "${namespaceNameKey(ns)}"?`,
+            okText: 'Removal',
             okType: 'danger',
             cancelText: 'Cancel',
-            okButtonProps: { disabled: false },
             onOk: async () => {
                 const vm = await getVirtualMachine(ns, undefined, undefined, notification)
                 if (vm.spec?.template?.spec?.domain.devices.disks) {
@@ -174,9 +173,9 @@ export default () => {
 
                 let content: JSX.Element
                 if (mounted) {
-                    content = <a className={commonStyles["warning-color"]} onClick={async () => handleMount(simple.name)}>卸载</a>
+                    content = <a className={commonStyles["warning-color"]} onClick={async () => handleUnmount(simple.name)}>卸载</a>
                 } else {
-                    content = <a onClick={async () => handleUnmount(simple.name)}>卸载</a>
+                    content = <a onClick={async () => handleMount(simple.name)}>挂载</a>
                 }
 
                 return (

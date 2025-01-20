@@ -12,7 +12,7 @@ import tableStyles from '@/common/styles/table.module.less'
 import commonStyles from '@/common/styles/common.module.less'
 
 interface CustomTableProps<T extends Record<string, any>> extends Partial<React.ComponentProps<typeof ProTable<T>>> {
-    key: string
+    tableKey: string
     searchItems?: SearchItem[] | undefined
     loading?: boolean
     defaultFieldSelectors?: FieldSelector[]
@@ -20,7 +20,7 @@ interface CustomTableProps<T extends Record<string, any>> extends Partial<React.
     updateWatchOptions?: React.Dispatch<React.SetStateAction<WatchOptions>>
 }
 
-export const CustomTable = <T extends Record<string, any>>({ key, searchItems, onSelectRows, loading, defaultFieldSelectors, updateWatchOptions, ...proTableProps }: CustomTableProps<T>) => {
+export const CustomTable = <T extends Record<string, any>>({ tableKey, searchItems, onSelectRows, loading, defaultFieldSelectors, updateWatchOptions, ...proTableProps }: CustomTableProps<T>) => {
     const { namespace } = useNamespace()
 
     const searchRef = useRef<HTMLInputElement>()
@@ -40,7 +40,7 @@ export const CustomTable = <T extends Record<string, any>>({ key, searchItems, o
     }, [namespace])
 
     useEffect(() => {
-        const inputElement = document.querySelector(`input[name="search-${key}"]`)
+        const inputElement = document.querySelector(`input[name="search-${tableKey}"]`)
         if (inputElement) {
             searchRef.current = inputElement as HTMLInputElement
         }
@@ -68,7 +68,7 @@ export const CustomTable = <T extends Record<string, any>>({ key, searchItems, o
             search={false}
             loading={{ spinning: loading, delay: 500, indicator: <LoadingOutlined /> }}
             columnsState={{
-                persistenceKey: key,
+                persistenceKey: tableKey,
                 persistenceType: 'localStorage',
                 onChange: (obj) => setScroll(calcScroll(obj))
             }}
@@ -105,7 +105,7 @@ export const CustomTable = <T extends Record<string, any>>({ key, searchItems, o
                 fullScreen: true,
                 density: false,
                 search: {
-                    name: `search-${key}`,
+                    name: `search-${tableKey}`,
                     autoComplete: "off",
                     allowClear: true,
                     style: { width: 300 },

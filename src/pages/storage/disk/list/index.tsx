@@ -221,7 +221,7 @@ export default () => {
             updateWatchOptions={setOpts}
             onSelectRows={(rows) => setSelectedRows(rows)}
             defaultFieldSelectors={defaultFieldSelectors}
-            key="disk-list-table-columns"
+            tableKey="disk-list-table-columns"
             columns={columns}
             dataSource={resources}
             tableAlertOptionRender={() => {
