@@ -3,7 +3,7 @@ import { ListOptions } from "./ts/management/resource/v1alpha1/resource"
 import { components } from "./ts/openapi/openapi-schema"
 import { defaultTimeout, resourceClient, resourceWatchClient } from "./clients"
 import { NamespaceName, ResourceType } from "./ts/types/types"
-import { getErrorMessage, isAbortedError } from "@/utils/utils"
+import { getErrorMessage, isAbortedError, resourceSort } from "@/utils/utils"
 import { EventType, WatchOptions } from "./ts/management/resource/v1alpha1/watch"
 import { namespaceNameKey } from "@/utils/k8s"
 
@@ -93,12 +93,12 @@ export const watchVPCs = async (setVPCs: React.Dispatch<React.SetStateAction<VPC
             const updateVPCs = () => {
                 if (map.size === 0 && timeoutId === null) {
                     timeoutId = setTimeout(() => {
-                        const items = Array.from(map.values())
+                        const items = resourceSort(Array.from(map.values()))
                         setVPCs(items.length > 0 ? items : undefined)
                         timeoutId = null
                     }, defaultTimeout)
                 } else {
-                    const items = Array.from(map.values())
+                    const items = resourceSort(Array.from(map.values()))
                     setVPCs(items.length > 0 ? items : undefined)
                     if (timeoutId !== null) {
                         clearTimeout(timeoutId)

@@ -125,7 +125,7 @@ export const RootDiskDrawer: React.FC<RootDiskDrawerProps> = ({ open, current, o
         >
             <CustomTable
                 loading={loading}
-                key="root-disk-drawer-table-columns"
+                tableKey="root-disk-drawer-table-columns"
                 defaultFieldSelectors={defaultFieldSelectors.current}
                 searchItems={searchItems}
                 columns={columns}

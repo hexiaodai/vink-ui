@@ -2,27 +2,12 @@ import { NotificationInstance } from "antd/lib/notification/interface"
 import { defaultTimeout, resourceClient, resourceWatchClient } from "./clients"
 import { components } from "./ts/openapi/openapi-schema"
 import { NamespaceName, ResourceType } from "./ts/types/types"
-import { getErrorMessage, isAbortedError } from "@/utils/utils"
+import { getErrorMessage, isAbortedError, resourceSort } from "@/utils/utils"
 import { ListOptions } from "./ts/management/resource/v1alpha1/resource"
 import { EventType, WatchOptions } from "./ts/management/resource/v1alpha1/watch"
 import { namespaceNameKey } from "@/utils/k8s"
 
 export type Multus = components["schemas"]["v1NetworkAttachmentDefinition"]
-
-// export const getMultus = async (ns: NamespaceName): Promise<Multus> => {
-//     return new Promise((resolve, reject) => {
-//         const call = resourceClient.get({
-//             resourceType: ResourceType.MULTUS,
-//             namespaceName: ns
-//         })
-//         call.then((result) => {
-//             resolve(JSON.parse(result.response.data) as Multus)
-//         })
-//         call.response.catch((err: Error) => {
-//             reject(new Error(`Failed to get data NetworkAttachmentDefinition [Namespace: ${ns.namespace}, Name: ${ns.name}]: ${err.message}`))
-//         })
-//     })
-// }
 
 export const getMultus = async (ns: NamespaceName, setMultus?: React.Dispatch<React.SetStateAction<Multus | undefined>>, setLoading?: React.Dispatch<React.SetStateAction<boolean>>, notification?: NotificationInstance): Promise<Multus> => {
     setLoading?.(true)
@@ -126,12 +111,12 @@ export const watchMultuses = async (setMultuses: React.Dispatch<React.SetStateAc
             const updateMultuses = () => {
                 if (map.size === 0 && timeoutId === null) {
                     timeoutId = setTimeout(() => {
-                        const items = Array.from(map.values())
+                        const items = resourceSort(Array.from(map.values()))
                         setMultuses(items.length > 0 ? items : undefined)
                         timeoutId = null
                     }, defaultTimeout)
                 } else {
-                    const items = Array.from(map.values())
+                    const items = resourceSort(Array.from(map.values()))
                     setMultuses(items.length > 0 ? items : undefined)
                     if (timeoutId !== null) {
                         clearTimeout(timeoutId)

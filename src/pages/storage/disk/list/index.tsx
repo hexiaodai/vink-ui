@@ -32,20 +32,13 @@ const searchItems: SearchItem[] = [
         ]
     },
     {
-        fieldPath: `metadata.labels.${replaceDots("vink.kubevm.io/datavolume.type")}`, name: "Type",
+        fieldPath: `metadata.labels.${replaceDots(labels.VinkDatavolumeType.name)}`, name: "Type",
         items: [
             { inputValue: "Root", values: ["Root"], operator: '=' },
             { inputValue: "Data", values: ["Data"], operator: '=' },
         ]
     },
-    // {
-    //     fieldPath: `metadata.annotations.${replaceDots("vink.kubevm.io/virtualmachine.binding")}`, name: "Resource Usage",
-    //     items: [
-    //         { inputValue: "In Use", values: [""], operator: '!=' },
-    //         { inputValue: "Idle", values: [""], operator: '=' },
-    //     ]
-    // },
-    { fieldPath: `metadata.annotations.${replaceDots("vink.kubevm.io/virtualmachine.binding")}`, name: "Owner", operator: "*=" }
+    { fieldPath: `metadata.annotations.${replaceDots(annotations.VinkDatavolumeOwner.name)}`, name: "Owner", operator: "*=" }
 ]
 
 export default () => {
