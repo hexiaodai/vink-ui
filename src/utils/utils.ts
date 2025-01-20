@@ -74,12 +74,21 @@ export const dataSource = (data: Map<string, any>): any[] | undefined => {
     })
 }
 
-export const resourceSort = (items: any): any[] => {
+export const resourceSort = (items: any[]): any[] => {
     if (!items || items.length == 0) {
         return items
     }
     return items.sort((a: any, b: any) => {
         return new Date(b.metadata.creationTimestamp).getTime() - new Date(a.metadata.creationTimestamp).getTime()
+    })
+}
+
+export const eventSort = (items: any[]): any[] => {
+    if (!items || items.length == 0) {
+        return items
+    }
+    return items.sort((a: any, b: any) => {
+        return new Date(b.lastTimestamp).getTime() - new Date(a.lastTimestamp).getTime()
     })
 }
 

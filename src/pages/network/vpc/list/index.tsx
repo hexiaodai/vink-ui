@@ -8,7 +8,7 @@ import { EllipsisOutlined } from '@ant-design/icons'
 import { CustomTable, SearchItem } from '@/components/custom-table'
 import { WatchOptions } from '@/clients/ts/management/resource/v1alpha1/watch'
 import { deleteVPC, deleteVPCs, VPC, watchVPCs } from '@/clients/vpc'
-import type { ActionType, ProColumns } from '@ant-design/pro-components'
+import type { ProColumns } from '@ant-design/pro-components'
 import commonStyles from '@/common/styles/common.module.less'
 import useUnmount from '@/hooks/use-unmount'
 
@@ -22,8 +22,6 @@ export default () => {
     const { notification } = App.useApp()
 
     const [selectedRows, setSelectedRows] = useState<any[]>([])
-
-    const actionRef = useRef<ActionType>()
 
     const [opts, setOpts] = useState<WatchOptions>(WatchOptions.create())
 

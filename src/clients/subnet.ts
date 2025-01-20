@@ -6,7 +6,7 @@ import { FieldSelector, NamespaceName, ResourceType } from "./ts/types/types"
 import { VirtualMachineSummary } from "./virtual-machine-summary"
 import { IP } from "./ip"
 import { defaultNetworkAnno } from "@/pages/compute/machine/virtualmachine"
-import { generateKubeovnNetworkAnnon, getErrorMessage, isAbortedError } from "@/utils/utils"
+import { generateKubeovnNetworkAnnon, getErrorMessage, isAbortedError, resourceSort } from "@/utils/utils"
 import { NotificationInstance } from "antd/lib/notification/interface"
 import { Multus } from "./multus"
 import { IPPool } from "./ippool"
@@ -291,12 +291,12 @@ export const watchSubnets = async (setSubnets: React.Dispatch<React.SetStateActi
             const updateSubnets = () => {
                 if (map.size === 0 && timeoutId === null) {
                     timeoutId = setTimeout(() => {
-                        const items = Array.from(map.values())
+                        const items = resourceSort(Array.from(map.values()))
                         setSubnets(items.length > 0 ? items : undefined)
                         timeoutId = null
                     }, defaultTimeout)
                 } else {
-                    const items = Array.from(map.values())
+                    const items = resourceSort(Array.from(map.values()))
                     setSubnets(items.length > 0 ? items : undefined)
                     if (timeoutId !== null) {
                         clearTimeout(timeoutId)

@@ -1,7 +1,7 @@
 import { NotificationInstance } from "antd/lib/notification/interface"
 import { defaultTimeout, resourceWatchClient } from "./clients"
 import { ResourceType } from "./ts/types/types"
-import { getErrorMessage, isAbortedError } from "@/utils/utils"
+import { getErrorMessage, isAbortedError, resourceSort } from "@/utils/utils"
 import { EventType, WatchOptions } from "./ts/management/resource/v1alpha1/watch"
 import { namespaceNameKey } from "@/utils/k8s"
 
@@ -26,12 +26,12 @@ export const watchNamespaces = async (setNamespaces: React.Dispatch<React.SetSta
             const updateNamespaces = () => {
                 if (map.size === 0 && timeoutId === null) {
                     timeoutId = setTimeout(() => {
-                        const items = Array.from(map.values())
+                        const items = resourceSort(Array.from(map.values()))
                         setNamespaces(items.length > 0 ? items : undefined)
                         timeoutId = null
                     }, defaultTimeout)
                 } else {
-                    const items = Array.from(map.values())
+                    const items = resourceSort(Array.from(map.values()))
                     setNamespaces(items.length > 0 ? items : undefined)
                     if (timeoutId !== null) {
                         clearTimeout(timeoutId)

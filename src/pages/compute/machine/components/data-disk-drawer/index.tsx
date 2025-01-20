@@ -172,7 +172,7 @@ export const DataDiskDrawer: React.FC<DataDiskDrawerProps> = ({ open, current, o
         >
             <CustomTable<DataVolume>
                 loading={loading}
-                key="data-disk-drawer-table-columns"
+                tableKey="data-disk-drawer-table-columns"
                 defaultFieldSelectors={defaultFieldSelectors}
                 searchItems={searchItems}
                 columns={columns}
