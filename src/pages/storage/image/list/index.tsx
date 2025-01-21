@@ -31,7 +31,7 @@ const searchItems: SearchItem[] = [
         ]
     },
     {
-        fieldPath: `metadata.labels.${replaceDots("vink.kubevm.io/virtualmachine.os")}`, name: "OS",
+        fieldPath: `metadata.labels.${replaceDots(labels.VinkOperatingSystem.name)}`, name: "OS",
         items: [
             { inputValue: "Ubuntu", values: ["Ubuntu"], operator: '=' },
             { inputValue: "CentOS", values: ["CentOS"], operator: '=' },

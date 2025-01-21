@@ -15,6 +15,7 @@ import { CustomTable, SearchItem } from '@/components/custom-table'
 import { deleteVirtualMachines, manageVirtualMachinesPowerState, VirtualMachine } from '@/clients/virtual-machine'
 import { VirtualMachineSummary, watchVirtualMachineSummarys } from '@/clients/virtual-machine-summary'
 import { DataVolume } from '@/clients/data-volume'
+import { instances as labels } from "@/clients/ts/label/labels.gen"
 import type { ProColumns } from '@ant-design/pro-components'
 import commonStyles from '@/common/styles/common.module.less'
 import VirtualMachineStatus from '../components/status'
@@ -35,7 +36,7 @@ const searchItems: SearchItem[] = [
         ]
     },
     {
-        fieldPath: `status.dataVolumes[*].metadata.labels.${replaceDots("vink.kubevm.io/virtualmachine.os")}`, name: "OS",
+        fieldPath: `status.dataVolumes[*].metadata.labels.${replaceDots(labels.VinkOperatingSystem.name)}`, name: "OS",
         items: [
             { inputValue: "Ubuntu", values: ["Ubuntu"], operator: '=' },
             { inputValue: "CentOS", values: ["CentOS"], operator: '=' },
@@ -46,7 +47,7 @@ const searchItems: SearchItem[] = [
     },
     { fieldPath: "status.network.ips[*].spec.ipAddress", name: "IP", operator: "*=" },
     { fieldPath: "status.virtualMachineInstance.status.nodeName", name: "Host Name", operator: "*=" },
-    { fieldPath: `status.virtualMachineInstance.metadata.annotations.${replaceDots("vink.kubevm.io/virtualmachineinstance.host")}`, name: "Host IP", operator: "*=" }
+    { fieldPath: `status.virtualMachineInstance.metadata.annotations.${replaceDots(annotations.VinkHost.name)}`, name: "Host IP", operator: "*=" }
 ]
 
 const columns: ProColumns<VirtualMachineSummary>[] = [
