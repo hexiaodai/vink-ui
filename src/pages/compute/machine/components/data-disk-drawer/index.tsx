@@ -39,10 +39,10 @@ export const DataDiskDrawer: React.FC<DataDiskDrawerProps> = ({ open, current, o
 
     const namespaceName = useNamespaceFromURL()
 
-    const [selectedRows, setSelectedRows] = useState<DataVolume[]>([])
+    const [selectedRows, setSelectedRows] = useState<DataVolume[]>()
 
     useEffect(() => {
-        setSelectedRows(current || [])
+        setSelectedRows(current)
     }, [open])
 
     const [defaultFieldSelectors, setDefaultFieldSelectors] = useState<FieldSelector[]>(filterNullish([getNamespaceFieldSelector(namespaceName.namespace), dvTypeSelector]))
@@ -51,6 +51,7 @@ export const DataDiskDrawer: React.FC<DataDiskDrawerProps> = ({ open, current, o
     }))
 
     const [loading, setLoading] = useState(true)
+
     const [dataVolumes, setDataVolumes] = useState<DataVolume[]>()
 
     const abortCtrl = useRef<AbortController>()
@@ -158,15 +159,14 @@ export const DataDiskDrawer: React.FC<DataDiskDrawerProps> = ({ open, current, o
                 <Flex justify="space-between" align="flex-start">
                     <Space>
                         <Button onClick={() => {
-                            if (selectedRows.length == 0 || !onConfirm) {
-                                return
+                            if (selectedRows && selectedRows.length > 0) {
+                                onConfirm?.(selectedRows)
                             }
-                            onConfirm(selectedRows)
                         }
                         } type="primary">确定</Button>
                         <Button onClick={onCanel}>取消</Button>
                     </Space>
-                    <Button type='text' onClick={() => setSelectedRows([])}>重置</Button>
+                    <Button type='text' onClick={() => setSelectedRows(undefined)}>重置</Button>
                 </Flex>
             }
         >
