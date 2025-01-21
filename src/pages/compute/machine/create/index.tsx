@@ -46,11 +46,10 @@ export default () => {
 
     const [openDrawer, setOpenDrawer] = useState({ rootDisk: false, network: false, dataDisk: false })
 
+    const [selected, setSelected] = useState<{ dataDisks: DataVolume[] | undefined, networks: VirtualMachineNetworkType[] | undefined }>({ dataDisks: undefined, networks: undefined })
+
     useEffect(() => {
         formRef.current?.setFieldsValue({ namespace: namespace })
-        if (namespace) {
-            formRef.current?.validateFields(["namespace"])
-        }
     }, [namespace])
 
     useEffect(() => {
@@ -107,8 +106,9 @@ export default () => {
             align: 'center',
             render: (_, dv) => (<a onClick={() => {
                 const dataDisks = formRef.current?.getFieldsValue().dataDisks
-                const newDisks = dataDisks?.filter((item) => !(namespaceNameKey(item) === namespaceNameKey(dv)))
+                const newDisks = dataDisks?.filter((item) => namespaceNameKey(item) !== namespaceNameKey(dv))
                 formRef.current?.setFieldsValue({ dataDisks: newDisks })
+                setSelected(pre => ({ ...pre, dataDisks: newDisks }))
             }}>移除</a>)
         }
     ]
@@ -183,8 +183,9 @@ export default () => {
             fixed: 'right',
             render: (_, cfg) => (<a onClick={() => {
                 const networks = formRef.current?.getFieldsValue().networks
-                const newNetworks = networks?.filter((item) => item.multus !== cfg.multus)
+                const newNetworks = networks?.filter((item) => namespaceNameKey(item.multus) !== namespaceNameKey(cfg.multus))
                 formRef.current?.setFieldsValue({ networks: newNetworks })
+                setSelected(pre => ({ ...pre, networks: newNetworks }))
             }}>移除</a>)
         }
     ]
@@ -377,12 +378,12 @@ export default () => {
                             label="数据盘"
                         >
                             {
-                                formRef.current?.getFieldsValue().dataDisks && (
+                                (selected.dataDisks && selected.dataDisks.length > 0) && (
                                     <Table
                                         size="small"
                                         style={{ marginBottom: 24 }}
                                         columns={dataDiskColumns}
-                                        dataSource={formRef.current?.getFieldsValue().dataDisks}
+                                        dataSource={selected.dataDisks}
                                         pagination={false}
                                         rowKey={(dv) => namespaceNameKey(dv)}
                                     />
@@ -416,14 +417,14 @@ export default () => {
                             }]}
                         >
                             {
-                                formRef.current?.getFieldsValue().networks && (
+                                (selected.networks && selected.networks.length > 0) && (
                                     <Table
                                         size="small"
                                         className={commonStyles["small-scrollbar"]}
                                         scroll={{ x: 1300 }}
                                         style={{ marginBottom: 24 }}
                                         columns={networkColumns}
-                                        dataSource={formRef.current?.getFieldsValue().networks}
+                                        dataSource={selected.networks}
                                         pagination={false}
                                         rowKey={(cfg) => namespaceNameKey(cfg.multus)}
                                     />
@@ -470,12 +471,12 @@ export default () => {
             <DataDiskDrawer
                 open={openDrawer.dataDisk}
                 onCanel={() => setOpenDrawer((prevState) => ({ ...prevState, dataDisk: false }))}
-
-                current={formRef.current?.getFieldsValue().dataDisks}
+                current={selected.dataDisks}
                 onConfirm={(data) => {
                     setOpenDrawer((prevState) => ({ ...prevState, dataDisk: false }))
                     formRef.current?.setFieldsValue({ dataDisks: data })
                     formRef.current?.validateFields(["dataDisks"])
+                    setSelected(pre => ({ ...pre, dataDisks: data }))
                 }}
             />
 
@@ -494,6 +495,7 @@ export default () => {
                     setOpenDrawer((prevState) => ({ ...prevState, network: false }))
                     formRef.current?.setFieldsValue({ networks: newNetworks })
                     formRef.current?.validateFields(["networks"])
+                    setSelected(pre => ({ ...pre, networks: newNetworks }))
                 }}
             />
         </>
