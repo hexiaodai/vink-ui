@@ -4,12 +4,12 @@ import { ListOptions } from "./ts/management/resource/v1alpha1/resource"
 import { components } from "./ts/openapi/openapi-schema"
 import { FieldSelector, NamespaceName, ResourceType } from "./ts/types/types"
 import { VirtualMachineSummary } from "./virtual-machine-summary"
-import { IP } from "./ip"
 import { defaultNetworkAnno } from "@/pages/compute/machine/virtualmachine"
-import { generateKubeovnNetworkAnnon, getErrorMessage, isAbortedError, resourceSort } from "@/utils/utils"
+import { generateKubeovnNetworkAnnon, getErrorMessage, getProvider, isAbortedError, resourceSort } from "@/utils/utils"
 import { NotificationInstance } from "antd/lib/notification/interface"
 import { Multus } from "./multus"
 import { IPPool } from "./ippool"
+import { IP } from "./ip"
 import { EventType, WatchOptions } from "./ts/management/resource/v1alpha1/watch"
 
 export type Subnet = components["schemas"]["v1Subnet"]
@@ -26,21 +26,6 @@ export type VirtualMachineNetworkType = {
     ipAddress?: string
     macAddress?: string
 }
-
-// export const getSubnet = async (ns: NamespaceName): Promise<Subnet> => {
-//     return new Promise((resolve, reject) => {
-//         const call = resourceClient.get({
-//             resourceType: ResourceType.SUBNET,
-//             namespaceName: ns
-//         })
-//         call.then((result) => {
-//             resolve(JSON.parse(result.response.data) as Subnet)
-//         })
-//         call.response.catch((err: Error) => {
-//             reject(new Error(`Failed to get data Subnet [Name: ${ns.name}]: ${err.message}`))
-//         })
-//     })
-// }
 
 export const getSubnet = async (ns: NamespaceName, setSubnet?: React.Dispatch<React.SetStateAction<Subnet | undefined>>, setLoading?: React.Dispatch<React.SetStateAction<boolean>>, notification?: NotificationInstance): Promise<Subnet> => {
     setLoading?.(true)
@@ -81,100 +66,6 @@ export const listSubnets = async (setMultus: React.Dispatch<React.SetStateAction
     }
 }
 
-// export const listVirtualMachineNetwork = async (summary: VirtualMachineSummary): Promise<VirtualMachineNetworkType[]> => {
-//     return new Promise(async (resolve, reject) => {
-//         const interfaces = summary.status?.virtualMachine?.spec?.template?.spec?.domain?.devices?.interfaces
-//         if (!interfaces) {
-//             resolve([])
-//             return
-//         }
-
-//         const interfacesMap = new Map<string, any>(
-//             interfaces.map((item: any) => [item.name, item])
-//         )
-
-//         const ips = summary.status?.network?.ips
-//         const ipsMap = new Map<string, IP>(
-//             ips?.map((item) => {
-//                 const arr = (item.metadata!.name as string).split(".")
-//                 if (arr && arr.length >= 3) {
-//                     return [`${arr[1]}/${arr[2]}`, item]
-//                 }
-//                 return [namespaceNameKey(item), item as IP]
-//             })
-//         )
-
-//         const subnetSelectors: FieldSelector[] = []
-//         ipsMap.forEach(ip => {
-//             const subnet = ip.spec?.subnet
-//             if (subnet) {
-//                 subnetSelectors.push({ fieldPath: "metadata.name", operator: "=", values: [subnet] })
-//             }
-//         })
-
-//         const subnetMap = new Map<string, Subnet>()
-
-//         try {
-//             const response = await resourceClient.list({
-//                 resourceType: ResourceType.SUBNET,
-//                 options: ListOptions.create({ fieldSelectorGroup: { operator: "||", fieldSelectors: subnetSelectors } })
-//             })
-//             response.response.items.forEach((item) => {
-//                 const subnet = JSON.parse(item) as Subnet
-//                 subnetMap.set(subnet.metadata!.name!, subnet)
-//             })
-//         } catch (err: any) {
-//             return reject(new Error(`Failed to list subnets: ${err.message}`))
-//         }
-
-//         const networks = summary.status?.virtualMachine?.spec?.template?.spec?.networks || []
-//         const data: (VirtualMachineNetworkType | null)[] = await Promise.all(networks.map(async (item) => {
-//             const inter = interfacesMap.get(item.name)
-//             if (!inter) {
-//                 return null
-//             }
-
-//             let ipobj: IP | undefined = undefined
-//             let ippoolName: string = ""
-//             let multus = item.multus?.networkName || summary.status?.virtualMachine?.spec?.template?.metadata?.annotations?.[defaultNetworkAnno]
-//             if (multus) {
-//                 const temp = ipsMap.get(multus)
-//                 if (temp) {
-//                     ipobj = temp
-//                 }
-//                 const annoValue = summary.status?.virtualMachine?.spec?.template?.metadata?.annotations?.[generateKubeovnNetworkAnnon(multus, "ip_pool")]
-//                 if (annoValue) {
-//                     ippoolName = annoValue
-//                 }
-//             }
-
-//             let subnet: Subnet | undefined = undefined
-//             if (ipobj) {
-//                 const name = ipobj.spec?.subnet
-//                 if (name) {
-//                     subnet = subnetMap.get(name)
-//                 }
-//             }
-
-//             const ds: VirtualMachineNetworkType = {
-//                 name: item.name,
-//                 default: item.pod ? true : item.multus?.default ? true : false,
-//                 network: item.multus ? "multus" : "pod",
-//                 interface: inter.bridge ? "bridge" : inter.masquerade ? "masquerade" : inter.sriov ? "sriov" : inter.slirp ? "slirp" : "",
-//                 multus: multus || "",
-//                 vpc: subnet?.spec?.vpc || "",
-//                 subnet: ipobj?.spec?.subnet || "",
-//                 ippool: ippoolName,
-//                 ipAddress: ipobj?.spec?.ipAddress || "",
-//                 macAddress: ipobj?.spec?.macAddress || ""
-//             }
-//             return ds
-//         }))
-
-//         return resolve(data.filter((item): item is VirtualMachineNetworkType => item !== null))
-//     })
-// }
-
 export const listVirtualMachineNetwork = async (summary: VirtualMachineSummary, setVirtualMachineNetwork?: React.Dispatch<React.SetStateAction<VirtualMachineNetworkType[] | undefined>>, setLoading?: React.Dispatch<React.SetStateAction<boolean>>, notification?: NotificationInstance): Promise<VirtualMachineNetworkType[]> => {
     setLoading?.(true)
     try {
@@ -191,36 +82,12 @@ export const listVirtualMachineNetwork = async (summary: VirtualMachineSummary, 
         const ips = summary.status?.network?.ips
         const ipsMap = new Map<string, IP>(
             ips?.map((item) => {
-                const arr = (item.metadata!.name as string).split(".")
-                if (arr && arr.length >= 3) {
-                    return [`${arr[1]}/${arr[2]}`, item]
-                }
-                return [namespaceNameKey(item), item as IP]
+                return [item.metadata!.name, item as IP]
             })
         )
 
-        const subnetSelectors: FieldSelector[] = []
-        ipsMap.forEach(ip => {
-            const subnet = ip.spec?.subnet
-            if (subnet) {
-                subnetSelectors.push({ fieldPath: "metadata.name", operator: "=", values: [subnet] })
-            }
-        })
-
-        const subnetMap = new Map<string, Subnet>()
-
-        try {
-            const response = await resourceClient.list({
-                resourceType: ResourceType.SUBNET,
-                options: ListOptions.create({ fieldSelectorGroup: { operator: "||", fieldSelectors: subnetSelectors } })
-            })
-            response.response.items.forEach((item) => {
-                const subnet = JSON.parse(item) as Subnet
-                subnetMap.set(subnet.metadata!.name!, subnet)
-            })
-        } catch (err: any) {
-            throw new Error(`Failed to list subnets: ${err.message}`)
-        }
+        const subnets = await listSubnetByIPs(summary)
+        const multusProviders = await listMultusProviderByNetwork(summary)
 
         const networks = summary.status?.virtualMachine?.spec?.template?.spec?.networks || []
         const data: (VirtualMachineNetworkType | null)[] = await Promise.all(networks.map(async (item) => {
@@ -233,7 +100,13 @@ export const listVirtualMachineNetwork = async (summary: VirtualMachineSummary, 
             let ippoolName: string = ""
             let multusNsKey = item.multus?.networkName || summary.status?.virtualMachine?.spec?.template?.metadata?.annotations?.[defaultNetworkAnno]
             if (multusNsKey) {
-                const temp = ipsMap.get(multusNsKey)
+                let ipName = `${summary.metadata!.name}.${summary.metadata!.namespace}`
+                const provider = multusProviders.get(multusNsKey)
+                if (provider && provider.length > 0) {
+                    ipName = `${ipName}.${provider}`
+                }
+
+                const temp = ipsMap.get(ipName)
                 if (temp) {
                     ipobj = temp
                 }
@@ -247,7 +120,7 @@ export const listVirtualMachineNetwork = async (summary: VirtualMachineSummary, 
             if (ipobj) {
                 const name = ipobj.spec?.subnet
                 if (name) {
-                    subnet = subnetMap.get(name)
+                    subnet = subnets.get(name)
                 }
             }
 
@@ -487,5 +360,96 @@ export const updateSubnet = async (subnet: Subnet, setSubnet?: React.Dispatch<Re
         throw err
     } finally {
         setLoading?.(false)
+    }
+}
+
+const listMultusProviderByNetwork = async (summary: VirtualMachineSummary): Promise<Map<string, string>> => {
+    const networks = summary.status?.virtualMachine?.spec?.template?.spec?.networks || []
+
+    const multusNamesSet = new Set<string>()
+    const multusNssSet = new Set<string>()
+
+    for (const item of networks) {
+        let multusNsKey = item.multus?.networkName || summary.status?.virtualMachine?.spec?.template?.metadata?.annotations?.[defaultNetworkAnno]
+        if (!multusNsKey) {
+            continue
+        }
+        const pares = parseNamespaceNameKey(multusNsKey)
+        if (pares.namespace.length > 0) {
+            multusNssSet.add(pares.namespace)
+        }
+        if (pares.name.length > 0) {
+            multusNamesSet.add(pares.name)
+        }
+    }
+
+    try {
+        const result = await resourceClient.list({
+            resourceType: ResourceType.MULTUS,
+            options: ListOptions.create({
+                fieldSelectorGroup: {
+                    operator: "&&",
+                    fieldSelectors: [
+                        {
+                            fieldPath: "metadata.namespace",
+                            operator: "~=",
+                            values: Array.from(multusNssSet)
+                        },
+                        {
+                            fieldPath: "metadata.name",
+                            operator: "~=",
+                            values: Array.from(multusNamesSet)
+                        }
+                    ]
+                }
+            })
+        })
+
+        const output = new Map<string, string>()
+        result.response.items.forEach(item => {
+            const m = JSON.parse(item) as Multus
+            output.set(namespaceNameKey(m), getProvider(m))
+        })
+        return output
+    } catch (err: any) {
+        throw new Error(`Failed to list multus provider: ${err.message}`)
+    }
+}
+
+const listSubnetByIPs = async (summary: VirtualMachineSummary): Promise<Map<string, Subnet>> => {
+    const ips = summary.status?.network?.ips
+    if (!ips) {
+        return new Map<string, Subnet>()
+    }
+
+    const subnetNames: string[] = []
+    ips.forEach(ip => {
+        const subnet = ip.spec?.subnet
+        if (subnet) {
+            subnetNames.push(subnet)
+        }
+    })
+    if (subnetNames.length === 0) {
+        return new Map<string, Subnet>()
+    }
+
+    const subnets = new Map<string, Subnet>()
+    try {
+        const response = await resourceClient.list({
+            resourceType: ResourceType.SUBNET,
+            options: ListOptions.create({
+                fieldSelectorGroup: {
+                    operator: "&&",
+                    fieldSelectors: [{ fieldPath: "metadata.name", operator: "~=", values: subnetNames }]
+                }
+            })
+        })
+        response.response.items.forEach((item) => {
+            const subnet = JSON.parse(item) as Subnet
+            subnets.set(subnet.metadata!.name!, subnet)
+        })
+        return subnets
+    } catch (err: any) {
+        throw new Error(`Failed to list subnets: ${err.message}`)
     }
 }
