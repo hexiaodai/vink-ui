@@ -2,9 +2,11 @@ import { instances as labels } from "@/clients/ts/label/labels.gen"
 import { NamespaceName } from '@/clients/ts/types/types'
 import { DataVolume } from '@/clients/data-volume'
 
-const defaultAccessMode = "ReadWriteOnce"
+const defaultAccessMode = "ReadWriteMany"
+// const defaultAccessMode = "ReadWriteOnce"
 
-const defaultStorageClass = "local-path"
+const defaultStorageClass = "ceph-filesystem"
+// const defaultStorageClass = "ceph-block"
 
 const getProtocol = (url: string): string | null => {
     const protocolRegex = /^(https?|docker|s3):\/\//
@@ -30,13 +32,14 @@ export const newSystemImage = (ns: NamespaceName, imageSource: string, imageCapa
         },
         spec: {
             pvc: {
-                accessModes: ["ReadWriteOnce"],
+                accessModes: [defaultAccessMode],
+                // accessModes: ["ReadWriteOnce"],
                 resources: {
                     requests: {
                         storage: `${imageCapacity}Gi`
                     }
                 },
-                storageClassName: "local-path"
+                storageClassName: defaultStorageClass
             },
             source: {}
         }
@@ -58,7 +61,7 @@ export const newSystemImage = (ns: NamespaceName, imageSource: string, imageCapa
     return instance
 }
 
-export const newDataDisk = (ns: NamespaceName, diskCapacity: number, storageClass?: string, accessMode?: string) => {
+export const newDataDisk = (ns: NamespaceName, diskCapacity: number) => {
     const instance: DataVolume = {
         apiVersion: "cdi.kubevirt.io/v1beta1",
         kind: "DataVolume",
@@ -74,13 +77,13 @@ export const newDataDisk = (ns: NamespaceName, diskCapacity: number, storageClas
         },
         spec: {
             pvc: {
-                accessModes: [(accessMode && accessMode.length > 0) ? accessMode : defaultAccessMode],
+                accessModes: [defaultAccessMode],
                 resources: {
                     requests: {
                         storage: `${diskCapacity}Gi`
                     }
                 },
-                storageClassName: (storageClass && storageClass.length > 0) ? storageClass : defaultStorageClass
+                storageClassName: defaultStorageClass
             },
             source: { blank: {} }
         }

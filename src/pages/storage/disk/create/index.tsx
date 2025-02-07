@@ -1,13 +1,11 @@
-import { FooterToolbar, ProCard, ProForm, ProFormItem, ProFormSelect, ProFormText, ProFormTextArea } from '@ant-design/pro-components'
-import { App, Button, InputNumber, Space } from 'antd'
-import { useEffect, useRef, useState } from 'react'
+import { FooterToolbar, ProCard, ProForm, ProFormItem, ProFormText, ProFormTextArea } from '@ant-design/pro-components'
+import { App, InputNumber, Space } from 'antd'
+import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useNamespace } from '@/common/context'
 import { classNames } from '@/utils/utils'
-import { PlusOutlined } from '@ant-design/icons'
 import { newDataDisk } from '../../datavolume'
 import { createDataVolume } from '@/clients/data-volume'
-import { listStorageClass, StorageClass } from '@/clients/storage-class'
 import type { ProFormInstance } from '@ant-design/pro-components'
 import formStyles from "@/common/styles/form.module.less"
 
@@ -15,29 +13,8 @@ interface formValues {
     namespace: string
     name: string
     dataDiskCapacity: number
-    storageClass: string
-    accessMode: string
     description: string
 }
-
-const accessModeOptions = [
-    {
-        value: "ReadWriteOnce",
-        label: "ReadWriteOnce"
-    },
-    {
-        value: "ReadOnlyMany",
-        label: "ReadOnlyMany"
-    },
-    {
-        value: "ReadWriteMany",
-        label: "ReadWriteMany"
-    },
-    {
-        value: "ReadWriteOncePod",
-        label: "ReadWriteOncePod"
-    }
-]
 
 export default () => {
     const { notification } = App.useApp()
@@ -48,20 +25,9 @@ export default () => {
 
     const navigate = useNavigate()
 
-    const [enableOpts, setEnableOpts] = useState<{ storageClass: boolean, accessMode: boolean }>({ storageClass: false, accessMode: false })
-
     useEffect(() => {
         formRef.current?.setFieldsValue({ namespace: namespace })
     }, [namespace])
-
-    const [storageClass, setStorageClass] = useState<StorageClass[]>()
-
-    useEffect(() => {
-        if (!enableOpts.storageClass) {
-            return
-        }
-        listStorageClass(setStorageClass, undefined, undefined, notification)
-    }, [enableOpts.storageClass])
 
     const handleSubmit = async () => {
         if (!formRef.current) {
@@ -71,7 +37,7 @@ export default () => {
         await formRef.current.validateFields()
         const fields = formRef.current.getFieldsValue()
         const ns = { namespace: fields.namespace, name: fields.name }
-        const instance = newDataDisk(ns, fields.dataDiskCapacity, fields.storageClass, fields.accessMode)
+        const instance = newDataDisk(ns, fields.dataDiskCapacity)
         await createDataVolume(instance, undefined, undefined, notification)
 
         navigate('/storage/disks')
@@ -138,57 +104,6 @@ export default () => {
                             formatter={(value) => `${value} Gi`}
                             parser={(value) => value?.replace(' Gi', '') as unknown as number}
                         />
-                    </ProFormItem>
-
-                    <ProFormItem label="存储类">
-                        {
-                            enableOpts.storageClass &&
-                            <ProFormSelect
-                                width="lg"
-                                name="storageClass"
-                                placeholder="选择存储类"
-                                options={
-                                    (storageClass || []).map((sc) => ({
-                                        value: sc.metadata.name,
-                                        label: sc.metadata.name
-                                    }))
-                                }
-                            />
-                        }
-                        <Button
-                            color="default"
-                            icon={<PlusOutlined />}
-                            variant="text"
-                            onClick={() => {
-                                formRef.current?.resetFields(["storageClass"])
-                                setEnableOpts((pre) => ({ ...pre, storageClass: !pre.storageClass }))
-                            }}
-                        >
-                            {enableOpts.storageClass ? "使用默认存储类" : "自定义存储类"}
-                        </Button>
-                    </ProFormItem>
-
-                    <ProFormItem label="访问模式">
-                        {
-                            enableOpts.accessMode &&
-                            <ProFormSelect
-                                width="lg"
-                                name="accessMode"
-                                placeholder="选择访问模式"
-                                options={accessModeOptions}
-                            />
-                        }
-                        <Button
-                            color="default"
-                            icon={<PlusOutlined />}
-                            variant="text"
-                            onClick={() => {
-                                formRef.current?.resetFields(["accessMode"])
-                                setEnableOpts((pre) => ({ ...pre, accessMode: !pre.accessMode }))
-                            }}
-                        >
-                            {enableOpts.accessMode ? "使用默认访问模式" : "自定义访问模式"}
-                        </Button>
                     </ProFormItem>
 
                     <ProFormTextArea

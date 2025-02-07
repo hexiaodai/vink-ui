@@ -6,6 +6,17 @@ const routeConfig = {
         path: '/',
         routes: [
             {
+                path: '/dashboard',
+                name: 'Dashboard',
+                routes: [
+                    {
+                        path: '/dashboard',
+                        name: 'Dashboard',
+                        icon: <IconFont type="icon-fuwuqi" />
+                    }
+                ]
+            },
+            {
                 path: '/compute',
                 name: '计算资源',
                 routes: [
@@ -70,7 +81,7 @@ const routeConfig = {
 export const LayoutSettings: ProLayoutProps = {
     ...routeConfig,
     menu: { type: 'group' },
-    avatarProps: { src: 'https://avatars.githubusercontent.com/u/40925990?v=4', size: 'small', title: 'hexiaodai' },
+    // avatarProps: { src: 'https://avatars.githubusercontent.com/u/40925990?v=4', size: 'small', title: 'hexiaodai' },
     title: 'Vink',
     logo: 'https://avatars.githubusercontent.com/u/173601901?s=48&v=4',
     layout: 'side',

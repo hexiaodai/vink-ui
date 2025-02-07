@@ -25,10 +25,10 @@ export default defineConfig({
   server: {
     proxy: {
       '/vink.kubevm.io.apis': {
-        target: 'http://127.0.0.1:30080',
+        // target: 'http://127.0.0.1:30080',
         // target: 'http://192.168.18.199:30080',
         // target: 'http://127.0.0.1:30880',
-        // target: 'http://127.0.0.1:8080',
+        target: 'http://127.0.0.1:8080',
         changeOrigin: true
       },
       '/apis/vink.io': {

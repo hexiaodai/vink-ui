@@ -112,7 +112,19 @@ export enum ResourceType {
     /**
      * @generated from protobuf enum value: EVENT = 13;
      */
-    EVENT = 13
+    EVENT = 13,
+    /**
+     * @generated from protobuf enum value: VIRTUAL_MACHINE_SNAPSHOT = 14;
+     */
+    VIRTUAL_MACHINE_SNAPSHOT = 14,
+    /**
+     * @generated from protobuf enum value: VIRTUAL_MACHINE_RESTORE = 15;
+     */
+    VIRTUAL_MACHINE_RESTORE = 15,
+    /**
+     * @generated from protobuf enum value: VIRTUAL_MACHINE_CLONE = 16;
+     */
+    VIRTUAL_MACHINE_CLONE = 16
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class NamespaceName$Type extends MessageType<NamespaceName> {

@@ -219,6 +219,29 @@ export const filterNullish = <T>(array: (T | null | undefined)[]): T[] => {
     return array.filter((item): item is T => item != null)
 }
 
+export const calculateAge = (creationTimestamp: string): string => {
+    const now = new Date()
+
+    const createdAt = new Date(creationTimestamp)
+
+    const timeDiff = now.getTime() - createdAt.getTime()
+
+    const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24))
+    const hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+    const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60))
+    const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000)
+
+    if (days > 0) {
+        return `${days}d`
+    } else if (hours > 0) {
+        return `${hours}h`
+    } else if (minutes > 0) {
+        return `${minutes}m`
+    } else {
+        return `${seconds}s`
+    }
+}
+
 // export const addNewOption = (
 //     inputValue: number | undefined,
 //     options: { label: string; value: number }[],

@@ -13,6 +13,8 @@ import { LoadingOutlined } from '@ant-design/icons'
 import { deleteVirtualMachine, getVirtualMachine, manageVirtualMachinePowerState, updateVirtualMachine, VirtualMachine } from '@/clients/virtual-machine'
 import { DataVolume } from '@/clients/data-volume'
 import { VirtualMachineNetworkType } from '@/clients/subnet'
+import { createSnapshot, VirtualMachineSnapshot } from '@/clients/virtual-machine-snapshot'
+import { createClone, VirtualMachineClone } from '@/clients/virtual-machine-clone'
 
 interface Props {
     namespace: NamespaceName
@@ -62,6 +64,14 @@ const VirtualMachineManagement: React.FC<Props> = ({ namespace, type }) => {
 
     const handleVirtualMachinePowerState = async (state: VirtualMachinePowerStateRequest_PowerState) => {
         await manageVirtualMachinePowerState({ namespace: virtualMachine?.metadata!.namespace!, name: virtualMachine?.metadata!.name! }, state, undefined, notification)
+    }
+
+    const handleCreateSnapshot = async () => {
+        await createSnapshot(newSnapshot(namespace), undefined, undefined, notification)
+    }
+
+    const handleCreateClone = async () => {
+        await createClone(newClone(namespace), undefined, undefined, notification)
     }
 
     const handleDeleteVirtualMachine = () => {
@@ -175,6 +185,30 @@ const VirtualMachineManagement: React.FC<Props> = ({ namespace, type }) => {
             type: 'divider'
         },
         {
+            key: 'snapshot',
+            label: "快照",
+            children: [
+                {
+                    key: 'create-snapshot',
+                    onClick: () => handleCreateSnapshot(),
+                    label: "创建快照"
+                },
+                {
+                    key: 'snapshot-restore',
+                    label: <Link to={{ pathname: "/compute/machines/detail", search: `namespace=${virtualMachine?.metadata?.namespace}&name=${virtualMachine?.metadata?.name}&active=Snapshot` }}>快照恢复</Link>
+                }
+            ]
+        },
+        {
+            key: 'clone',
+            label: "克隆",
+            onClick: () => handleCreateClone()
+        },
+        {
+            key: 'divider-5',
+            type: 'divider'
+        },
+        {
             key: 'delete',
             danger: true,
             onClick: () => handleDeleteVirtualMachine(),
@@ -208,3 +242,48 @@ const VirtualMachineManagement: React.FC<Props> = ({ namespace, type }) => {
 }
 
 export default VirtualMachineManagement
+
+
+const newSnapshot = (vmns: NamespaceName): VirtualMachineSnapshot => {
+    const instance: VirtualMachineSnapshot = {
+        apiVersion: "snapshot.kubevirt.io/v1beta1",
+        kind: "VirtualMachineSnapshot",
+        metadata: {
+            generateName: `${vmns.name}-snapshot-`,
+            namespace: vmns.namespace
+        },
+        spec: {
+            source: {
+                apiGroup: "kubevirt.io",
+                kind: "VirtualMachine",
+                name: vmns.name
+            }
+        }
+    }
+    return instance
+}
+
+const newClone = (vmns: NamespaceName): VirtualMachineClone => {
+    const instance: VirtualMachineClone = {
+        apiVersion: "clone.kubevirt.io/v1alpha1",
+        // apiVersion: "clone.kubevirt.io/v1beta1",
+        kind: "VirtualMachineClone",
+        metadata: {
+            generateName: `${vmns.name}-clone-`,
+            namespace: vmns.namespace
+        },
+        spec: {
+            source: {
+                apiGroup: "kubevirt.io",
+                kind: "VirtualMachine",
+                name: vmns.name
+            },
+            target: {
+                apiGroup: "kubevirt.io",
+                kind: "VirtualMachine",
+                name: `${vmns.name}-clone`
+            }
+        }
+    }
+    return instance
+}

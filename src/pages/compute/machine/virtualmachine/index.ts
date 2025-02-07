@@ -10,7 +10,6 @@ import { VirtualMachineNetworkType } from '@/clients/subnet'
 export const defaultNetworkAnno = "v1.multus-cni.io/default-network"
 
 export const newVirtualMachine = (ns: NamespaceName, cm: { cpu: number, memory: number }, rootDisk: { image: DataVolume, capacity: number }, dataDisks: DataVolume[], netcfgs: VirtualMachineNetworkType[], cloudInit: string) => {
-    console.log(ns, cm, rootDisk, dataDisks, netcfgs, cloudInit, "xxxx")
     const rootDiskName = generateRootDiskName(ns.name)
 
     const instance: VirtualMachine = {
@@ -36,13 +35,15 @@ export const newVirtualMachine = (ns: NamespaceName, cm: { cpu: number, memory: 
                     },
                     spec: {
                         pvc: {
-                            accessModes: ["ReadWriteOnce"],
+                            accessModes: ["ReadWriteMany"],
+                            // accessModes: ["ReadWriteOnce"],
                             resources: {
                                 requests: {
                                     storage: `${rootDisk.capacity}Gi`,
                                 },
                             },
-                            storageClassName: "local-path",
+                            storageClassName: "ceph-filesystem",
+                            // storageClassName: "ceph-block",
                         },
                         source: {
                             pvc: {
@@ -164,112 +165,6 @@ export const generateDataDisks = (vm: VirtualMachine, dataDisks: DataVolume[]) =
         vm.spec.template.spec.volumes.push(volume)
     }
 }
-
-// export interface NetworkConfig {
-//     name?: string
-//     network: string
-//     interface: string
-//     multus: NamespaceName | Multus
-//     subnet: string | Subnet
-//     ippool?: string | IPPool
-//     ipAddress?: string
-//     macAddress?: string
-//     default?: boolean
-// }
-
-// export const generateNetwork = (vm: VirtualMachine, netcfg: NetworkConfig) => {
-//     vm.spec.template.spec = vm.spec.template.spec || { domain: { devices: {} }, volumes: [] }
-//     vm.spec.template.spec.domain = vm.spec.template.spec.domain || { devices: {} }
-//     vm.spec.template.spec.networks = vm.spec.template.spec.networks || []
-
-//     const multusNameMap = new Map<string, boolean>()
-//     const networkNameMap = new Map<string, boolean>()
-//     for (const element of vm.spec.template.spec.networks) {
-//         if (element.multus) {
-//             multusNameMap.set(element.multus.networkName, true)
-//         }
-//         networkNameMap.set(element.name, true)
-//     }
-
-//     if (vm.spec.template.metadata!.annotations?.[defaultNetworkAnno]) {
-//         multusNameMap.set(vm.spec.template.metadata!.annotations[defaultNetworkAnno], true)
-//     }
-
-//     if (!netcfg.name) {
-//         for (let number = 1; ; number++) {
-//             const element = `net-${number}`
-//             if (networkNameMap.has(element)) {
-//                 continue
-//             }
-//             netcfg.name = element
-//             break
-//         }
-//     }
-
-//     vm.spec.template.spec.networks = vm.spec.template.spec.networks.filter((net: any) => {
-//         return net.name !== netcfg.name
-//     })
-
-//     vm.spec.template.metadata!.annotations = vm.spec.template.metadata!.annotations || {}
-
-//     let multusName = namespaceNameKey(netcfg.multus)
-
-//     const net: any = { name: netcfg.name }
-//     if (netcfg.interface === "masquerade") {
-//         net.pod = {}
-//         vm.spec.template.metadata!.annotations[defaultNetworkAnno] = multusName
-//     } else {
-//         net.multus = { default: netcfg.default, networkName: multusName }
-//         if (vm.spec.template.metadata!.annotations[defaultNetworkAnno] === multusName) {
-//             delete vm.spec.template.metadata!.annotations[defaultNetworkAnno]
-//         }
-//     }
-//     vm.spec.template.spec.networks.push(net)
-
-//     if (!vm.spec.template.spec.domain.devices.interfaces) {
-//         vm.spec.template.spec.domain.devices.interfaces = []
-//     }
-
-//     vm.spec.template.spec.domain.devices.interfaces = vm.spec.template.spec.domain.devices.interfaces.filter((net: any) => {
-//         return net.name !== netcfg.name
-//     })
-//     vm.spec.template.spec.domain.devices.interfaces.push({
-//         name: netcfg.name,
-//         [netcfg.interface]: {}
-//     })
-
-//     let subnetName = ""
-//     if (typeof netcfg.subnet === "string") {
-//         subnetName = netcfg.subnet
-//     } else {
-//         subnetName = netcfg.subnet.metadata!.name!
-//     }
-
-//     vm.spec.template.metadata!.annotations[generateKubeovnNetworkAnnon(netcfg.multus, "logical_switch")] = subnetName
-
-//     if (netcfg.ippool) {
-//         let ippoolName = ""
-//         if (typeof netcfg.ippool === "string") {
-//             ippoolName = netcfg.ippool
-//         } else if (typeof netcfg.ippool === "object") {
-//             ippoolName = netcfg.ippool!.metadata.name
-//         }
-
-//         if (ippoolName.length > 0) {
-//             vm.spec.template.metadata!.annotations[generateKubeovnNetworkAnnon(netcfg.multus, "ip_pool")] = ippoolName
-//         }
-//     }
-
-//     if (netcfg.ipAddress && netcfg.ipAddress.length > 0) {
-//         vm.spec.template.metadata!.annotations[generateKubeovnNetworkAnnon(netcfg.multus, "ip_address")] = netcfg.ipAddress
-//     }
-
-//     if (netcfg.macAddress && netcfg.macAddress.length > 0) {
-//         vm.spec.template.metadata!.annotations[generateKubeovnNetworkAnnon(netcfg.multus, "mac_address")] = netcfg.macAddress
-//     }
-
-//     configureNetworkDefault(vm.spec.template.spec.networks)
-// }
 
 export const generateNetwork = (vm: VirtualMachine, netcfg: VirtualMachineNetworkType) => {
     vm.spec.template.spec = vm.spec.template.spec || { domain: { devices: {} }, volumes: [] }
