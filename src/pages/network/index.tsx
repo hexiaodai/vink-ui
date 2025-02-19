@@ -5,45 +5,43 @@ import { lazyComponents } from '@/components/lazy'
 
 const MultusList = lazy(() => import("@/pages/network/multus/list"))
 const MultusCreate = lazy(() => import("@/pages/network/multus/create"))
-const MultusDetail = lazy(() => import("@/pages/network/multus/detail"))
 
 const SubnetList = lazy(() => import("@/pages/network/subnet/list"))
 const SubnetCreate = lazy(() => import("@/pages/network/subnet/create"))
-const SubnetDetail = lazy(() => import("@/pages/network/subnet/detail"))
 
 const VpcList = lazy(() => import("@/pages/network/vpc/list"))
 const VpcCreate = lazy(() => import("@/pages/network/vpc/create"))
-const VpcDetail = lazy(() => import("@/pages/network/vpc/detail"))
 
-const IPPoolList = lazy(() => import("@/pages/network/ippool/list"))
-const IPPoolCreate = lazy(() => import("@/pages/network/ippool/create"))
-const IPPoolDetail = lazy(() => import("@/pages/network/ippool/detail"))
+const ProviderNetworkList = lazy(() => import("@/pages/network/provider-network/list"))
+const ProviderNetworkCreate = lazy(() => import("@/pages/network/provider-network/create"))
 
-const Virtual = () => {
+const VLANList = lazy(() => import("@/pages/network/vlan/list"))
+const VLANCreate = lazy(() => import("@/pages/network/vlan/create"))
+
+const Network = () => {
     return (
         <Suspense>
             <Routes>
                 <Route path="/">
-                    {/* <Route path="" element={lazyComponents(<MachineList />)} /> */}
                     <Route path="multus">
                         <Route path="" element={lazyComponents(<MultusList />)} />
                         <Route path="create" element={lazyComponents(<MultusCreate />)} />
-                        <Route path="detail" element={lazyComponents(<MultusDetail />)} />
                     </Route>
                     <Route path="subnets">
                         <Route path="" element={lazyComponents(<SubnetList />)} />
                         <Route path="create" element={lazyComponents(<SubnetCreate />)} />
-                        <Route path="detail" element={lazyComponents(<SubnetDetail />)} />
                     </Route>
                     <Route path="vpcs">
                         <Route path="" element={lazyComponents(<VpcList />)} />
                         <Route path="create" element={lazyComponents(<VpcCreate />)} />
-                        <Route path="detail" element={lazyComponents(<VpcDetail />)} />
                     </Route>
-                    <Route path="ippools">
-                        <Route path="" element={lazyComponents(<IPPoolList />)} />
-                        <Route path="create" element={lazyComponents(<IPPoolCreate />)} />
-                        <Route path="detail" element={lazyComponents(<IPPoolDetail />)} />
+                    <Route path="provider-networks">
+                        <Route path="" element={lazyComponents(<ProviderNetworkList />)} />
+                        <Route path="create" element={lazyComponents(<ProviderNetworkCreate />)} />
+                    </Route>
+                    <Route path="vlans">
+                        <Route path="" element={lazyComponents(<VLANList />)} />
+                        <Route path="create" element={lazyComponents(<VLANCreate />)} />
                     </Route>
                 </Route>
             </Routes>
@@ -51,4 +49,4 @@ const Virtual = () => {
     )
 }
 
-export default Virtual
+export default Network

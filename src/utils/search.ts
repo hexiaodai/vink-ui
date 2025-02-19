@@ -25,3 +25,11 @@ export const getNamespaceFieldSelector = (namespace: string): FieldSelector | un
 export const replaceDots = (input: string): string => {
     return input.replace(/\./g, '\\.')
 }
+
+export const annotationSelector = (name: string) => {
+    return `metadata.annotations.${replaceDots(name)}`
+}
+
+export const labelSelector = (name: string) => {
+    return `metadata.labels.${replaceDots(name)}`
+}

@@ -13,6 +13,9 @@ export interface VirtualMachineSnapshot {
         namespace?: string
         generateName?: string
         creationTimestamp?: string
+        annotations?: {
+            [key: string]: string
+        }
     }
     spec?: {
         source: {
@@ -26,6 +29,7 @@ export interface VirtualMachineSnapshot {
             status: string
             type: string
         }[]
+        readyToUse?: boolean
     }
 }
 

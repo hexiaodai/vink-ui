@@ -39,11 +39,13 @@ export default defineConfig({
         ws: true
       },
       '/grafana/api/live/ws': {
-        target: 'http://127.0.0.1:30080',
+        target: 'http://192.168.18.199:30080',
+        // target: 'http://127.0.0.1:30080',
         ws: true
       },
       '/grafana': {
-        target: 'http://127.0.0.1:30080',
+        target: 'http://192.168.18.199:30080',
+        // target: 'http://127.0.0.1:30080',
         // target: 'http://192.168.18.199:30080',
         // target: 'http://127.0.0.1:3000',
         // changeOrigin: true,

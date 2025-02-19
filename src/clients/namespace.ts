@@ -6,8 +6,13 @@ import { EventType, WatchOptions } from "./ts/management/resource/v1alpha1/watch
 import { namespaceNameKey } from "@/utils/k8s"
 
 export interface Namespace {
+    kind: string
     metadata: {
         name: string
+        namespace?: string
+        annotations?: {
+            [key: string]: string
+        }
     }
 }
 
