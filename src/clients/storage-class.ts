@@ -5,9 +5,13 @@ import { ResourceType } from "./ts/types/types"
 import { getErrorMessage } from "@/utils/utils"
 
 export interface StorageClass {
+    kind: string
     metadata: {
         name: string
         namespace: string
+        annotations?: {
+            [key: string]: string
+        }
     }
 }
 

@@ -1,22 +1,20 @@
-import { App } from 'antd'
-import { useNavigate } from 'react-router-dom'
-import { multusYaml } from './crd-template'
-import { CreateCRDWithYaml } from '@/components/create-crd-with-yaml'
-import { createMultus, Multus } from '@/clients/multus'
-import * as yaml from 'js-yaml'
+import { CreateResourceWithYaml } from '@/components/create-resource-with-yaml'
+
+export const multusYaml = `
+apiVersion: k8s.cni.cncf.io/v1
+kind: NetworkAttachmentDefinition
+metadata:
+  name: attachnet
+  namespace: default
+spec:
+  config: >-
+    { "cniVersion": "0.3.0", "type": "kube-ovn", "server_socket":
+    "/run/openvswitch/kube-ovn-daemon.sock", "provider": "attachnet.default.ovn"
+    }
+`
 
 export default () => {
-    const { notification } = App.useApp()
-
-    const navigate = useNavigate()
-
-    const submit = async (data: string) => {
-        const multus = yaml.load(data) as Multus
-        await createMultus(multus, undefined, undefined, notification)
-        navigate('/network/multus')
-    }
-
     return (
-        <CreateCRDWithYaml data={multusYaml} onSubmit={submit} />
+        <CreateResourceWithYaml data={multusYaml} backout="/network/multus" />
     )
 }

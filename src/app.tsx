@@ -1,13 +1,15 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { App, ConfigProvider, Select } from 'antd'
 import { PageContainer, ProLayout } from '@ant-design/pro-components'
 import { NavLink, useLocation } from 'react-router-dom'
 import { LayoutSettings } from '@/layout-config'
 import { NamespaceProvider, useNamespace } from '@/common/context'
-import { Namespace, watchNamespaces } from './clients/namespace'
+import { Namespace } from './clients/namespace'
+import { useWatchResources } from './hooks/use-watch-resource'
+import { ResourceType } from './clients/ts/types/types'
+import { WatchOptions } from './clients/ts/management/resource/v1alpha1/watch'
 import AppRouter from '@/router'
 import styles from '@/styles/app.module.less'
-import useUnmount from './hooks/use-unmount'
 
 export default () => {
   const location = useLocation()
@@ -16,19 +18,8 @@ export default () => {
 
   const [collapsed, setCollapsed] = useState(false)
 
-  const [namespaces, setNamespaces] = useState<Namespace[]>()
-
-  const abortCtrl = useRef<AbortController>()
-
-  useEffect(() => {
-    abortCtrl.current?.abort()
-    abortCtrl.current = new AbortController()
-    watchNamespaces(setNamespaces, abortCtrl.current.signal, undefined, undefined, undefined)
-  }, [])
-
-  useUnmount(() => {
-    abortCtrl.current?.abort()
-  })
+  const opts = useRef(WatchOptions.create())
+  const { resources } = useWatchResources<Namespace>(ResourceType.NAMESPACE, opts.current)
 
   return (
     <ConfigProvider
@@ -61,7 +52,7 @@ export default () => {
                 onChange={(value) => setNamespace(value)}
                 options={[
                   { value: '', label: '全部工作空间' },
-                  ...(namespaces ?? []).map((ns: any) => ({
+                  ...(resources ?? []).map((ns: any) => ({
                     value: ns.metadata.name,
                     label: ns.metadata.name
                   }))

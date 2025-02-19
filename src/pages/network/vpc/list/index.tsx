@@ -1,90 +1,33 @@
-import { PlusOutlined } from '@ant-design/icons'
-import { App, Button, Dropdown, Flex, MenuProps, Modal, Popover, Space, Tag } from 'antd'
-import { useEffect, useRef, useState } from 'react'
-import { Link, NavLink } from 'react-router-dom'
-import { formatTimestamp } from '@/utils/utils'
-import { NamespaceName } from '@/clients/ts/types/types'
+import { App, Button, Dropdown, Flex, MenuProps, Modal, Popover, Tag } from 'antd'
+import { useState } from 'react'
+import { calculateAge } from '@/utils/utils'
+import { NamespaceName, ResourceType } from '@/clients/ts/types/types'
 import { EllipsisOutlined } from '@ant-design/icons'
-import { CustomTable, SearchItem } from '@/components/custom-table'
-import { WatchOptions } from '@/clients/ts/management/resource/v1alpha1/watch'
-import { deleteVPC, deleteVPCs, VPC, watchVPCs } from '@/clients/vpc'
+import { VPC } from '@/clients/vpc'
+import { FieldSelectorOption, ResourceTable } from '@/components/resource-table'
+import { YamlDrawer } from '@/components/resource-yaml-drawer'
+import { NavLink } from 'react-router-dom'
+import { PlusOutlined } from '@ant-design/icons'
 import type { ProColumns } from '@ant-design/pro-components'
-import commonStyles from '@/common/styles/common.module.less'
-import useUnmount from '@/hooks/use-unmount'
+import { delete2 } from '@/clients/clients'
 
-const searchItems: SearchItem[] = [
-    { fieldPath: "metadata.name", name: "Name", operator: "*=" },
-    { fieldPath: "spec.namespaces[*]", name: "Namespace", operator: "*=" },
-    { fieldPath: "status.subnets[*]", name: "Subnet", operator: "*=" }
+const searchOptions: FieldSelectorOption[] = [
+    { fieldPath: "metadata.name", label: "名称", operator: "*=" },
+    { fieldPath: "spec.namespaces[*]", label: "命名空间", operator: "*=" },
+    { fieldPath: "status.subnets[*]", label: "子网", operator: "*=" }
 ]
 
 export default () => {
     const { notification } = App.useApp()
 
-    const [selectedRows, setSelectedRows] = useState<any[]>([])
-
-    const [opts, setOpts] = useState<WatchOptions>(WatchOptions.create())
-
-    const [loading, setLoading] = useState(true)
-
-    const [resources, setResources] = useState<VPC[]>()
-
-    const abortCtrl = useRef<AbortController>()
-
-    useEffect(() => {
-        abortCtrl.current?.abort()
-        abortCtrl.current = new AbortController()
-        watchVPCs(setResources, setLoading, abortCtrl.current.signal, opts, notification)
-    }, [opts])
-
-    useUnmount(() => {
-        abortCtrl.current?.abort()
-    })
-
-    const handleDeleteVPCs = async () => {
-        Modal.confirm({
-            title: `Confirm batch deletion of VPCs`,
-            content: `Are you sure you want to delete the selected VPCs? This action cannot be undone.`,
-            okText: 'Delete',
-            okType: 'danger',
-            cancelText: 'Cancel',
-            onOk: async () => {
-                await deleteVPCs(selectedRows, undefined, notification)
-            }
-        })
-    }
-
-    const actionItemsFunc = (vpc: VPC) => {
-        const ns: NamespaceName = { namespace: "", name: vpc.metadata!.name }
-        const items: MenuProps['items'] = [
-            {
-                key: 'delete',
-                danger: true,
-                onClick: () => {
-                    Modal.confirm({
-                        title: "Confirm deletion of VPC",
-                        content: `Are you sure you want to delete the VPC "${ns.name}"? This action cannot be undone.`,
-                        okText: 'Delete',
-                        okType: 'danger',
-                        cancelText: 'Cancel',
-                        onOk: async () => {
-                            await deleteVPC(ns, undefined, notification)
-                        }
-                    })
-                },
-                label: "删除"
-            }
-        ]
-        return items
-    }
+    const [yamlDetail, setYamlDetail] = useState<{ open: boolean, nn?: NamespaceName }>({ open: false })
 
     const columns: ProColumns<VPC>[] = [
         {
             key: 'name',
             title: '名称',
-            fixed: 'left',
             ellipsis: true,
-            render: (_, vpc) => <Link to={{ pathname: "/network/vpcs/detail", search: `name=${vpc.metadata!.name}` }}>{vpc.metadata!.name}</Link>
+            render: (_, vpc) => vpc.metadata!.name
         },
         {
             key: 'namespace',
@@ -142,11 +85,11 @@ export default () => {
             }
         },
         {
-            key: 'created',
-            title: '创建时间',
-            width: 160,
+            key: 'age',
+            title: 'Age',
             ellipsis: true,
-            render: (_, vpc) => formatTimestamp(vpc.metadata!.creationTimestamp)
+            width: 90,
+            render: (_, vpc) => calculateAge(vpc.metadata!.creationTimestamp)
         },
         {
             key: 'action',
@@ -155,7 +98,35 @@ export default () => {
             width: 90,
             align: 'center',
             render: (_, vpc) => {
-                const items = actionItemsFunc(vpc)
+                const ns: NamespaceName = { namespace: "", name: vpc.metadata!.name }
+                const items: MenuProps['items'] = [
+                    {
+                        key: 'yaml',
+                        label: 'YAML',
+                        onClick: () => setYamlDetail({ open: true, nn: ns })
+                    },
+                    {
+                        key: 'divider-1',
+                        type: 'divider'
+                    },
+                    {
+                        key: 'delete',
+                        danger: true,
+                        onClick: () => {
+                            Modal.confirm({
+                                title: "Confirm deletion of VPC",
+                                content: `Are you sure you want to delete the VPC "${ns.name}"? This action cannot be undone.`,
+                                okText: 'Delete',
+                                okType: 'danger',
+                                cancelText: 'Cancel',
+                                onOk: async () => {
+                                    await delete2(ResourceType.VPC, ns, undefined, notification)
+                                }
+                            })
+                        },
+                        label: "删除"
+                    }
+                ]
                 return (
                     <Dropdown menu={{ items }} trigger={['click']}>
                         <EllipsisOutlined />
@@ -165,27 +136,31 @@ export default () => {
         }
     ]
 
+    const close = () => {
+        setYamlDetail({ open: false, nn: undefined })
+    }
+
     return (
-        <CustomTable
-            searchItems={searchItems}
-            loading={loading}
-            updateWatchOptions={setOpts}
-            onSelectRows={(rows) => setSelectedRows(rows)}
-            tableKey="vpcs-list-table-columns"
-            columns={columns}
-            dataSource={resources}
-            tableAlertOptionRender={() => {
-                return (
-                    <Space size={16}>
-                        <a className={commonStyles["warning-color"]} onClick={async () => handleDeleteVPCs()}>批量删除</a>
-                    </Space>
-                )
-            }}
-            toolbar={{
-                actions: [
-                    <NavLink to='/network/vpcs/create'><Button icon={<PlusOutlined />}>创建 VPC</Button></NavLink>
-                ]
-            }}
-        />
+        <>
+            <ResourceTable<VPC>
+                tableKey="vpc-list"
+                resourceType={ResourceType.VPC}
+                searchOptions={searchOptions}
+                columns={columns}
+                toolbar={{
+                    actions: [
+                        <NavLink to='/network/vpcs/create'><Button icon={<PlusOutlined />}>创建 VPC</Button></NavLink>
+                    ]
+                }}
+            />
+
+            <YamlDrawer
+                open={yamlDetail.open}
+                resourceType={ResourceType.VPC}
+                namespaceName={yamlDetail.nn}
+                onCancel={close}
+                onConfirm={close}
+            />
+        </>
     )
 }

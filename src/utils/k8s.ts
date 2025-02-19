@@ -1,3 +1,4 @@
+import { KubeResource } from "@/clients/clients"
 import { NamespaceName } from "@/clients/ts/types/types"
 
 export const formatOSFamily = (family: string): string => {
@@ -43,6 +44,20 @@ export const namespaceNameKey = (obj: any) => {
     return output.startsWith("/") ? output.slice(1) : output
 }
 
+export const namespaceNameString = (obj: any) => {
+    let output = ""
+    if (obj.metadata && typeof obj.metadata.namespace === 'string' && typeof obj.metadata.name === 'string') {
+        output = `${obj.metadata.namespace}/${obj.metadata.name}`
+    } else if (typeof obj.namespace === 'string' && typeof obj.name === 'string') {
+        output = `${obj.namespace}/${obj.name}`
+    } else if (typeof obj.name === 'string') {
+        output = obj.name
+    } else if (obj.metadata && typeof obj.metadata.name === 'string') {
+        output = obj.metadata.name
+    }
+    return output.startsWith("/") ? output.slice(1) : output
+}
+
 export const extractNamespaceAndName = (crd: any) => {
     return { namespace: crd.metadata.namespace, name: crd.metadata.name }
 }
@@ -55,4 +70,8 @@ export const parseNamespaceNameKey = (input: string): NamespaceName => {
 
     const [namespace, name] = parts
     return { namespace, name }
+}
+
+export const getNamespaceName = <T extends KubeResource>(cr: T): NamespaceName => {
+    return { namespace: cr.metadata!.namespace, name: cr.metadata!.name }
 }

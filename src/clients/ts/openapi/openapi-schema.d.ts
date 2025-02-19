@@ -290,6 +290,7 @@ export interface components {
             };
         };
         v1IPPool: {
+            kind?: string;
             metadata?: Record<string, any>;
             spec?: {
                 subnet: string;
@@ -316,6 +317,7 @@ export interface components {
             };
         };
         v1IP: {
+            kind?: string;
             metadata?: Record<string, any>;
             spec?: {
                 podName?: string;
@@ -347,6 +349,7 @@ export interface components {
             };
         };
         v1Subnet: {
+            kind?: string;
             metadata?: Record<string, any>;
             status?: {
                 v4availableIPs?: number;
@@ -10375,6 +10378,7 @@ export interface components {
             };
         };
         v1Vpc: {
+            kind?: string;
             metadata?: Record<string, any>;
             spec?: {
                 defaultSubnet?: string;

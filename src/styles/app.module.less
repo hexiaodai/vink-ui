@@ -15,7 +15,17 @@
 
   :global {
     .ant-pro-layout {
+
       // inset-inline-start: 100px;
+      // ::-webkit-scrollbar {
+      //   display: none;
+      // }
+
+      // :hover {
+      //   ::-webkit-scrollbar {
+      //     display: block;
+      //   }
+      // }
     }
 
     .ant-layout {
@@ -23,7 +33,18 @@
         inset-inline-start: unset;
         inset-inline-start: unset;
       }
-    }
 
+      .ant-layout-sider {
+        ::-webkit-scrollbar {
+          display: none;
+        }
+
+        :hover {
+          ::-webkit-scrollbar {
+            display: block;
+          }
+        }
+      }
+    }
   }
 }

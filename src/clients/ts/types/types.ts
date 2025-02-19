@@ -54,6 +54,19 @@ export interface FieldSelectorGroup {
     fieldSelectors: FieldSelector[];
 }
 /**
+ * @generated from protobuf message vink.kubevm.io.apis.types.OperatingSystem
+ */
+export interface OperatingSystem {
+    /**
+     * @generated from protobuf field: string name = 1;
+     */
+    name: string;
+    /**
+     * @generated from protobuf field: string version = 2;
+     */
+    version: string;
+}
+/**
  * @generated from protobuf enum vink.kubevm.io.apis.types.ResourceType
  */
 export enum ResourceType {
@@ -124,7 +137,15 @@ export enum ResourceType {
     /**
      * @generated from protobuf enum value: VIRTUAL_MACHINE_CLONE = 16;
      */
-    VIRTUAL_MACHINE_CLONE = 16
+    VIRTUAL_MACHINE_CLONE = 16,
+    /**
+     * @generated from protobuf enum value: PROVIDER_NETWORK = 17;
+     */
+    PROVIDER_NETWORK = 17,
+    /**
+     * @generated from protobuf enum value: VLAN = 18;
+     */
+    VLAN = 18
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class NamespaceName$Type extends MessageType<NamespaceName> {
@@ -299,3 +320,58 @@ class FieldSelectorGroup$Type extends MessageType<FieldSelectorGroup> {
  * @generated MessageType for protobuf message vink.kubevm.io.apis.types.FieldSelectorGroup
  */
 export const FieldSelectorGroup = new FieldSelectorGroup$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class OperatingSystem$Type extends MessageType<OperatingSystem> {
+    constructor() {
+        super("vink.kubevm.io.apis.types.OperatingSystem", [
+            { no: 1, name: "name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "version", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<OperatingSystem>): OperatingSystem {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.name = "";
+        message.version = "";
+        if (value !== undefined)
+            reflectionMergePartial<OperatingSystem>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: OperatingSystem): OperatingSystem {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string name */ 1:
+                    message.name = reader.string();
+                    break;
+                case /* string version */ 2:
+                    message.version = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: OperatingSystem, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string name = 1; */
+        if (message.name !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.name);
+        /* string version = 2; */
+        if (message.version !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.version);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message vink.kubevm.io.apis.types.OperatingSystem
+ */
+export const OperatingSystem = new OperatingSystem$Type();

@@ -4,6 +4,7 @@ import { formatMemory, namespaceNameKey } from "./k8s"
 import { NamespaceName, ResourceType } from '@/clients/ts/types/types'
 import { VirtualMachine } from "@/clients/virtual-machine"
 import { Multus } from "@/clients/multus"
+import { KubeResource } from "@/clients/clients"
 
 /**
  * Combines multiple class names into a single string.
@@ -134,6 +135,15 @@ export const getNamespaceName = (params: URLSearchParams) => {
     return { namespace: params.get("namespace") || "", name: params.get("name") || "" }
 }
 
+export const getNamespaceName2 = (params: URLSearchParams): NamespaceName | undefined => {
+    const ns = params.get("namespace") || ""
+    const name = params.get("name")
+    if (!name) {
+        return
+    }
+    return { namespace: ns, name: name }
+}
+
 export const updateNestedValue = (keypath: string[], newInfo: any, oriInfo: any, removeEmptyString: boolean = false) => {
     const value = keypath.reduce((acc, key) => acc && acc[key], newInfo)
     keypath.reduce((acc, key, index) => {
@@ -242,6 +252,31 @@ export const calculateAge = (creationTimestamp: string): string => {
     }
 }
 
+export const calculateResourceAge = <T extends KubeResource>(cr: T): string => {
+    const creationTimestamp = cr.metadata?.creationTimestamp
+
+    const now = new Date()
+
+    const createdAt = new Date(creationTimestamp)
+
+    const timeDiff = now.getTime() - createdAt.getTime()
+
+    const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24))
+    const hours = Math.floor((timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+    const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60))
+    const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000)
+
+    if (days > 0) {
+        return `${days}d`
+    } else if (hours > 0) {
+        return `${hours}h`
+    } else if (minutes > 0) {
+        return `${minutes}m`
+    } else {
+        return `${seconds}s`
+    }
+}
+
 // export const addNewOption = (
 //     inputValue: number | undefined,
 //     options: { label: string; value: number }[],
@@ -258,3 +293,42 @@ export const calculateAge = (creationTimestamp: string): string => {
 //         formRef.current.setFieldsValue({ [fieldName]: inputValue })
 //     }
 // }
+
+export const containsErrorKeywords = (str: string): boolean => {
+    const keywords = new Set(["err", "crash", "backoff"])
+    const lowerStr = str.toLowerCase()
+    return Array.from(keywords).some(keyword => lowerStr.includes(keyword))
+}
+
+export const containsProcessing = (str: string): boolean => {
+    return str.toLowerCase().endsWith("ing")
+}
+
+export const roundToDecimals = (num: number, decimals: number): number => {
+    const factor = Math.pow(10, decimals)
+    const n = Math.round(num * factor) / factor
+    return Number.isNaN(n) ? 0 : n
+}
+
+export const getProgressColor = (value: number) => {
+    if (value < 50) return '#52c41a'
+    if (value < 70) return '#faad14'
+    return '#f5222d'
+}
+
+export const bytesToHumanReadable = (bytes: number): string => {
+    const gb = 1e9
+    const tb = 1e12
+
+    if (bytes >= tb) {
+        return (bytes / tb).toFixed(2) + ' TB'
+    } else if (bytes >= gb) {
+        return (bytes / gb).toFixed(2) + ' GB'
+    } else {
+        return (bytes / 1e6).toFixed(2) + ' MB'
+    }
+}
+
+export const replaceSpacesWithHyphen = (str: string): string => {
+    return str.replace(/\s+/g, '-')
+}

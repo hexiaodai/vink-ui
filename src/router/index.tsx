@@ -3,10 +3,12 @@ import { Route, Routes } from "react-router-dom"
 import { Suspense } from "react"
 import { lazyComponents } from '@/components/lazy'
 
-const Storage = lazy(() => import("@/pages/storage/index"))
 const Network = lazy(() => import("@/pages/network/index"))
-const Compute = lazy(() => import("@/pages/compute/index"))
+const Virtual = lazy(() => import("@/pages/virtual/index"))
+const Physical = lazy(() => import("@/pages/physical/index"))
 const Dashboard = lazy(() => import("@/pages/dashboard/index"))
+const Plugin = lazy(() => import("@/pages/plugin/index"))
+const Task = lazy(() => import("@/pages/task/index"))
 
 const AppRouter = () => {
     return (
@@ -14,10 +16,11 @@ const AppRouter = () => {
             <Routes>
                 <Route path="/" />
                 <Route path="dashboard/*" element={lazyComponents(<Dashboard />)} />
-                <Route path="compute/*" element={lazyComponents(<Compute />)} />
+                <Route path="virtual/*" element={lazyComponents(<Virtual />)} />
+                <Route path="physical/*" element={lazyComponents(<Physical />)} />
                 <Route path="network/*" element={lazyComponents(<Network />)} />
-                <Route path="physical/*" />
-                <Route path="storage/*" element={lazyComponents(<Storage />)} />
+                <Route path="plugin/*" element={lazyComponents(<Plugin />)} />
+                <Route path="task/*" element={lazyComponents(<Task />)} />
             </Routes>
         </Suspense>
     )

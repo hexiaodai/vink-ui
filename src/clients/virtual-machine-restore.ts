@@ -14,6 +14,9 @@ export interface VirtualMachineRestore {
         namespace?: string
         generateName?: string
         creationTimestamp?: string
+        annotations?: {
+            [key: string]: string
+        }
     }
     spec?: {
         target: {
