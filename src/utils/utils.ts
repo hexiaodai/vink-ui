@@ -316,16 +316,20 @@ export const getProgressColor = (value: number) => {
     return '#f5222d'
 }
 
+export const safeNumber = (num: number) => {
+    return Number.isNaN(num) ? 0 : num
+}
+
 export const bytesToHumanReadable = (bytes: number): string => {
     const gb = 1e9
     const tb = 1e12
 
     if (bytes >= tb) {
-        return (bytes / tb).toFixed(2) + ' TB'
+        return safeNumber(bytes / tb).toFixed(2) + ' TB'
     } else if (bytes >= gb) {
-        return (bytes / gb).toFixed(2) + ' GB'
+        return safeNumber(bytes / gb).toFixed(2) + ' GB'
     } else {
-        return (bytes / 1e6).toFixed(2) + ' MB'
+        return safeNumber(bytes / 1e6).toFixed(2) + ' MB'
     }
 }
 
