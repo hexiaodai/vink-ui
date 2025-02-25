@@ -3,7 +3,7 @@ import { App, Dropdown, Modal, Popconfirm, Space, Table, TableProps, Tag } from 
 import { classNames } from '@/utils/utils'
 import { getNamespaceName, namespaceNameString } from '@/utils/k8s'
 import { LoadingOutlined } from '@ant-design/icons'
-import { deleteNetwork, generateNetwork } from '../virtualmachine'
+import { deleteNetwork, generateNetwork } from '../../virtualmachine'
 import { NetworkDrawer } from '../components/network-drawer'
 import { MenuProps } from 'antd/lib'
 import { EllipsisOutlined } from '@ant-design/icons'

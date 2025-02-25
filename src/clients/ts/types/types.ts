@@ -39,6 +39,10 @@ export interface FieldSelector {
      * @generated from protobuf field: repeated string values = 3;
      */
     values: string[];
+    /**
+     * @generated from protobuf field: string json_path = 4;
+     */
+    jsonPath: string;
 }
 /**
  * @generated from protobuf message vink.kubevm.io.apis.types.FieldSelectorGroup
@@ -208,7 +212,8 @@ class FieldSelector$Type extends MessageType<FieldSelector> {
         super("vink.kubevm.io.apis.types.FieldSelector", [
             { no: 1, name: "field_path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 2, name: "operator", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "values", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ }
+            { no: 3, name: "values", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "json_path", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<FieldSelector>): FieldSelector {
@@ -216,6 +221,7 @@ class FieldSelector$Type extends MessageType<FieldSelector> {
         message.fieldPath = "";
         message.operator = "";
         message.values = [];
+        message.jsonPath = "";
         if (value !== undefined)
             reflectionMergePartial<FieldSelector>(this, message, value);
         return message;
@@ -233,6 +239,9 @@ class FieldSelector$Type extends MessageType<FieldSelector> {
                     break;
                 case /* repeated string values */ 3:
                     message.values.push(reader.string());
+                    break;
+                case /* string json_path */ 4:
+                    message.jsonPath = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -255,6 +264,9 @@ class FieldSelector$Type extends MessageType<FieldSelector> {
         /* repeated string values = 3; */
         for (let i = 0; i < message.values.length; i++)
             writer.tag(3, WireType.LengthDelimited).string(message.values[i]);
+        /* string json_path = 4; */
+        if (message.jsonPath !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.jsonPath);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

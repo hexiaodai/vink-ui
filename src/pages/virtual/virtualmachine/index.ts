@@ -1,7 +1,7 @@
 import { instances as labels } from '@/clients/ts/label/labels.gen'
 import { instances as annotations } from '@/clients/ts/annotation/annotations.gen'
 import { generateKubeovnNetworkAnnon } from '@/utils/utils'
-import { namespaceNameKey, parseNamespaceNameKey } from '@/utils/k8s'
+import { parseNamespaceNameKey } from '@/utils/k8s'
 import { NamespaceName } from '@/clients/ts/types/types'
 import { VirtualMachine } from '@/clients/virtual-machine'
 import { DataVolume } from '@/clients/data-volume'
@@ -10,7 +10,7 @@ import { VirtualMachineNetwork } from '@/clients/ts/types/virtualmachine'
 export const defaultNetworkAnno = "v1.multus-cni.io/default-network"
 
 export const newVirtualMachine = (ns: NamespaceName, cm: { cpu: number, memory: number }, rootDisk: { image: DataVolume, capacity: number }, dataDisks: DataVolume[], netcfgs: VirtualMachineNetwork[], cloudInit: string) => {
-    const rootDiskName = generateRootDiskName(ns.name)
+    const rootDvName = generateRootDiskName(ns.name)
 
     const instance: VirtualMachine = {
         apiVersion: "kubevirt.io/v1",
@@ -23,7 +23,7 @@ export const newVirtualMachine = (ns: NamespaceName, cm: { cpu: number, memory: 
             dataVolumeTemplates: [
                 {
                     metadata: {
-                        name: rootDiskName,
+                        name: rootDvName,
                         labels: {
                             [labels.VinkDatavolumeType.name]: "root",
                             [labels.VinkOperatingSystem.name]: rootDisk.image.metadata!.labels?.[labels.VinkOperatingSystem.name],
@@ -74,7 +74,7 @@ export const newVirtualMachine = (ns: NamespaceName, cm: { cpu: number, memory: 
                         devices: {
                             disks: [
                                 {
-                                    name: rootDiskName,
+                                    name: "root",
                                     disk: { bus: "virtio" },
                                     bootOrder: 1
                                 },
@@ -107,9 +107,9 @@ export const newVirtualMachine = (ns: NamespaceName, cm: { cpu: number, memory: 
                     networks: [],
                     volumes: [
                         {
-                            name: rootDiskName,
+                            name: "root",
                             dataVolume: {
-                                name: rootDiskName
+                                name: rootDvName
                             },
                         },
                         {

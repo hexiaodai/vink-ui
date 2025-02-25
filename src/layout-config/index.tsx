@@ -100,17 +100,17 @@ const routeConfig = {
                     }
                 ]
             },
-            {
-                path: '/plugin',
-                name: '插件管理',
-                routes: [
-                    {
-                        path: '/plugin/installer',
-                        name: '插件',
-                        icon: <IconFont type="icon-fuwuqi" />
-                    }
-                ]
-            },
+            // {
+            //     path: '/plugin',
+            //     name: '插件管理',
+            //     routes: [
+            //         {
+            //             path: '/plugin/installer',
+            //             name: '插件',
+            //             icon: <IconFont type="icon-fuwuqi" />
+            //         }
+            //     ]
+            // },
             // {
             //     hideInMenu: true,
             //     path: '/compute',
