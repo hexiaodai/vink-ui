@@ -17,7 +17,7 @@ export const mergeFieldSelectors = (newFields: FieldSelector[], oldFields: Field
 
 export const getNamespaceFieldSelector = (namespace: string): FieldSelector | undefined => {
     if (namespace && namespace.length > 0) {
-        return { fieldPath: 'metadata.namespace', values: [namespace], operator: '=' }
+        return FieldSelector.create({ fieldPath: 'metadata.namespace', values: [namespace], operator: '=' })
     }
     return undefined
 }
