@@ -7,11 +7,11 @@ import { FieldSelectorOption, ResourceTable } from "@/components/resource-table"
 import { FieldSelector, NamespaceName, ResourceType } from "@/clients/ts/types/types"
 import { YamlDrawer } from "@/components/resource-yaml-drawer"
 
-const defaultSelector: FieldSelector = {
+const defaultSelector: FieldSelector = FieldSelector.create({
     fieldPath: "involvedObject.kind",
     operator: "~=",
     values: ["VirtualMachine", "VirtualMachineInstance"]
-}
+})
 
 const searchOptions: FieldSelectorOption[] = [
     { fieldPath: "involvedObject.name", label: "虚拟机", operator: "*=" }

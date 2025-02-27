@@ -6,8 +6,38 @@ import { NamespaceName } from '@/clients/ts/types/types'
 import { VirtualMachine } from '@/clients/virtual-machine'
 import { DataVolume } from '@/clients/data-volume'
 import { VirtualMachineNetwork } from '@/clients/ts/types/virtualmachine'
+import { VirtualMachinePool } from '@/clients/virtual-machine-pool'
 
 export const defaultNetworkAnno = "v1.multus-cni.io/default-network"
+
+export const newVirtualMachinePool = (vm: VirtualMachine, count: number) => {
+    vm.spec.template.metadata = vm.spec.template.metadata || {}
+    vm.spec.template.metadata.labels = vm.spec.template.metadata.labels || {}
+
+    vm.metadata = vm.metadata || {}
+    vm.metadata.labels = vm.metadata.labels || {}
+
+    vm.metadata.labels["kubevirt.io/vmpool"] = vm.metadata!.name
+    vm.spec.template.metadata.labels["kubevirt.io/vmpool"] = vm.metadata!.name
+    const vmpool: VirtualMachinePool = {
+        apiVersion: "pool.kubevirt.io/v1alpha1",
+        kind: "VirtualMachinePool",
+        metadata: {
+            name: vm.metadata!.name,
+            namespace: vm.metadata!.namespace,
+        },
+        spec: {
+            replicas: count,
+            selector: {
+                matchLabels: {
+                    "kubevirt.io/vmpool": vm.metadata!.name
+                }
+            },
+            virtualMachineTemplate: vm
+        }
+    }
+    return vmpool
+}
 
 export const newVirtualMachine = (ns: NamespaceName, cm: { cpu: number, memory: number }, rootDisk: { image: DataVolume, capacity: number }, dataDisks: DataVolume[], netcfgs: VirtualMachineNetwork[], cloudInit: string) => {
     const rootDvName = generateRootDiskName(ns.name)

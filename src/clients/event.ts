@@ -1,5 +1,5 @@
 import { defaultTimeout, resourceWatchClient } from "./clients"
-import { NamespaceName, ResourceType } from "./ts/types/types"
+import { FieldSelector, NamespaceName, ResourceType } from "./ts/types/types"
 import { EventType, WatchOptions } from "./ts/management/resource/v1alpha1/watch"
 import { namespaceNameKey } from "@/utils/k8s"
 import { eventSort, getErrorMessage, isAbortedError } from "@/utils/utils"
@@ -37,11 +37,11 @@ export const watchVirtualMachineEvents = async (ns: string, setEvents: React.Dis
                 }
             })
             if (ns.length > 0 && opts.fieldSelectorGroup) {
-                opts.fieldSelectorGroup.fieldSelectors.unshift({
+                opts.fieldSelectorGroup.fieldSelectors.unshift(FieldSelector.create({
                     fieldPath: "involvedObject.namespace",
                     operator: "=",
                     values: [ns]
-                })
+                }))
             }
 
             const call = resourceWatchClient.watch({

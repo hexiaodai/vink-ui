@@ -14,7 +14,7 @@ const AppRouter = () => {
     return (
         <Suspense>
             <Routes>
-                <Route path="/" />
+                <Route path="/" element={lazyComponents(<Dashboard />)} />
                 <Route path="dashboard/*" element={lazyComponents(<Dashboard />)} />
                 <Route path="virtual/*" element={lazyComponents(<Virtual />)} />
                 <Route path="physical/*" element={lazyComponents(<Physical />)} />

@@ -12,7 +12,7 @@ const routeConfig = {
                     {
                         path: '/dashboard',
                         name: 'Dashboard',
-                        icon: <IconFont type="icon-fuwuqi" />
+                        icon: <IconFont type="icon-dash-board" />
                     }
                 ]
             },
@@ -23,7 +23,7 @@ const routeConfig = {
                     {
                         path: '/virtual/machines',
                         name: '虚拟机',
-                        icon: <IconFont type="icon-fuwuqi" />
+                        icon: <IconFont type="icon-xuniji-" />
                     },
                     {
                         path: '/virtual/images',
@@ -33,7 +33,7 @@ const routeConfig = {
                     {
                         path: '/virtual/disks',
                         name: '磁盘',
-                        icon: <IconFont type="icon-disk" />
+                        icon: <IconFont type="icon-cipan1" />
                     }
                 ]
             },
@@ -65,12 +65,12 @@ const routeConfig = {
                     {
                         path: '/network/provider-networks',
                         name: 'Provider Network',
-                        icon: <IconFont type="icon-select-sub-rfe" />
+                        icon: <IconFont type="icon-shezhipeizhi_setting-config" />
                     },
                     {
                         path: '/network/vlans',
                         name: 'VLAN',
-                        icon: <IconFont type="icon-select-sub-rfe" />
+                        icon: <IconFont type="icon-vxlan" />
                     },
                     {
                         path: '/network/vpcs',
@@ -80,7 +80,7 @@ const routeConfig = {
                     {
                         path: '/network/subnets',
                         name: '子网',
-                        icon: <IconFont type="icon-wangluo1-copy" />
+                        icon: <IconFont type="icon-ziwang1" />
                     }
                 ]
             },
@@ -91,12 +91,12 @@ const routeConfig = {
                     {
                         path: '/task/clones',
                         name: '克隆',
-                        icon: <IconFont type="icon-fuwuqi" />
+                        icon: <IconFont type="icon-kelong" />
                     },
                     {
                         path: '/task/events',
                         name: '事件',
-                        icon: <IconFont type="icon-fuwuqi" />
+                        icon: <IconFont type="icon-shijianchaxun" />
                     }
                 ]
             },
@@ -184,7 +184,7 @@ export const LayoutSettings: ProLayoutProps = {
     logo: 'https://avatars.githubusercontent.com/u/173601901?s=48&v=4',
     layout: 'side',
     // layout: 'mix',
-    fixSiderbar: true,
+    fixSiderbar: true
     // splitMenus: true
     // menuItemRender: (item, dom) => <NavLink onClick={() => setPathname(item.path || '/')} to={item.path || '/'}>{dom}</NavLink>
 }
