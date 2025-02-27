@@ -2,7 +2,7 @@ import { GrpcWebFetchTransport } from "@protobuf-ts/grpcweb-transport"
 import { ResourceWatchManagementClient } from "@/clients/ts/management/resource/v1alpha1/watch.client"
 import { VirtualMachineManagementClient } from "@/clients/ts/management/virtualmachine/v1alpha1/virtualmachine.client"
 import { ResourceManagementClient } from "@/clients/ts/management/resource/v1alpha1/resource.client"
-import { NamespaceName, ResourceType } from "@/clients/ts/types/types"
+import { FieldSelector, NamespaceName, ResourceType } from "@/clients/ts/types/types"
 import { VirtualMachinePowerStateRequest_PowerState } from "@/clients/ts/management/virtualmachine/v1alpha1/virtualmachine"
 import { NotificationInstance } from "antd/es/notification/interface"
 import { VirtualMachine } from "./virtual-machine"
@@ -245,7 +245,7 @@ export const watchSingle = async <T extends KubeResource>(type: ResourceType, nn
         fieldSelectorGroup: { operator: "&&", fieldSelectors: [{ fieldPath: "metadata.name", operator: "=", values: [nn.name] }] }
     })
     if (nn.namespace.length > 0) {
-        opts.fieldSelectorGroup!.fieldSelectors.unshift({ fieldPath: "metadata.namespace", operator: "=", values: [nn.namespace] })
+        opts.fieldSelectorGroup!.fieldSelectors.unshift(FieldSelector.create({ fieldPath: "metadata.namespace", operator: "=", values: [nn.namespace] }))
     }
     try {
         await new Promise<void>((resolve, reject) => {
@@ -297,6 +297,7 @@ export const watchSingle = async <T extends KubeResource>(type: ResourceType, nn
 
 const resolveTypeMap = new Map([
     ["VirtualMachine", ResourceType.VIRTUAL_MACHINE],
+    ["VirtualMachinePool", ResourceType.VIRTUAL_MACHINE_POOL],
     ["DataVolume", ResourceType.DATA_VOLUME],
     ["NetworkAttachmentDefinition", ResourceType.MULTUS],
     ["Event", ResourceType.EVENT],
@@ -314,6 +315,7 @@ const resolveTypeMap = new Map([
 
 const resolveTypeNameMap = new Map([
     [ResourceType.VIRTUAL_MACHINE, "virtual machine"],
+    [ResourceType.VIRTUAL_MACHINE_POOL, "virtual machine pool"],
     [ResourceType.DATA_VOLUME, "data volume"],
     [ResourceType.MULTUS, "multus"],
     [ResourceType.EVENT, "event"],

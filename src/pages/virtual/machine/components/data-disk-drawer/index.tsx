@@ -17,7 +17,7 @@ interface DataDiskDrawerProps {
     onConfirm?: (dataDisks: DataVolume[]) => void
 }
 
-const dvTypeSelector: FieldSelector = { fieldPath: labelSelector(labels.VinkDatavolumeType.name), operator: "=", values: ["data"] }
+const dvTypeSelector: FieldSelector = FieldSelector.create({ fieldPath: labelSelector(labels.VinkDatavolumeType.name), operator: "=", values: ["data"] })
 
 export const DataDiskDrawer: React.FC<DataDiskDrawerProps> = ({ open, current, onCanel, onConfirm }) => {
     const [selectedRows, setSelectedRows] = useState<DataVolume[]>()

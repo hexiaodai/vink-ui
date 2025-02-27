@@ -4,7 +4,7 @@ import { namespaceNameKey } from '@/utils/k8s'
 import { NavLink } from 'react-router-dom'
 import { instances as labels } from "@/clients/ts/label/labels.gen"
 import { calculateAge } from '@/utils/utils'
-import { NamespaceName, ResourceType } from '@/clients/ts/types/types'
+import { FieldSelector, NamespaceName, ResourceType } from '@/clients/ts/types/types'
 import { annotationSelector, replaceDots } from '@/utils/search'
 import { EllipsisOutlined } from '@ant-design/icons'
 import { FieldSelectorOption, ResourceTable } from '@/components/resource-table'
@@ -16,7 +16,7 @@ import type { ProColumns } from '@ant-design/pro-components'
 import DataVolumeStatus from '@/components/datavolume-status'
 import { delete2 } from '@/clients/clients'
 
-const dvDataTypeSelector = { fieldPath: `metadata.labels.${replaceDots(labels.VinkDatavolumeType.name)}`, operator: "!=", values: ["image"] }
+const dvDataTypeSelector = FieldSelector.create({ fieldPath: `metadata.labels.${replaceDots(labels.VinkDatavolumeType.name)}`, operator: "!=", values: ["image"] })
 
 const searchOptions: FieldSelectorOption[] = [
     { fieldPath: "metadata.name", label: "名称", operator: "*=" },

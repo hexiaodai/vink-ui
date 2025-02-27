@@ -18,8 +18,8 @@ import VirtualMachineManagement from '../components/management'
 const searchOptions: FieldSelectorOption[] = [
     { fieldPath: "metadata.name", label: "名称", operator: "*=" },
     { fieldPath: annotationSelector(annotations.VinkNetworks.name), label: "IP 地址", operator: "*=" },
-    { fieldPath: annotationSelector(annotations.VinkHost.name), jsonPath: "name", label: "物理机名称", operator: "*=" },
-    { fieldPath: annotationSelector(annotations.VinkHost.name), jsonPath: "ips", label: "物理机 IP 地址", operator: "*=" }
+    { fieldPath: annotationSelector(annotations.VinkHost.name), label: "物理机名称", operator: "*=" },
+    { fieldPath: annotationSelector(annotations.VinkHost.name), label: "物理机 IP 地址", operator: "*=" }
 ]
 
 const columns: ProColumns<VirtualMachine>[] = [

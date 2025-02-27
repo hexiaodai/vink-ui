@@ -17,7 +17,7 @@ interface RootDiskDrawerProps {
     onConfirm?: (rootDisk: DataVolume) => void
 }
 
-const dvTypeSelector: FieldSelector = { fieldPath: labelSelector(labels.VinkDatavolumeType.name), operator: "=", values: ["image"] }
+const dvTypeSelector: FieldSelector = FieldSelector.create({ fieldPath: labelSelector(labels.VinkDatavolumeType.name), operator: "=", values: ["image"] })
 
 export const RootDiskDrawer: React.FC<RootDiskDrawerProps> = ({ open, current, onCanel, onConfirm }) => {
     const [selectedRows, setSelectedRows] = useState<DataVolume[]>()

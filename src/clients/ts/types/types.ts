@@ -149,7 +149,11 @@ export enum ResourceType {
     /**
      * @generated from protobuf enum value: VLAN = 18;
      */
-    VLAN = 18
+    VLAN = 18,
+    /**
+     * @generated from protobuf enum value: VIRTUAL_MACHINE_POOL = 19;
+     */
+    VIRTUAL_MACHINE_POOL = 19
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class NamespaceName$Type extends MessageType<NamespaceName> {

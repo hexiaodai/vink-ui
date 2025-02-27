@@ -4,7 +4,7 @@ import { namespaceNameKey } from '@/utils/k8s'
 import { NavLink } from 'react-router-dom'
 import { instances as labels } from "@/clients/ts/label/labels.gen"
 import { calculateAge } from '@/utils/utils'
-import { NamespaceName, ResourceType } from '@/clients/ts/types/types'
+import { FieldSelector, NamespaceName, ResourceType } from '@/clients/ts/types/types'
 import { replaceDots } from '@/utils/search'
 import { EllipsisOutlined } from '@ant-design/icons'
 import { ResourceTable } from '@/components/resource-table'
@@ -16,7 +16,7 @@ import OperatingSystem from '@/components/operating-system'
 import DataVolumeStatus from '@/components/datavolume-status'
 import { delete2 } from '@/clients/clients'
 
-const dvImageTypeSelector = { fieldPath: `metadata.labels.${replaceDots(labels.VinkDatavolumeType.name)}`, operator: "=", values: ["image"] }
+const dvImageTypeSelector = FieldSelector.create({ fieldPath: `metadata.labels.${replaceDots(labels.VinkDatavolumeType.name)}`, operator: "=", values: ["image"] })
 
 export default () => {
     const { notification } = App.useApp()

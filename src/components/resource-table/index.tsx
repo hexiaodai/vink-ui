@@ -25,13 +25,13 @@ export interface FieldSelectorOption {
     fieldPath: string,
     label: string,
     operator: string,
-    jsonPath?: string,
+    // jsonPath?: string,
     items?: { inputValue: string, values: string[], operator: string }[]
 }
 
 export interface InputOption {
     fieldPath: string,
-    jsonPath?: string,
+    // jsonPath?: string,
     operator: string,
     label: string,
     values?: string[],
@@ -119,7 +119,7 @@ export const ResourceTable = <T extends KubeResource>({ tableKey, resourceType, 
         newInputOption.fieldPath = selected.fieldPath
         newInputOption.operator = selected.operator
         newInputOption.label = selected.label
-        newInputOption.jsonPath = selected.jsonPath
+        // newInputOption.jsonPath = selected.jsonPath
 
         if (inputValue) {
             newInputOption.values = [inputValue]
@@ -157,7 +157,8 @@ export const ResourceTable = <T extends KubeResource>({ tableKey, resourceType, 
                         if (inputOption.fieldPath.length > 0) {
                             const values = inputOption.values && inputOption.values.length > 0 ? inputOption.values : [searchValue]
                             if (values.length > 0 && values[0] && values[0].length > 0) {
-                                newFields.push({ fieldPath: inputOption.fieldPath, jsonPath: inputOption.jsonPath ?? "", operator: inputOption.operator, values: values })
+                                newFields.push(FieldSelector.create({ fieldPath: inputOption.fieldPath, operator: inputOption.operator, values: values }))
+                                // newFields.push({ fieldPath: inputOption.fieldPath, jsonPath: inputOption.jsonPath ?? "", operator: inputOption.operator, values: values })
                             }
                         }
                         const selecoters = getDefaultSelecoters()

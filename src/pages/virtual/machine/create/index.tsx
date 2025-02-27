@@ -1,14 +1,14 @@
 import { FooterToolbar, ProCard, ProForm, ProFormItem, ProFormText } from '@ant-design/pro-components'
 import { App, Button, Divider, Flex, InputNumber, Space, Table, TableProps, Tag } from 'antd'
 import { useEffect, useRef, useState } from 'react'
-import { namespaceNameKey, namespaceNameString, parseMemoryValue } from '@/utils/k8s'
+import { namespaceNameKey, parseMemoryValue } from '@/utils/k8s'
 import { classNames } from '@/utils/utils'
 import { DataDiskDrawer } from '@/pages/virtual/machine/components/data-disk-drawer'
 import { useNavigate } from 'react-router-dom'
 import { useNamespace } from '@/common/context'
 import { yaml as langYaml } from "@codemirror/lang-yaml"
 import { PlusOutlined } from '@ant-design/icons'
-import { newVirtualMachine } from '../../virtualmachine'
+import { newVirtualMachine, newVirtualMachinePool } from '../../virtualmachine'
 import { NetworkDrawer } from '../components/network-drawer'
 import { defaultCloudInit } from '../../virtualmachine'
 import { RootDiskDrawer } from '../components/root-disk-drawer'
@@ -32,6 +32,7 @@ type formValues = {
     rootDiskCapacity: number
     dataDisks: DataVolume[]
     networks: VirtualMachineNetwork[]
+    vmPool: number
     cloudInit: string
 }
 
@@ -69,7 +70,12 @@ export default () => {
         const rootDisk = { image: fields.rootDisk, capacity: fields.rootDiskCapacity }
         const instance = newVirtualMachine(ns, cpuMem, rootDisk, fields.dataDisks || [], fields.networks, fields.cloudInit)
 
-        await create(instance, undefined, undefined, notification)
+        if (fields.vmPool && fields.vmPool > 1) {
+            const vmPool = newVirtualMachinePool(instance, fields.vmPool)
+            await create(vmPool, undefined, undefined, notification)
+        } else {
+            await create(instance, undefined, undefined, notification)
+        }
 
         navigate('/virtual/machines')
     }
@@ -430,6 +436,20 @@ export default () => {
                     </ProCard>
 
                     <ProCard title="高级设置">
+                        <ProFormItem
+                            label="虚拟机池"
+                            name="vmPool"
+                            tooltip="设置虚拟机池的大小，大于 0 时，虚拟机将自动加入该池"
+                        >
+                            <InputNumber<number>
+                                min={0}
+                                max={1024}
+                                step={1}
+                                placeholder="输入虚拟机池大小"
+                                style={{ width: 440 }}
+                            />
+                        </ProFormItem>
+
                         <ProFormItem name="cloudInit" label="Cloud-Init">
                             <CodeMirror
                                 className={classNames(codeMirrorStyles["editor"], commonStyles["small-scrollbar"])}
